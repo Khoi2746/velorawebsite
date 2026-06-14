@@ -2,7 +2,6 @@ package com.velora.website.Controller;
 
 import com.velora.website.Entity.SanPham;
 import com.velora.website.Repository.SanPhamRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,7 +11,6 @@ import java.util.List;
 @CrossOrigin("*") // Mở cửa cho Vue ở cổng khác gọi vào
 public class SanPhamController {
 
-    @Autowired
     private SanPhamRepository sanPhamRepository;
 
     // Lấy tất cả sản phẩm
