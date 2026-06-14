@@ -1,0 +1,23 @@
+/* Reset lại toàn bộ khoảng cách mặc định */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #1e1b18; /* Màu nền tối luxury theo thiết kế */
+  overflow-x: hidden; /* Chống xuất hiện thanh cuộn ngang */
+}
+
+/* Ép thẻ chứa web tràn full 100% màn hình */
+#app {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0;
+  padding: 0;
+}
