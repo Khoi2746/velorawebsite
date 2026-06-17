@@ -6,11 +6,15 @@ import DangNhap from '../components/Login.vue'
 import DangKy from '../components/SignIn.vue'
 import ThuongHieu from '../components/User/ThuongHieu.vue'
 import SanPham from '../components/User/SanPham.vue'
+
+// Các file Admin
 import AdminDashboard from '../components/Admin/AdminDashboard.vue'
 import QuanLySanPham from '../components/Admin/QuanLySanPham.vue'
 import QuanLyNguoiDung from '../components/Admin/QuanLyNguoiDung.vue'
 import QuanLyDonHang from '../components/Admin/QuanLyDonHang.vue'
-import QuanLyKho from '../components/Admin/QuanLyKho.vue';
+import QuanLyKho from '../components/Admin/QuanLyKho.vue'
+import XuatHoaDon from '../components/Admin/XuatHoaDon.vue' // IMPORT THÊM FILE XUẤT HÓA ĐƠN
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -39,37 +43,45 @@ const router = createRouter({
       name: 'SanPham',
       component: SanPham
     },
+    
+    // ================== VÙNG ROUTE CỦA ADMIN ==================
     {
-    path: '/admin/dashboard',
-    name: 'AdminDashboard',
-    component: AdminDashboard,
-    meta: { requiresAdmin: true }
+      path: '/admin/dashboard',
+      name: 'AdminDashboard',
+      component: AdminDashboard,
+      meta: { requiresAdmin: true }
     },
     {
-    path: '/admin/products',
-    name: 'QLSanPham',
-    component: QuanLySanPham,
-    meta: { requiresAdmin: true }
+      path: '/admin/products',
+      name: 'QLSanPham',
+      component: QuanLySanPham,
+      meta: { requiresAdmin: true }
     },
     {
-    path: '/admin/users',
-    name: 'QLNguoiDung',
-    component: QuanLyNguoiDung,
-    meta: { requiresAdmin: true }
+      path: '/admin/users',
+      name: 'QLNguoiDung',
+      component: QuanLyNguoiDung,
+      meta: { requiresAdmin: true }
     },
     {
-    path: '/admin/orders',
-    name: 'QLDonHang',
-    component: QuanLyDonHang,
-    meta: {requiresAdmin: true}
+      path: '/admin/orders',
+      name: 'QLDonHang',
+      component: QuanLyDonHang,
+      meta: { requiresAdmin: true }
     },
     {
-    path: '/admin/inventory',
-    name: 'AdminInventory',
-    component: QuanLyKho
+      path: '/admin/inventory',
+      name: 'AdminInventory',
+      component: QuanLyKho,
+      meta: { requiresAdmin: true } // ĐÃ BỔ SUNG BẢO MẬT CHO TRANG KHO
+    },
+    {
+      path: '/admin/invoices',
+      name: 'XuatHoaDon',
+      component: XuatHoaDon,
+      meta: { requiresAdmin: true } // ĐÃ THÊM ROUTE CHO XUẤT HÓA ĐƠN
     }
   ]
-  
 })
 
-export default router
+export default router   

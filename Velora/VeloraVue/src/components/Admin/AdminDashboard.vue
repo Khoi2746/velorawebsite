@@ -47,11 +47,13 @@
 import { ref } from 'vue';
 
 const menuItems = [
-    { name: 'Dashboard', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
-    { name: 'Products', link: '/admin/products', icon: 'fa-solid fa-box-open' },
-    { name: 'Users', link: '/admin/users', icon: 'fa-solid fa-users' },
-    { name: 'Orders', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
-    { name: 'Inventory', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
+    { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
+    { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open' },
+    { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
+    { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
+    { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
+    { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' }
+
 ];
 
 const cards = [
