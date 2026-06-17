@@ -9,17 +9,113 @@
           <p>
             Trải nghiệm sự hoàn mỹ từ các kiệt tác Classic O1, Heritage Moonphase, Noir Starlight và Da Galuchat.
           </p>
-          <button class="btn-explore">KHÁM PHÁ NGAY</button>
+          <router-link to="/dong-ho-co-san" class="btn-explore">KHÁM PHÁ NGAY</router-link>
+        </div>
+      </section>
+
+      <section class="values-section">
+        <div class="container">
+          <div class="values-grid">
+            <div class="value-item">
+              <span class="value-icon">✦</span>
+              <h3>Tuyệt Tác Chính Hãng</h3>
+              <p>Cam kết 100% sản phẩm chế tác cơ khí chính xác nguyên bản Thụy Sỹ.</p>
+            </div>
+            <div class="value-item">
+              <span class="value-icon">🛡️</span>
+              <h3>Bảo Hộ Độc Bản</h3>
+              <p>Chế độ bảo hành toàn cầu lên đến 5 năm độc quyền tại hệ thống Velora.</p>
+            </div>
+            <div class="value-item">
+              <span class="value-icon">✈️</span>
+              <h3>Vận Chuyển Đế Vương</h3>
+              <p>Giao hàng hỏa tốc miễn phí đính kèm bảo hiểm rủi ro tuyệt đối.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="collections-section">
+        <div class="container">
+          <div class="section-title-wrapper">
+            <h2 class="section-title">BỘ SƯU TẬP ĐẶC BIỆT</h2>
+            <div class="title-divider"><span class="diamond"></span></div>
+          </div>
+          
+          <div class="collections-grid">
+            <div class="collection-card card-large">
+              <div class="collection-overlay"></div>
+              <div class="collection-content">
+                <span>Dành Cho Quý Ông</span>
+                <h3>MEN'S MECHANICAL</h3>
+                <router-link to="/dong-ho-co-san" class="btn-link">Khám phá <i class="fas fa-arrow-right"></i></router-link>
+              </div>
+            </div>
+            <div class="collection-card card-small">
+              <div class="collection-overlay"></div>
+              <div class="collection-content">
+                <span>Tuyệt Tác Kim Cương</span>
+                <h3>LADY EDITION</h3>
+                <router-link to="/dong-ho-co-san" class="btn-link">Khám phá <i class="fas fa-arrow-right"></i></router-link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="highlight-section">
+        <div class="container">
+          <div class="section-title-wrapper">
+            <h2 class="section-title">KIỆT TÁC ĐÁNG CHÚ Ý</h2>
+            <div class="title-divider"><span class="diamond"></span></div>
+          </div>
+
+          <div class="showcase-grid">
+            <div class="showcase-card">
+              <div class="card-tag">NEW</div>
+              <div class="card-img-holder">
+                <img src="/img/VeloraIcon.png" alt="Hublot Classic Fusion" @error="(e) => e.target.src='https://images.unsplash.com/photo-1547996160-81dfa63595aa?q=80&w=600'" />
+              </div>
+              <div class="card-meta">
+                <h4>Classic Fusion Titanium</h4>
+                <p class="card-price">245.000.000 ₫</p>
+                <router-link to="/dong-ho-co-san" class="btn-view-more">CHI TIẾT KIỆT TÁC</router-link>
+              </div>
+            </div>
+
+            <div class="showcase-card">
+              <div class="card-tag">PRESTIGE</div>
+              <div class="card-img-holder">
+                <img src="/img/VeloraIcon.png" alt="Patek Philippe Grand" @error="(e) => e.target.src='https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?q=80&w=600'" />
+              </div>
+              <div class="card-meta">
+                <h4>Grand Complications Gold</h4>
+                <p class="card-price">Giá chờ hàng</p>
+                <router-link to="/dong-ho-co-san" class="btn-view-more">CHI TIẾT KIỆT TÁC</router-link>
+              </div>
+            </div>
+
+            <div class="showcase-card">
+              <div class="card-tag">LIMITED</div>
+              <div class="card-img-holder">
+                <img src="/img/VeloraIcon.png" alt="Velora Noir" @error="(e) => e.target.src='https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?q=80&w=600'" />
+              </div>
+              <div class="card-meta">
+                <h4>Velora Noir Starlight</h4>
+                <p class="card-price">189.000.000 ₫</p>
+                <router-link to="/dong-ho-co-san" class="btn-view-more">CHI TIẾT KIỆT TÁC</router-link>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
+
+    <Footer />
   </div>
-  <Footer />
 </template>
 
 <script setup>
-// Import component Header từ thư mục components
-// Nhớ đảm bảo đường dẫn '../components/Header.vue' là chuẩn với cấu trúc thư mục của em nha
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
 </script>
@@ -29,61 +125,331 @@ import Footer from '../Footer.vue'
 .home-wrapper {
   width: 100%;
   min-height: 100vh;
-  background-color: #0d0d0d; /* Nền đen luxury tổng thể */
+  background-color: #0d0d0d;
   color: #ffffff;
+  font-family: 'Arial', sans-serif;
+  overflow-x: hidden;
 }
 
-/* ================= BANNER CHÀO MỪNG ================= */
+.container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* TIÊU ĐỀ SECTION CHUNG */
+.section-title-wrapper {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.section-title {
+  font-family: 'Times New Roman', serif;
+  font-size: 28px;
+  letter-spacing: 5px;
+  color: #ffffff;
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+.title-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.title-divider::before,
+.title-divider::after {
+  content: '';
+  width: 60px;
+  height: 1px;
+  background-color: #d1aa68;
+}
+
+.diamond {
+  width: 6px;
+  height: 6px;
+  background-color: #d1aa68;
+  transform: rotate(45deg);
+}
+
+/* ================= HERO BANNER SECTION ================= */
 .hero-section {
-  /* Cho banner chiếm hết chiều cao màn hình trừ đi 80px của thanh Header */
   height: calc(100vh - 80px); 
   display: flex;
   justify-content: center;
   align-items: center;
   text-align: center;
-  /* Hiệu ứng gradient nền tối sang trọng */
-  background: radial-gradient(circle at center, #1a1714 0%, #0d0d0d 100%);
+  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(13, 13, 13, 1)), 
+              radial-gradient(circle at center, #24201D 0%, #0d0d0d 100%);
   padding: 0 20px;
 }
 
 .hero-text {
-  max-width: 800px;
+  max-width: 850px;
 }
 
 .hero-text h1 {
   font-family: 'Times New Roman', serif;
-  font-size: 52px;
-  color: #d1aa68; /* Màu vàng Gold thương hiệu */
-  letter-spacing: 2px;
-  margin-bottom: 20px;
+  font-size: 56px;
+  color: #ffffff;
+  letter-spacing: 3px;
+  margin-bottom: 25px;
+  font-weight: 400;
+  line-height: 1.2;
 }
 
 .hero-text p {
-  font-family: 'Arial', sans-serif;
-  font-size: 16px;
-  color: #cccccc;
-  margin: 0 auto 40px auto;
+  font-size: 15px;
+  color: #aaaaaa;
+  margin: 0 auto 45px auto;
   max-width: 600px;
-  line-height: 1.6;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
 }
 
-/* ================= NÚT KHÁM PHÁ ================= */
+/* NÚT KHÁM PHÁ KIỂU LUXURY MỚI */
 .btn-explore {
-  padding: 15px 40px;
-  background-color: #d1aa68;
-  color: #111111;
-  border: none;
-  font-size: 14px;
-  font-weight: bold;
+  display: inline-block;
+  padding: 14px 45px;
+  background-color: transparent;
+  color: #d1aa68;
+  border: 1px solid #d1aa68;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  text-decoration: none;
+  transition: all 0.4s ease;
 }
 
 .btn-explore:hover {
-  background-color: #b8955b; /* Đổi màu vàng sậm hơn khi hover */
-  transform: translateY(-3px); /* Hiệu ứng nổi bồng bềnh lên một xíu */
-  box-shadow: 0 10px 20px rgba(209, 170, 104, 0.2);
+  background-color: #d1aa68;
+  color: #111111;
+  box-shadow: 0 8px 25px rgba(209, 170, 104, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ================= CORE VALUES SECTION ================= */
+.values-section {
+  padding: 80px 0;
+  background-color: #12100f;
+  border-top: 1px solid #24201D;
+  border-bottom: 1px solid #24201D;
+}
+
+.values-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  text-align: center;
+}
+
+.value-item {
+  padding: 10px 20px;
+}
+
+.value-icon {
+  font-size: 24px;
+  color: #d1aa68;
+  display: block;
+  margin-bottom: 15px;
+}
+
+.value-item h3 {
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.value-item p {
+  font-size: 13px;
+  color: #888888;
+  line-height: 1.6;
+}
+
+/* ================= FEATURED COLLECTIONS SECTION ================= */
+.collections-section {
+  padding: 100px 0;
+  background-color: #0d0d0d;
+}
+
+.collections-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 30px;
+}
+
+.collection-card {
+  position: relative;
+  height: 450px;
+  background-color: #1a1714;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-end;
+  padding: 40px;
+  overflow: hidden;
+  border: 1px solid #24201D;
+  background-size: cover;
+  background-position: center;
+  transition: all 0.5s ease;
+}
+
+/* Nền ảnh trừu tượng giả lập khi chưa có ảnh thực tế */
+.card-large {
+  background-image: linear-gradient(to right, rgba(13,13,13,0.9), rgba(13,13,13,0.2)), url('https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?q=80&w=800');
+}
+.card-small {
+  background-image: linear-gradient(to top, rgba(13,13,13,0.9), rgba(13,13,13,0.2)), url('https://images.unsplash.com/photo-1539874754764-5a96559165b0?q=80&w=800');
+}
+
+.collection-card:hover {
+  border-color: #d1aa68;
+  box-shadow: 0 10px 30px rgba(209, 170, 104, 0.05);
+}
+
+.collection-content {
+  position: relative;
+  z-index: 2;
+}
+
+.collection-content span {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #d1aa68;
+  letter-spacing: 2px;
+}
+
+.collection-content h3 {
+  font-family: 'Times New Roman', serif;
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: 2px;
+  color: #ffffff;
+  margin: 8px 0 20px;
+}
+
+.btn-link {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 1px;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+.collection-card:hover .btn-link {
+  color: #d1aa68;
+}
+
+/* ================= PRODUCT SHOWCASE SECTION ================= */
+.highlight-section {
+  padding: 0 0 120px 0;
+  background-color: #0d0d0d;
+}
+
+.showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+
+.showcase-card {
+  background-color: #12100f;
+  border: 1px solid #1f1a17;
+  padding: 40px 25px;
+  text-align: center;
+  position: relative;
+  border-radius: 4px;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.showcase-card:hover {
+  transform: translateY(-8px);
+  border-color: #d1aa68;
+  box-shadow: 0 15px 40px rgba(209, 170, 104, 0.05);
+}
+
+.card-tag {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: #d1aa68;
+  border: 1px solid #d1aa68;
+  padding: 2px 10px;
+}
+
+.card-img-holder {
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 25px;
+}
+
+.card-img-holder img {
+  max-width: 80%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: brightness(0.95);
+  transition: transform 0.5s ease;
+}
+
+.showcase-card:hover .card-img-holder img {
+  transform: scale(1.05);
+}
+
+.card-meta h4 {
+  font-size: 15px;
+  color: #ffffff;
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.card-price {
+  font-size: 14px;
+  color: #d1aa68;
+  font-weight: 600;
+  margin-bottom: 25px;
+}
+
+.btn-view-more {
+  display: block;
+  width: 100%;
+  padding: 12px 0;
+  background-color: #1a1714;
+  color: #ffffff;
+  border: 1px solid #24201D;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.showcase-card:hover .btn-view-more {
+  background-color: #d1aa68;
+  color: #111111;
+  border-color: #d1aa68;
+}
+
+/* RESPONSIVE */
+@media (max-width: 992px) {
+  .values-grid, .collections-grid, .showcase-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .hero-text h1 {
+    font-size: 38px;
+  }
 }
 </style>

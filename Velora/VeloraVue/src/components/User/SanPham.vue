@@ -5,10 +5,11 @@
     <main class="shop-content">
       <div class="container">
         <div class="title-wrapper">
-          <h1 class="page-title">SHOP</h1>
+          <h1 class="page-title">VELORA</h1>
           <div class="title-divider">
             <span class="diamond"></span>
           </div>
+          <p class="page-subtitle">Khám phá những tuyệt tác thời gian cơ khí chính xác có sẵn tại cửa hàng</p>
         </div>
 
         <div class="filter-bar">
@@ -77,18 +78,21 @@
 
         <div class="product-grid" v-if="filteredProducts.length > 0">
           <div class="product-card" v-for="product in filteredProducts" :key="product.maSanPham">
-            <div class="tag-new" v-if="product.maSanPham % 3 === 1">NEW</div>
+            <div class="tag-new" v-if="product.maSanPham % 3 === 1">NEW COLLECTION</div>
+            
             <div class="product-image-wrapper">
               <img
                 :src="product.anhDaiDien && product.anhDaiDien.startsWith('http') ? product.anhDaiDien : '/img/' + product.anhDaiDien"
                 :alt="product.tenSanPham" class="product-image" />
             </div>
+            
             <div class="product-info">
               <h3 class="product-name">{{ product.tenSanPham }}</h3>
               <div class="product-price">
                 {{ product.giaBan > 400000000 ? 'Giá chờ hàng' : formatPrice(product.giaBan) }}
               </div>
             </div>
+            
             <div class="product-action">
               <router-link :to="`/san-pham/${product.maSanPham}`" class="btn-contact">
                 XEM CHI TIẾT
@@ -198,45 +202,52 @@ onUnmounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #ffffff;
+  background-color: #fdfdfd;
 }
 
 .shop-content {
   flex: 1;
-  padding: 40px 20px 100px;
+  padding: 60px 20px 120px;
 }
 
 .container {
-  max-width: 1400px;
+  max-width: 1300px;
   margin: 0 auto;
 }
 
 .title-wrapper {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 50px;
 }
 
 .page-title {
-  font-family: 'Arial', sans-serif;
-  color: #333333;
-  font-size: 26px;
-  font-weight: normal;
-  letter-spacing: 3px;
+  color: #24201D;
+  font-size: 32px;
+  font-weight: 300;
+  letter-spacing: 6px;
   margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: #888888;
+  margin-top: 15px;
+  letter-spacing: 0.5px;
 }
 
 .title-divider {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: 20px;
 }
 
 .title-divider::before,
 .title-divider::after {
   content: '';
   display: block;
-  width: 60px;
+  width: 80px;
   height: 1px;
   background-color: #d1aa68;
 }
@@ -248,116 +259,94 @@ onUnmounted(() => {
   transform: rotate(45deg);
 }
 
-/* ================= CSS CUSTOM DROPDOWN ================= */
+/* ================= BỘ LỌC DROPDOWN SANG TRỌNG ================= */
 .filter-bar {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 60px;
+  gap: 50px;
   margin-bottom: 60px;
   position: relative;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  padding: 15px 0;
 }
 
 .custom-dropdown {
   position: relative;
   cursor: pointer;
-  min-width: 150px;
+  min-width: 160px;
 }
 
 .dropdown-selected {
-  font-family: 'Arial', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #111;
+  color: #333333;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   padding: 10px 25px 10px 0;
-  border-bottom: 1px solid #d1aa68;
   position: relative;
   transition: all 0.3s ease;
 }
 
 .dropdown-selected::after {
-  content: '▼';
-  font-size: 8px;
+  content: '↓';
+  font-size: 10px;
   position: absolute;
   right: 0;
   top: 50%;
   transform: translateY(-50%);
-  color: #aaa;
+  color: #bfa175;
   transition: all 0.3s ease;
 }
 
 .custom-dropdown.active .dropdown-selected,
 .custom-dropdown:hover .dropdown-selected {
   color: #d1aa68;
-  border-bottom-width: 2px;
-}
-
-.custom-dropdown.active .dropdown-selected::after,
-.custom-dropdown:hover .dropdown-selected::after {
-  color: #d1aa68;
 }
 
 .custom-dropdown.active .dropdown-selected::after {
   transform: translateY(-50%) rotate(180deg);
+  color: #d1aa68;
 }
 
 .dropdown-options {
   position: absolute;
   top: 100%;
-  left: 0;
-  min-width: 220px;
-  background-color: #1a1714;
-  border: 1px solid #332d27;
-  border-top: none;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 240px;
+  background-color: #24201D;
+  border: 1px solid #3d3530;
   z-index: 100;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  padding: 8px 0;
+  border-radius: 4px;
 }
 
 .option-item {
-  padding: 15px 20px;
+  padding: 12px 20px;
   color: #cccccc;
-  font-family: 'Arial', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all 0.2s ease;
+  letter-spacing: 1.5px;
+  transition: all 0.25s ease;
+  text-align: center;
 }
 
 .option-item:hover {
-  background-color: #24201D;
+  background-color: #332d29;
   color: #d1aa68;
-  padding-left: 25px;
 }
 
-/* ================= BỘ CSS TRANSITION ================= */
-.luxe-fade-slide-enter-active,
-.luxe-fade-slide-leave-active {
-  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-}
-
-.luxe-fade-slide-enter-from,
-.luxe-fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-.luxe-fade-slide-enter-to,
-.luxe-fade-slide-leave-from {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ================= CÁC PHẦN CSS KHÁC ================= */
+/* ================= BỘ LƯỚI SẢN PHẨM LUXURY ================= */
 .product-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 50px 30px;
+  gap: 40px 30px;
 }
 
 .product-card {
@@ -367,30 +356,40 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 15px;
-  transition: all 0.3s ease;
+  padding: 30px 20px;
+  border: 1px solid #f2e0c9; /* Viền mờ màu kem sang trọng */
+  border-radius: 4px;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(36, 32, 29, 0.06);
+  border-color: #d1aa68; /* Đổi màu viền khi hover */
 }
 
 .tag-new {
   position: absolute;
   top: 15px;
   left: 15px;
-  background-color: #000000;
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 4px 14px;
-  letter-spacing: 1px;
+  background-color: #24201D;
+  color: #d1aa68;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 3px 12px;
+  letter-spacing: 1.5px;
+  border-radius: 2px;
   z-index: 2;
+  border: 1px solid #d1aa68;
 }
 
 .product-image-wrapper {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 280px; /* Cố định chiều cao vùng chứa ảnh */
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   overflow: hidden;
 }
 
@@ -398,74 +397,73 @@ onUnmounted(() => {
   max-width: 90%;
   max-height: 90%;
   object-fit: contain;
-  transition: transform 0.4s ease;
+  transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 .product-card:hover .product-image {
-  transform: scale(1.05);
+  transform: scale(1.06); /* Hiệu ứng zoom nhẹ tinh tế */
 }
 
 .product-info {
-  margin-bottom: 15px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  margin-bottom: 25px;
+  width: 100%;
 }
 
 .product-name {
-  font-family: 'Arial', sans-serif;
-  font-size: 14px;
-  color: #666666;
-  font-weight: normal;
-  line-height: 1.5;
-  margin-bottom: 8px;
-  padding: 0 15px;
+  font-size: 15px;
+  color: #24201D;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+  text-transform: capitalize;
 }
 
 .product-price {
-  font-family: 'Arial', sans-serif;
   font-size: 14px;
-  color: #888888;
-  font-weight: 500;
+  color: #d1aa68; /* Màu vàng Gold đặc trưng Velora */
+  font-weight: 600;
+  letter-spacing: 1px;
 }
 
 .product-action {
   width: 100%;
-  display: flex;
-  justify-content: center;
 }
 
-/* ĐÃ FIX LẠI CSS CHO ROUTER-LINK */
+/* NÚT XEM CHI TIẾT THEO PHONG CÁCH QUÝ TỘC */
 .btn-contact {
-  background-color: #7c9363;
+  background-color: #24201D; /* Nền nâu đen thanh lịch trùng header top */
   color: #ffffff;
-  border: none;
+  border: 1px solid #24201D;
   font-size: 11px;
-  font-weight: bold;
-  padding: 8px 24px;
-  letter-spacing: 1px;
+  font-weight: 600;
+  padding: 12px 0;
+  letter-spacing: 2px;
   cursor: pointer;
-  border-radius: 2px;
-  transition: background-color 0.2s ease;
+  border-radius: 0px; /* Khung vuông vức kiểu Classic luxury */
+  transition: all 0.3s ease;
   text-decoration: none;
-  /* Xóa gạch chân mặc định của thẻ a */
-  display: inline-block;
-  /* Đảm bảo padding hiển thị đúng */
+  display: block;
+  width: 100%;
   text-align: center;
 }
 
 .btn-contact:hover {
-  background-color: #667c50;
+  background-color: #d1aa68; /* Hover sang màu Gold */
+  border-color: #d1aa68;
+  color: #24201D;
+  box-shadow: 0 4px 15px rgba(209, 170, 104, 0.25);
 }
 
 .empty-state {
   text-align: center;
-  padding: 80px;
-  color: #999;
+  padding: 100px;
+  color: #888888;
   font-size: 14px;
+  letter-spacing: 1px;
 }
 
+/* ================= ĐÁP ỨNG GIAO DIỆN (RESPONSIVE) ================= */
 @media (max-width: 992px) {
   .product-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -473,7 +471,7 @@ onUnmounted(() => {
   }
 
   .filter-bar {
-    gap: 20px;
+    gap: 25px;
     flex-wrap: wrap;
   }
 }
@@ -482,5 +480,21 @@ onUnmounted(() => {
   .product-grid {
     grid-template-columns: 1fr;
   }
+  
+  .page-title {
+    font-size: 26px;
+  }
+}
+
+/* ================= TRANSITION DROPDOWN ================= */
+.luxe-fade-slide-enter-active,
+.luxe-fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.luxe-fade-slide-enter-from,
+.luxe-fade-slide-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -10px);
 }
 </style>
