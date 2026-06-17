@@ -93,7 +93,7 @@
           <div class="details-block">
             <h4>ĐƠN VỊ BÁN HÀNG</h4>
             <p><strong>Công ty TNHH Velora Clock Việt Nam</strong></p>
-            <p>Địa chỉ: Công viên phần mềm Quang Trung, Quận 12, TP. Hồ Chí Minh</p>
+            <p>Địa chỉ: 81 Phan Kế Bính, phường Đa Kao, quận 1, Hồ Chi Minh</p>
             <p>Hotline: 1900 VELORA</p>
             <p>Email: contact@velora.com</p>
           </div>
