@@ -57,9 +57,42 @@ const menuItems = [
 ];
 
 const cards = [
-    { title: 'Quản lý sản phẩm', desc: 'Cập nhật kho và giá bán.', icon: 'fa-solid fa-shoe-prints', link: '/admin/products' },
-    { title: 'Quản lý đơn hàng', desc: 'Xử lý yêu cầu khách hàng.', icon: 'fa-solid fa-box', link: '/admin/orders' },
-    { title: 'Báo cáo doanh thu', desc: 'Thống kê tình hình kinh doanh.', icon: 'fa-solid fa-chart-pie', link: '/admin/statistics' }
+    { 
+        title: 'Quản lý sản phẩm', 
+        desc: 'Xem danh sách, thêm mới và chỉnh sửa các cỗ máy thời gian.', 
+        icon: 'fa-solid fa-box-open', 
+        link: '/admin/products' 
+    },
+    { 
+        title: 'Quản lý người dùng', 
+        desc: 'Quản lý tài khoản, phân quyền quản trị và khách hàng.', 
+        icon: 'fa-solid fa-users', 
+        link: '/admin/users' 
+    },
+    { 
+        title: 'Quản lý đơn hàng', 
+        desc: 'Theo dõi, luân chuyển trạng thái và duyệt hủy đơn đặt.', 
+        icon: 'fa-solid fa-file-invoice', 
+        link: '/admin/orders' 
+    },
+    { 
+        title: 'Quản lý kho hàng', 
+        desc: 'Quy trình lập phiếu nhập kho, xuất kho và kiểm tồn.', 
+        icon: 'fa-solid fa-boxes-stacked', 
+        link: '/admin/inventory' 
+    },
+    { 
+        title: 'Xuất hóa đơn', 
+        desc: 'Xem danh sách đơn hàng đã thanh toán và in xuất file PDF.', 
+        icon: 'fa-solid fa-file-invoice-dollar', 
+        link: '/admin/invoices' 
+    },
+    // { 
+    //     title: 'Báo cáo doanh thu', 
+    //     desc: 'Thống kê biểu đồ và phân tích tình hình kinh doanh tổng quan.', 
+    //     icon: 'fa-solid fa-chart-pie', 
+    //     link: '/admin/dashboard' 
+    // }
 ];
 
 const activities = ref(['Đơn hàng #V2026 mới được tạo', 'Sản phẩm Velora Noir đã hết hàng']);
