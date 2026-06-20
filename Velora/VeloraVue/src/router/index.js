@@ -13,7 +13,9 @@ import QuanLySanPham from '../components/Admin/QuanLySanPham.vue'
 import QuanLyNguoiDung from '../components/Admin/QuanLyNguoiDung.vue'
 import QuanLyDonHang from '../components/Admin/QuanLyDonHang.vue'
 import QuanLyKho from '../components/Admin/QuanLyKho.vue'
-import XuatHoaDon from '../components/Admin/XuatHoaDon.vue' // IMPORT THÊM FILE XUẤT HÓA ĐƠN
+import XuatHoaDon from '../components/Admin/XuatHoaDon.vue'
+import QuanLyThuongHieu from '../components/Admin/QuanLyThuongHieu.vue'
+import PhieuNhap from '../components/Admin/PhieuNhapKho.vue' // IMPORT THÊM TRANG PHIẾU NHẬP
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -76,12 +78,24 @@ const router = createRouter({
       meta: { requiresAdmin: true } // ĐÃ BỔ SUNG BẢO MẬT CHO TRANG KHO
     },
     {
+      path: '/admin/receipts',
+      name: 'PhieuNhap',
+      component: PhieuNhap,
+      meta: { requiresAdmin: true } // ROUTE CHO TRANG DUYỆT PHIẾU NHẬP KHỎ
+    },
+    {
       path: '/admin/invoices',
       name: 'XuatHoaDon',
       component: XuatHoaDon,
       meta: { requiresAdmin: true } // ĐÃ THÊM ROUTE CHO XUẤT HÓA ĐƠN
+    },
+    {
+      path: '/admin/manufacturers',
+      name: 'QuanLyThuongHieu',
+      component: QuanLyThuongHieu,
+      meta: { requiresAdmin: true }
     }
   ]
 })
 
-export default router   
+export default router

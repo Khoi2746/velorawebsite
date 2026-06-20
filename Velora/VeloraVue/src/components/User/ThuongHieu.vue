@@ -21,7 +21,7 @@
                 </div>
 
                 <div v-else class="loading-state">
-                    <p>Đang tải danh sách thương hiệu...</p>
+                    <p>Đang tải danh sách thương hiệu hoặc chưa có thương hiệu nào đang hoạt động...</p>
                 </div>
 
                 <Info />
@@ -59,7 +59,10 @@ const fetchBrands = async () => {
         if (response.ok) {
             const data = await response.json()
             console.log("Dữ liệu từ DB trả về:", data)
-            brands.value = data
+
+            // BỘ LỌC THẦN THÁNH: Chỉ lấy những thương hiệu có trạng thái là 1 (hoặc true)
+            brands.value = data.filter(brand => brand.trangThai === 1 || brand.trangThai === true)
+
         } else {
             console.error('Lỗi khi tải dữ liệu thương hiệu:', response.status)
         }
@@ -136,7 +139,8 @@ onMounted(() => {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 15px;
-    margin-bottom: 80px; /* Tạo khoảng cách an toàn với phần liên hệ */
+    margin-bottom: 80px;
+    /* Tạo khoảng cách an toàn với phần liên hệ */
 }
 
 .brand-card {
@@ -186,24 +190,43 @@ onMounted(() => {
 
 /* ================= RESPONSIVE ================= */
 @media (max-width: 1200px) {
-    .brand-grid { grid-template-columns: repeat(4, 1fr); }
-    .contact-grid { grid-template-columns: repeat(2, 1fr); gap: 40px; }
-    .contact-item:not(:last-child)::after { display: none; } /* Ẩn vạch dọc khi vỡ dòng */
+    .brand-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .contact-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 40px;
+    }
+
+    .contact-item:not(:last-child)::after {
+        display: none;
+    }
+
+    /* Ẩn vạch dọc khi vỡ dòng */
 }
 
 @media (max-width: 992px) {
-    .brand-grid { grid-template-columns: repeat(3, 1fr); }
+    .brand-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 @media (max-width: 768px) {
-    .brand-grid { grid-template-columns: repeat(2, 1fr); }
+    .brand-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 @media (max-width: 600px) {
-    .contact-grid { grid-template-columns: 1fr; }
+    .contact-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 480px) {
-    .brand-grid { grid-template-columns: 1fr; }
+    .brand-grid {
+        grid-template-columns: 1fr;
+    }
 }
 </style>

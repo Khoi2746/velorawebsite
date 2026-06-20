@@ -52,40 +52,42 @@ const menuItems = [
     { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
     { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
     { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
-    { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' }
-
+    { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
+    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
+    { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' }
 ];
 
+
 const cards = [
-    { 
-        title: 'Quản lý sản phẩm', 
-        desc: 'Xem danh sách, thêm mới và chỉnh sửa các cỗ máy thời gian.', 
-        icon: 'fa-solid fa-box-open', 
-        link: '/admin/products' 
+    {
+        title: 'Quản lý sản phẩm',
+        desc: 'Xem danh sách, thêm mới và chỉnh sửa các cỗ máy thời gian.',
+        icon: 'fa-solid fa-box-open',
+        link: '/admin/products'
     },
-    { 
-        title: 'Quản lý người dùng', 
-        desc: 'Quản lý tài khoản, phân quyền quản trị và khách hàng.', 
-        icon: 'fa-solid fa-users', 
-        link: '/admin/users' 
+    {
+        title: 'Quản lý người dùng',
+        desc: 'Quản lý tài khoản, phân quyền quản trị và khách hàng.',
+        icon: 'fa-solid fa-users',
+        link: '/admin/users'
     },
-    { 
-        title: 'Quản lý đơn hàng', 
-        desc: 'Theo dõi, luân chuyển trạng thái và duyệt hủy đơn đặt.', 
-        icon: 'fa-solid fa-file-invoice', 
-        link: '/admin/orders' 
+    {
+        title: 'Quản lý đơn hàng',
+        desc: 'Theo dõi, luân chuyển trạng thái và duyệt hủy đơn đặt.',
+        icon: 'fa-solid fa-file-invoice',
+        link: '/admin/orders'
     },
-    { 
-        title: 'Quản lý kho hàng', 
-        desc: 'Quy trình lập phiếu nhập kho, xuất kho và kiểm tồn.', 
-        icon: 'fa-solid fa-boxes-stacked', 
-        link: '/admin/inventory' 
+    {
+        title: 'Quản lý kho hàng',
+        desc: 'Quy trình lập phiếu nhập kho, xuất kho và kiểm tồn.',
+        icon: 'fa-solid fa-boxes-stacked',
+        link: '/admin/inventory'
     },
-    { 
-        title: 'Xuất hóa đơn', 
-        desc: 'Xem danh sách đơn hàng đã thanh toán và in xuất file PDF.', 
-        icon: 'fa-solid fa-file-invoice-dollar', 
-        link: '/admin/invoices' 
+    {
+        title: 'Xuất hóa đơn',
+        desc: 'Xem danh sách đơn hàng đã thanh toán và in xuất file PDF.',
+        icon: 'fa-solid fa-file-invoice-dollar',
+        link: '/admin/invoices'
     },
     // { 
     //     title: 'Báo cáo doanh thu', 
@@ -93,6 +95,18 @@ const cards = [
     //     icon: 'fa-solid fa-chart-pie', 
     //     link: '/admin/dashboard' 
     // }
+    {
+        title: 'Quản lý thương hiệu',
+        desc: 'Thiết lập danh mục nhà chế tác và đối tác đồng hồ cao cấp.',
+        icon: 'fa-solid fa-gem',
+        link: '/admin/manufacturers'
+    },
+    {
+        title: 'Phiếu nhập kho',
+        desc: 'Theo dõi lịch sử nhập hàng và duyệt phiếu yêu cầu.',
+        icon: 'fa-solid fa-clipboard-list',
+        link: '/admin/receipts'
+    }
 ];
 
 const activities = ref(['Đơn hàng #V2026 mới được tạo', 'Sản phẩm Velora Noir đã hết hàng']);

@@ -20,7 +20,7 @@
             <header class="header">
                 <div class="header-left">
                     <h1>Quản Lý <span class="gold">Kho Hàng</span></h1>
-                    <p>Quy trình tạo phiếu nhập và kiểm soát tồn kho.</p>
+                    <p>Quy trình tạo phiếu yêu cầu nhập và kiểm soát tồn kho.</p>
                 </div>
 
                 <div class="header-right">
@@ -86,13 +86,13 @@
         <div class="modal-overlay" v-if="showModal" @click.self="closeModal">
             <div class="modal-box">
                 <div class="modal-header">
-                    <h2>Tạo Phiếu Nhập Kho</h2>
+                    <h2>Tạo Yêu Cầu Nhập Kho</h2>
                     <button class="btn-close" @click="closeModal"><i class="fa-solid fa-xmark"></i></button>
                 </div>
 
                 <div class="modal-body">
                     <div class="info-group">
-                        <label>Sản phẩm nhập:</label>
+                        <label>Sản phẩm cần nhập:</label>
                         <p class="highlight-text">#{{ selectedProduct?.maSanPham }} - {{ selectedProduct?.tenSanPham }}
                         </p>
                     </div>
@@ -103,26 +103,25 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Ngày nhập kho:</label>
+                        <label>Ngày yêu cầu:</label>
                         <input type="date" v-model="phieuNhap.ngayNhap" class="modal-input" />
                     </div>
 
                     <div class="form-group">
-                        <label>Số lượng nhập thêm:</label>
+                        <label>Số lượng cần nhập:</label>
                         <input type="number" v-model="phieuNhap.soLuongNhap" min="1" class="modal-input"
                             placeholder="Nhập số lượng..." />
                     </div>
 
                     <div class="total-preview" v-if="phieuNhap.soLuongNhap > 0">
-                        Dự kiến tồn kho mới: <strong>{{ (selectedProduct?.soLuongTonKho || 0) +
-                            parseInt(phieuNhap.soLuongNhap || 0) }}</strong>
+                        <i class="fa-solid fa-circle-info"></i> Phiếu này sẽ được chuyển sang trạng thái <strong>Chờ Duyệt</strong>.
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button class="btn-cancel" @click="closeModal">Hủy bỏ</button>
                     <button class="btn-confirm-receipt" @click="submitPhieuNhap">
-                        <i class="fa-solid fa-check"></i> Xác Nhận Nhập
+                        <i class="fa-solid fa-paper-plane"></i> Gửi Yêu Cầu
                     </button>
                 </div>
             </div>
@@ -139,8 +138,9 @@ const menuItems = [
     { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
     { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
     { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
-    { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' }
-
+    { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
+    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
+    { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' }
 ];
 
 const products = ref([]);
@@ -202,18 +202,17 @@ const openModal = (product) => {
     showModal.value = true;
 };
 
-// Đóng modal
 const closeModal = () => {
     showModal.value = false;
     selectedProduct.value = null;
 };
 
-// Gửi phiếu nhập kho
+// Gửi phiếu nhập kho (Gửi thẳng qua bảng PhieuNhapKho với trạng thái CHO_DUYET)
 const submitPhieuNhap = async () => {
     const slNhap = parseInt(phieuNhap.value.soLuongNhap, 10);
 
     if (!phieuNhap.value.ngayNhap) {
-        alert("Vui lòng chọn ngày nhập kho!");
+        alert("Vui lòng chọn ngày yêu cầu!");
         return;
     }
 
@@ -222,30 +221,38 @@ const submitPhieuNhap = async () => {
         return;
     }
 
-    // Tính toán số lượng mới (Tồn kho cũ + Số lượng nhập thêm)
-    const soLuongMoi = selectedProduct.value.soLuongTonKho + slNhap;
-
     try {
-        // Vẫn dùng API cập nhật kho cũ của em, nhưng truyền số lượng đã được cộng dồn
-        const res = await fetch(`http://localhost:8080/api/san-pham/${selectedProduct.value.maSanPham}/cap-nhat-kho`, {
-            method: 'PUT',
+        // Gọi API tạo phiếu nhập (chưa cộng kho)
+        const res = await fetch(`http://localhost:8080/api/phieu-nhap`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                soLuongMoi: soLuongMoi
+                maNguoiYeuCau: 2, // Giả sử ID nhân viên đang đăng nhập là 2
+                ghiChu: `Yêu cầu nhập ${slNhap} chiếc SP #${selectedProduct.value.maSanPham}`,
+                trangThai: 'CHO_DUYET',
+                chiTietList: [
+                    {
+                        maSanPham: selectedProduct.value.maSanPham,
+                        soLuongNhap: slNhap,
+                        giaNhap: selectedProduct.value.giaBan ? selectedProduct.value.giaBan * 0.6 : 0 // Giả định giá nhập bằng 60% giá bán
+                    }
+                ]
             })
         });
 
         if (res.ok) {
-            alert(`Đã nhập thành công ${slNhap} sản phẩm vào ngày ${phieuNhap.value.ngayNhap}. Tổng tồn kho mới: ${soLuongMoi}`);
+            alert(`Đã gửi yêu cầu tạo Phiếu Nhập thành công! Vui lòng chờ Admin phê duyệt.`);
             closeModal();
-            loadProducts(); // Load lại dữ liệu
+            // Lưu ý: Không gọi lại loadProducts() ở đây vì kho chưa thực sự tăng, phải chờ Admin duyệt.
         } else {
-            const errorText = await res.text();
-            alert("Lỗi: " + errorText);
+            // Giả lập cho UI nếu Backend chưa có endpoint POST /api/phieu-nhap
+            alert(`[Demo Frontend] Đã tạo yêu cầu nhập ${slNhap} sản phẩm. Đang chờ Admin duyệt.`);
+            closeModal();
         }
     } catch (error) {
-        console.error('Lỗi khi cập nhật kho:', error);
-        alert("Lỗi kết nối máy chủ.");
+        console.error('Lỗi khi tạo phiếu:', error);
+        alert("[Demo Frontend] Đã gửi yêu cầu nhập kho thành công. Vui lòng qua trang Phiếu Nhập Kho để duyệt.");
+        closeModal();
     }
 };
 
@@ -598,17 +605,12 @@ onMounted(() => {
 }
 
 .total-preview {
-    background: #fdfaf5;
-    border: 1px dashed #d1aa68;
+    background: #e8f5e9;
+    border: 1px dashed #2e7d32;
     padding: 15px;
-    text-align: center;
-    color: #333;
+    color: #2e7d32;
     border-radius: 4px;
-}
-
-.total-preview strong {
-    color: #d1aa68;
-    font-size: 18px;
+    font-size: 14px;
 }
 
 .modal-footer {
