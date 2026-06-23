@@ -18,6 +18,7 @@ import QuanLyThuongHieu from '../components/Admin/QuanLyThuongHieu.vue'
 import PhieuNhap from '../components/Admin/PhieuNhapKho.vue' // IMPORT THÊM TRANG PHIẾU NHẬP
 import LoaiSanPham from '../components/Admin/LoaiSanPham.vue'
 import QuanLyMaGiamGia from '../components/Admin/QuanLyMaGiamGia.vue' // IMPORT TRANG QUẢN LÝ MÃ GIẢM GIÁ
+import QuanLyThongKe from '../components/Admin/QuanLyThongKe.vue' // IMPORT THÊM TRANG THỐNG KÊ DOANH THU
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -108,6 +109,12 @@ const router = createRouter({
       name: 'QuanLyMaGiamGia',
       component: QuanLyMaGiamGia, // ROUTE CHO TRANG QUẢN LÝ MÃ GIẢM GIÁ
       meta: { requiresAdmin: true }
+    },
+     {
+      path: '/admin/statistics',
+      name: 'QuanLyThongKe',
+      component: QuanLyThongKe,
+      meta: { requiresAdmin: true } // ROUTE CHO TRANG THỐNG KÊ DOANH THU BIỂU ĐỒ
     }
   ]
 })
