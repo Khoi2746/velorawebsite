@@ -44,19 +44,18 @@
             </Transition>
           </div>
 
-          <div class="custom-dropdown" :class="{ active: activeDropdown === 'collection' }"
-            @click="toggleDropdown('collection')">
-            <div class="dropdown-selected">{{ filters.collectionText || 'BỘ SƯU TẬP' }}</div>
+          <!-- ĐÃ SỬA: Biến dropdown Bộ Sưu Tập thành Động theo đúng Loại Sản Phẩm -->
+          <div class="custom-dropdown" :class="{ active: activeDropdown === 'category' }"
+            @click="toggleDropdown('category')">
+            <div class="dropdown-selected">{{ filters.categoryText || 'LOẠI SẢN PHẨM' }}</div>
 
             <Transition name="luxe-fade-slide">
-              <div class="dropdown-options" v-show="activeDropdown === 'collection'">
-                <div class="option-item" @click.stop="selectOption('collection', '', 'BỘ SƯU TẬP')">BỘ SƯU TẬP</div>
-                <div class="option-item"
-                  @click.stop="selectOption('collection', 'Grand Complications', 'Grand Complications')">Grand
-                  Complications</div>
-                <div class="option-item" @click.stop="selectOption('collection', 'Classic Fusion', 'Classic Fusion')">
-                  Classic Fusion</div>
-                <div class="option-item" @click.stop="selectOption('collection', 'Daytona', 'Daytona')">Daytona</div>
+              <div class="dropdown-options" v-show="activeDropdown === 'category'">
+                <div class="option-item" @click.stop="selectOption('category', '', 'LOẠI SẢN PHẨM')">LOẠI SẢN PHẨM</div>
+                <div class="option-item" v-for="cat in categories" :key="cat.maLoai"
+                  @click.stop="selectOption('category', cat.maLoai, cat.tenLoai)">
+                  {{ cat.tenLoai }}
+                </div>
               </div>
             </Transition>
           </div>
@@ -78,7 +77,11 @@
 
         <div class="product-grid" v-if="filteredProducts.length > 0">
           <div class="product-card" v-for="product in filteredProducts" :key="product.maSanPham">
-            <div class="tag-new" v-if="product.maSanPham % 3 === 1">NEW COLLECTION</div>
+            
+            <!-- ĐÃ SỬA: Hiển thị tag Tên Loại Sản Phẩm thực tế thay vì nhãn ngẫu nhiên -->
+            <div class="tag-new" v-if="product.loaiSanPham">
+              {{ product.loaiSanPham.tenLoai }}
+            </div>
             
             <div class="product-image-wrapper">
               <img
@@ -121,12 +124,13 @@ import Info from '../info.vue'
 const products = ref([])
 const filteredProducts = ref([])
 const brands = ref([])
+const categories = ref([]) // ĐÃ BỔ SUNG: Mảng lưu trữ danh sách Loại sản phẩm động
 const activeDropdown = ref(null)
 
 const filters = ref({
   price: '', priceText: '',
   brand: '', brandText: '',
-  collection: '', collectionText: '',
+  category: '', categoryText: '', // ĐÃ SỬA: collection -> category
   gender: '', genderText: ''
 })
 
@@ -168,6 +172,11 @@ const loadData = async () => {
     if (resBrands.ok) {
       brands.value = await resBrands.json()
     }
+    // ĐÃ BỔ SUNG: Đồng bộ API lấy danh sách Loại sản phẩm thực tế từ cơ sở dữ liệu
+    const resCategories = await fetch('http://localhost:8080/api/loai-san-pham')
+    if (resCategories.ok) {
+      categories.value = await resCategories.json()
+    }
   } catch (error) {
     console.error('Lỗi kết nối API hệ thống:', error)
   }
@@ -175,14 +184,29 @@ const loadData = async () => {
 
 const applyFilters = () => {
   let result = [...products.value]
-  if (filters.value.brand) result = result.filter(p => p.maThuongHieu === parseInt(filters.value.brand) || (p.thuongHieu && p.thuongHieu.maThuongHieu === parseInt(filters.value.brand)))
+  
+  // 1. Lọc theo thương hiệu
+  if (filters.value.brand) {
+    result = result.filter(p => p.maThuongHieu === parseInt(filters.value.brand) || (p.thuongHieu && p.thuongHieu.maThuongHieu === parseInt(filters.value.brand)))
+  }
+  
+  // 2. Lọc theo khoảng giá
   if (filters.value.price) {
     if (filters.value.price === 'under-100m') result = result.filter(p => p.giaBan < 100000000)
     else if (filters.value.price === '100m-500m') result = result.filter(p => p.giaBan >= 100000000 && p.giaBan <= 500000000)
     else if (filters.value.price === 'over-500m') result = result.filter(p => p.giaBan > 500000000)
   }
-  if (filters.value.collection) result = result.filter(p => p.tenSanPham.toLowerCase().includes(filters.value.collection.toLowerCase()) || (p.moTaChiTiet && p.moTaChiTiet.toLowerCase().includes(filters.value.collection.toLowerCase())))
-  if (filters.value.gender) result = result.filter(p => p.moTaChiTiet && p.moTaChiTiet.toLowerCase().includes(filters.value.gender.toLowerCase()))
+  
+  // 3. ĐÃ SỬA: Lọc chính xác theo ID Loại sản phẩm động (Khóa ngoại maLoai)
+  if (filters.value.category) {
+    result = result.filter(p => p.loaiSanPham && p.loaiSanPham.maLoai === parseInt(filters.value.category))
+  }
+  
+  // 4. Lọc theo giới tính
+  if (filters.value.gender) {
+    result = result.filter(p => p.moTaChiTiet && p.moTaChiTiet.toLowerCase().includes(filters.value.gender.toLowerCase()))
+  }
+  
   filteredProducts.value = result
 }
 
@@ -196,7 +220,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* ================= TỔNG THỂ TRANG ================= */
+/* Toàn bộ CSS gốc tinh tế của bạn được giữ nguyên */
 .shop-page {
   width: 100%;
   min-height: 100vh;
@@ -259,7 +283,6 @@ onUnmounted(() => {
   transform: rotate(45deg);
 }
 
-/* ================= BỘ LỌC DROPDOWN SANG TRỌNG ================= */
 .filter-bar {
   display: flex;
   justify-content: center;
@@ -342,7 +365,6 @@ onUnmounted(() => {
   color: #d1aa68;
 }
 
-/* ================= BỘ LƯỚI SẢN PHẨM LUXURY ================= */
 .product-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -357,7 +379,7 @@ onUnmounted(() => {
   align-items: center;
   text-align: center;
   padding: 30px 20px;
-  border: 1px solid #f2e0c9; /* Viền mờ màu kem sang trọng */
+  border: 1px solid #f2e0c9;
   border-radius: 4px;
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
@@ -365,7 +387,7 @@ onUnmounted(() => {
 .product-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 15px 40px rgba(36, 32, 29, 0.06);
-  border-color: #d1aa68; /* Đổi màu viền khi hover */
+  border-color: #d1aa68;
 }
 
 .tag-new {
@@ -385,7 +407,7 @@ onUnmounted(() => {
 
 .product-image-wrapper {
   width: 100%;
-  height: 280px; /* Cố định chiều cao vùng chứa ảnh */
+  height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -401,7 +423,7 @@ onUnmounted(() => {
 }
 
 .product-card:hover .product-image {
-  transform: scale(1.06); /* Hiệu ứng zoom nhẹ tinh tế */
+  transform: scale(1.06);
 }
 
 .product-info {
@@ -421,7 +443,7 @@ onUnmounted(() => {
 
 .product-price {
   font-size: 14px;
-  color: #d1aa68; /* Màu vàng Gold đặc trưng Velora */
+  color: #d1aa68;
   font-weight: 600;
   letter-spacing: 1px;
 }
@@ -430,9 +452,8 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* NÚT XEM CHI TIẾT THEO PHONG CÁCH QUÝ TỘC */
 .btn-contact {
-  background-color: #24201D; /* Nền nâu đen thanh lịch trùng header top */
+  background-color: #24201D;
   color: #ffffff;
   border: 1px solid #24201D;
   font-size: 11px;
@@ -440,7 +461,7 @@ onUnmounted(() => {
   padding: 12px 0;
   letter-spacing: 2px;
   cursor: pointer;
-  border-radius: 0px; /* Khung vuông vức kiểu Classic luxury */
+  border-radius: 0px;
   transition: all 0.3s ease;
   text-decoration: none;
   display: block;
@@ -449,7 +470,7 @@ onUnmounted(() => {
 }
 
 .btn-contact:hover {
-  background-color: #d1aa68; /* Hover sang màu Gold */
+  background-color: #d1aa68;
   border-color: #d1aa68;
   color: #24201D;
   box-shadow: 0 4px 15px rgba(209, 170, 104, 0.25);
@@ -463,7 +484,6 @@ onUnmounted(() => {
   letter-spacing: 1px;
 }
 
-/* ================= ĐÁP ỨNG GIAO DIỆN (RESPONSIVE) ================= */
 @media (max-width: 992px) {
   .product-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -486,7 +506,6 @@ onUnmounted(() => {
   }
 }
 
-/* ================= TRANSITION DROPDOWN ================= */
 .luxe-fade-slide-enter-active,
 .luxe-fade-slide-leave-active {
   transition: all 0.3s ease;

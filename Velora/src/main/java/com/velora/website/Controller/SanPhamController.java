@@ -86,7 +86,7 @@ public class SanPhamController {
     // =========================================================================
 
     // 1. Thêm sản phẩm mới 
-    @PostMapping
+@PostMapping
     public ResponseEntity<?> createProduct(@RequestBody SanPham sanPham) {
         try {
             // Kiểm tra validate tên sản phẩm
@@ -111,17 +111,18 @@ public class SanPhamController {
 
             // ĐẢM BẢO TỒN KHO KHÔNG BỊ NULL KHI VUE KHÔNG TRUYỀN LÊN
             if (sanPham.getSoLuongTonKho() == null) {
-                sanPham.setSoLuongTonKho(0); // Mặc định gán bằng 0
+                sanPham.setSoLuongTonKho(0); 
             }
 
-            // XỬ LÝ KHÓA NGOẠI
+            // XỬ LÝ KHÓA NGOẠI THƯƠNG HIỆU MẶC ĐỊNH
             if (sanPham.getThuongHieu() == null) {
                 ThuongHieu thMaoDanh = new ThuongHieu();
                 thMaoDanh.setMaThuongHieu(1); 
                 sanPham.setThuongHieu(thMaoDanh);
             }
             
-            if (sanPham.getDanhMuc() == null) {
+            // ĐÃ SỬA: Nếu Vue truyền Danh mục lên thì giữ nguyên để lưu, không đè cứng ID = 1 nữa
+            if (sanPham.getDanhMuc() == null || sanPham.getDanhMuc().getMaDanhMuc() == null) {
                 DanhMuc dmMaoDanh = new DanhMuc();
                 dmMaoDanh.setMaDanhMuc(1); 
                 sanPham.setDanhMuc(dmMaoDanh);
@@ -137,7 +138,7 @@ public class SanPhamController {
         }
     }
 
-    // 2. Chỉnh sửa toàn bộ thông tin sản phẩm (Đã loại bỏ trường Tồn kho để tránh bị ghi đè thành null)
+    // 2. Chỉnh sửa thông tin sản phẩm (ĐÃ SỬA: THÊM CẬP NHẬT DANH MỤC VÀ LOẠI SẢN PHẨM)
     @PutMapping("/{id}")
     public ResponseEntity<?> updateProduct(@PathVariable Integer id, @RequestBody SanPham productDetails) {
         return sanPhamRepository.findById(id).map(sanPham -> {
@@ -145,6 +146,18 @@ public class SanPhamController {
             sanPham.setGiaBan(productDetails.getGiaBan());
             sanPham.setAnhDaiDien(productDetails.getAnhDaiDien());
             sanPham.setTrangThai(productDetails.getTrangThai());
+            
+            // Cập nhật Danh mục chính từ dữ liệu Vue gửi lên
+            if (productDetails.getDanhMuc() != null && productDetails.getDanhMuc().getMaDanhMuc() != null) {
+                sanPham.setDanhMuc(productDetails.getDanhMuc());
+            }
+
+            // Cập nhật Loại sản phẩm (Đặc tính cơ khí) từ dữ liệu Vue gửi lên
+            if (productDetails.getLoaiSanPham() != null) {
+                sanPham.setLoaiSanPham(productDetails.getLoaiSanPham());
+            } else {
+                sanPham.setLoaiSanPham(null); // Nếu Vue gửi null thì xóa liên kết cũ dưới DB
+            }
             
             // Tự động cập nhật lại Slug theo tên mới nếu có sửa tên
             String slug = productDetails.getTenSanPham().toLowerCase()

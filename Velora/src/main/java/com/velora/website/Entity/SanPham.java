@@ -32,4 +32,8 @@ public class SanPham {
     @ManyToOne
     @JoinColumn(name = "maDanhMuc")
     private DanhMuc danhMuc;
+
+    @ManyToOne
+@JoinColumn(name = "ma_loai") // Khớp chính xác với tên cột ma_loai trong SQL
+private LoaiSanPham loaiSanPham;
 }

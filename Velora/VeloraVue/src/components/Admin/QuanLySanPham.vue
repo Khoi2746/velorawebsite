@@ -36,6 +36,8 @@
                             <th>ID</th>
                             <th>Hình Ảnh</th>
                             <th>Tên Sản Phẩm</th>
+                            <th>Danh Mục</th>
+                            <th>Loại Sản Phẩm</th> 
                             <th>Giá Bán</th>
                             <th>Tồn Kho</th>
                             <th>Trạng Thái</th>
@@ -51,6 +53,17 @@
                                 </div>
                             </td>
                             <td class="product-name">{{ product.tenSanPham }}</td>
+                            
+                            <!-- Hiển thị Danh mục chính -->
+                            <td>
+                                {{ product.danhMuc ? product.danhMuc.tenDanhMuc : 'Chưa chọn' }}
+                            </td>
+
+                            <!-- Hiển thị loaiSanPham từ ma_loai SQL -->
+                            <td class="category-name">
+                                {{ product.loaiSanPham ? product.loaiSanPham.tenLoai : 'Không có' }}
+                            </td>
+
                             <td class="price">{{ formatPrice(product.giaBan) }}</td>
 
                             <td style="font-weight: bold; color: #3e332e;">
@@ -72,7 +85,10 @@
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </td>
-                            </tr>
+                        </tr>
+                        <tr v-if="products.length === 0">
+                            <td colspan="9" class="empty-state">Đang tải dữ liệu sản phẩm...</td>
+                        </tr>
                     </tbody>
                 </table>
             </section>
@@ -89,6 +105,29 @@
                         <label>Tên sản phẩm *</label>
                         <input type="text" v-model="form.tenSanPham" required placeholder="Ví dụ: Rolex Cosmograph" />
                     </div>
+
+                    <!-- Ô chọn Danh mục chính -->
+                    <div class="form-group">
+                        <label>Danh mục chính *</label>
+                        <select v-model="form.maDanhMucSelected" required>
+                            <option value="">-- Chọn danh mục chính --</option>
+                            <option v-for="dm in mainCategories" :key="dm.maDanhMuc" :value="dm.maDanhMuc">
+                                {{ dm.tenDanhMuc }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Ô chọn Loại đặc tính sản phẩm (Không ép required để đổi cơ khí sang pin không bị lỗi) -->
+                    <div class="form-group">
+                        <label>Loại sản phẩm (Đặc tính cơ khí)</label>
+                        <select v-model="form.maLoaiSelected">
+                            <option value="">-- Không có / Bỏ chọn đặc tính cơ khí --</option>
+                            <option v-for="cat in categories" :key="cat.maLoai" :value="cat.maLoai">
+                                {{ cat.tenLoai }}
+                            </option>
+                        </select>
+                    </div>
+
                     <div class="form-group">
                         <label>Giá bán (VNĐ) *</label>
                         <input type="number" v-model.number="form.giaBan" required min="0" />
@@ -119,8 +158,8 @@
 import { ref, onMounted } from 'vue';
 
 const API_URL = 'http://localhost:8080/api/san-pham';
+const CAT_API_URL = 'http://localhost:8080/api/loai-san-pham'; 
 
-// Menu Sidebar
 const menuItems = [
     { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
     { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open' },
@@ -133,10 +172,10 @@ const menuItems = [
     { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' }
 ];
 
-
 const products = ref([]);
+const categories = ref([]); 
+const mainCategories = ref([]); 
 
-// State quản lý Modal và Dữ liệu Form
 const showModal = ref(false);
 const isEditMode = ref(false);
 const currentProductId = ref(null);
@@ -145,22 +184,21 @@ const defaultForm = {
     tenSanPham: '',
     giaBan: 0,
     anhDaiDien: '',
-    trangThai: 'CON_HANG'
+    trangThai: 'CON_HANG',
+    maDanhMucSelected: '',
+    maLoaiSelected: '' 
 };
 const form = ref({ ...defaultForm });
 
-// Xử lý link ảnh
 const getImageUrl = (img) => {
     if (!img) return '/img/default-watch.png';
     return img.startsWith('http') ? img : `/img/${img}`;
 };
 
-// Định dạng tiền tệ VNĐ
 const formatPrice = (value) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
-// [READ] Tải danh sách sản phẩm
 const loadProducts = async () => {
     try {
         const res = await fetch(API_URL);
@@ -168,11 +206,29 @@ const loadProducts = async () => {
             products.value = await res.json();
         }
     } catch (error) {
-        console.error('Lỗi kết nối Backend:', error);
+        console.error('Lỗi kết nối Backend sản phẩm:', error);
     }
 };
 
-// Mở modal để Thêm mới
+const loadCategories = async () => {
+    try {
+        const res = await fetch(CAT_API_URL);
+        if (res.ok) {
+            categories.value = await res.json();
+        }
+    } catch (error) {
+        console.error('Lỗi kết nối Backend loại sản phẩm:', error);
+    }
+};
+
+const loadMainCategories = () => {
+    mainCategories.value = [
+        { maDanhMuc: 1, tenDanhMuc: 'Đồng hồ cơ (Mechanical)' },
+        { maDanhMuc: 2, tenDanhMuc: 'Đồng hồ pin (Quartz)' },
+        { maDanhMuc: 3, tenDanhMuc: 'Đồng hồ thông minh (Smartwatch)' }
+    ];
+};
+
 const openAddModal = () => {
     isEditMode.value = false;
     currentProductId.value = null;
@@ -180,11 +236,19 @@ const openAddModal = () => {
     showModal.value = true;
 };
 
-// Mở modal để Chỉnh sửa (Gán data cũ vào form)
 const openEditModal = (product) => {
     isEditMode.value = true;
     currentProductId.value = product.maSanPham;
-    form.value = { ...product }; // clone object tránh thay đổi trực tiếp trên table trước khi bấm lưu
+    
+    form.value = { 
+        tenSanPham: product.tenSanPham,
+        giaBan: product.giaBan,
+        anhDaiDien: product.anhDaiDien,
+        trangThai: product.trangThai,
+        // Ép kiểu ID về nguyên bản để khớp chuẩn xác với v-model của select option
+        maDanhMucSelected: product.danhMuc ? product.danhMuc.maDanhMuc : '',
+        maLoaiSelected: product.loaiSanPham ? product.loaiSanPham.maLoai : ''
+    }; 
     showModal.value = true;
 };
 
@@ -192,20 +256,30 @@ const closeModal = () => {
     showModal.value = false;
 };
 
-// [CREATE & UPDATE] Lưu dữ liệu từ form
 const saveProduct = async () => {
     try {
         let url = API_URL;
         let method = 'POST';
 
-        // Tạo bản sao dữ liệu gửi đi
-        const dataToSend = { ...form.value };
+        const dataToSend = { 
+            tenSanPham: form.value.tenSanPham,
+            giaBan: form.value.giaBan,
+            anhDaiDien: form.value.anhDaiDien,
+            trangThai: form.value.trangThai,
+            danhMuc: form.value.maDanhMucSelected ? { maDanhMuc: Number(form.value.maDanhMucSelected) } : null
+        };
 
-        // Nếu ở chế độ edit, đổi method thành PUT và chỉ định ID cụ thể
+        if (form.value.maLoaiSelected) {
+            dataToSend.loaiSanPham = {
+                maLoai: Number(form.value.maLoaiSelected)
+            };
+        } else {
+            dataToSend.loaiSanPham = null; 
+        }
+
         if (isEditMode.value) {
             url = `${API_URL}/${currentProductId.value}`;
             method = 'PUT';
-            delete dataToSend.maSanPham; // Xóa ID khỏi body khi cập nhật
         }
 
         const res = await fetch(url, {
@@ -217,7 +291,7 @@ const saveProduct = async () => {
         if (res.ok) {
             alert(isEditMode.value ? 'Cập nhật sản phẩm thành công!' : 'Thêm sản phẩm thành công!');
             closeModal();
-            loadProducts(); // Load lại bảng sau khi thay đổi dữ liệu thành công
+            loadProducts(); 
         } else {
             const errorText = await res.text();
             alert(`Có lỗi xảy ra: ${errorText || 'Vui lòng kiểm tra lại dữ liệu.'}`);
@@ -227,7 +301,6 @@ const saveProduct = async () => {
     }
 };
 
-// [DELETE] Xóa sản phẩm theo ID
 const deleteProduct = async (id) => {
     if (confirm(`Bạn chắc chắn muốn xóa sản phẩm #${id}? Hành động này không thể hoàn tác.`)) {
         try {
@@ -236,7 +309,7 @@ const deleteProduct = async (id) => {
             });
             if (res.ok) {
                 alert('Xóa sản phẩm thành công!');
-                loadProducts(); // Cập nhật lại danh sách trực quan
+                loadProducts(); 
             } else {
                 alert('Xóa thất bại. Sản phẩm có thể đang vướng đơn hàng!');
             }
@@ -253,11 +326,13 @@ const handleLogout = () => {
 
 onMounted(() => {
     loadProducts();
+    loadCategories(); 
+    loadMainCategories();
 });
 </script>
 
 <style scoped>
-/* ================= CSS CŨ CỦA BẠN (GIỮ NGUYÊN) ================= */
+/* Toàn bộ CSS gốc được giữ nguyên vẹn */
 .admin-wrapper {
     display: flex;
     min-height: 100vh;
@@ -428,10 +503,15 @@ onMounted(() => {
 .product-name {
     font-weight: bold;
     color: #3e332e;
-    max-width: 250px;
+    max-width: 200px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.category-name {
+    color: #7c6f64;
+    font-style: italic;
 }
 
 .price {
@@ -500,7 +580,6 @@ onMounted(() => {
     color: #888;
 }
 
-/* ================= BỔ SUNG CSS CHO PHẦN DIALOG MODAL CRUD ================= */
 .modal-overlay {
     position: fixed;
     top: 0;
