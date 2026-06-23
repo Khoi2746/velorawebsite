@@ -49,6 +49,7 @@ import { ref } from 'vue';
 const menuItems = [
     { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
     { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open' },
+    { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group' },
     { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
     { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
     { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
@@ -57,13 +58,18 @@ const menuItems = [
     { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' }
 ];
 
-
 const cards = [
     {
         title: 'Quản lý sản phẩm',
         desc: 'Xem danh sách, thêm mới và chỉnh sửa các cỗ máy thời gian.',
         icon: 'fa-solid fa-box-open',
         link: '/admin/products'
+    },
+    {
+        title: 'Quản lý loại sản phẩm',
+        desc: 'Phân loại đồng hồ theo tính năng (Moonphase, Chronograph) hoặc phụ kiện.',
+        icon: 'fa-solid fa-layer-group', // Biểu tượng xếp lớp rất hợp cho danh mục
+        link: '/admin/categories'
     },
     {
         title: 'Quản lý người dùng',
@@ -89,12 +95,6 @@ const cards = [
         icon: 'fa-solid fa-file-invoice-dollar',
         link: '/admin/invoices'
     },
-    // { 
-    //     title: 'Báo cáo doanh thu', 
-    //     desc: 'Thống kê biểu đồ và phân tích tình hình kinh doanh tổng quan.', 
-    //     icon: 'fa-solid fa-chart-pie', 
-    //     link: '/admin/dashboard' 
-    // }
     {
         title: 'Quản lý thương hiệu',
         desc: 'Thiết lập danh mục nhà chế tác và đối tác đồng hồ cao cấp.',
@@ -118,7 +118,7 @@ const handleLogout = () => {
 </script>
 
 <style scoped>
-/* Reset & Layout */
+/* Toàn bộ phần CSS giữ nguyên vẹn của bạn để không làm lệch giao diện */
 .admin-wrapper {
     display: flex;
     min-height: 100vh;
@@ -126,7 +126,6 @@ const handleLogout = () => {
     font-family: sans-serif;
 }
 
-/* Sidebar */
 .sidebar {
     width: 260px;
     background: #3e332e;
@@ -187,7 +186,6 @@ const handleLogout = () => {
     text-decoration: none !important;
 }
 
-/* Content */
 .content {
     flex: 1;
     padding: 60px;
@@ -203,7 +201,6 @@ const handleLogout = () => {
     color: #d1aa68;
 }
 
-/* Grid Cards */
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -238,7 +235,6 @@ const handleLogout = () => {
     margin-bottom: 10px;
 }
 
-/* Activity */
 .activity-box {
     background: white;
     padding: 30px;

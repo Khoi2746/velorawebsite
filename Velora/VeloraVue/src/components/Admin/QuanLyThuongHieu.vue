@@ -154,6 +154,7 @@ const API_URL = 'http://localhost:8080/api/thuong-hieu';
 const menuItems = [
     { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
     { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open' },
+    { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group' },
     { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
     { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
     { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
@@ -161,7 +162,6 @@ const menuItems = [
     { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
     { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' }
 ];
-
 const brands = ref([]);
 const showModal = ref(false);
 const isEditMode = ref(false);

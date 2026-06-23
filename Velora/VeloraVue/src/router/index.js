@@ -16,7 +16,7 @@ import QuanLyKho from '../components/Admin/QuanLyKho.vue'
 import XuatHoaDon from '../components/Admin/XuatHoaDon.vue'
 import QuanLyThuongHieu from '../components/Admin/QuanLyThuongHieu.vue'
 import PhieuNhap from '../components/Admin/PhieuNhapKho.vue' // IMPORT THÊM TRANG PHIẾU NHẬP
-
+import LoaiSanPham from '../components/Admin/LoaiSanPham.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -89,6 +89,12 @@ const router = createRouter({
       component: XuatHoaDon,
       meta: { requiresAdmin: true } // ĐÃ THÊM ROUTE CHO XUẤT HÓA ĐƠN
     },
+    {
+  path: '/admin/categories',
+  name: 'QuanLyLoaiSanPham',
+  component: LoaiSanPham, // Đổi thành tên biến vừa import ở trên
+  meta: { requiresAdmin: true }
+},
     {
       path: '/admin/manufacturers',
       name: 'QuanLyThuongHieu',
