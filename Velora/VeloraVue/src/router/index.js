@@ -17,7 +17,7 @@ import XuatHoaDon from '../components/Admin/XuatHoaDon.vue'
 import QuanLyThuongHieu from '../components/Admin/QuanLyThuongHieu.vue'
 import PhieuNhap from '../components/Admin/PhieuNhapKho.vue' // IMPORT THÊM TRANG PHIẾU NHẬP
 import LoaiSanPham from '../components/Admin/LoaiSanPham.vue'
-import QuanLyThongKe from '../components/Admin/QuanLyThongKe.vue' // IMPORT THÊM TRANG THỐNG KÊ DOANH THU
+import QuanLyMaGiamGia from '../components/Admin/QuanLyMaGiamGia.vue' // IMPORT TRANG QUẢN LÝ MÃ GIẢM GIÁ
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -86,12 +86,6 @@ const router = createRouter({
       meta: { requiresAdmin: true } // ROUTE CHO TRANG DUYỆT PHIẾU NHẬP KHỎ
     },
     {
-      path: '/admin/statistics',
-      name: 'QuanLyThongKe',
-      component: QuanLyThongKe,
-      meta: { requiresAdmin: true } // ROUTE CHO TRANG THỐNG KÊ DOANH THU BIỂU ĐỒ
-    },
-    {
       path: '/admin/invoices',
       name: 'XuatHoaDon',
       component: XuatHoaDon,
@@ -107,6 +101,12 @@ const router = createRouter({
       path: '/admin/manufacturers',
       name: 'QuanLyThuongHieu',
       component: QuanLyThuongHieu,
+      meta: { requiresAdmin: true }
+    },
+    {
+      path: '/admin/ma-giam-gia',
+      name: 'QuanLyMaGiamGia',
+      component: QuanLyMaGiamGia, // ROUTE CHO TRANG QUẢN LÝ MÃ GIẢM GIÁ
       meta: { requiresAdmin: true }
     }
   ]
