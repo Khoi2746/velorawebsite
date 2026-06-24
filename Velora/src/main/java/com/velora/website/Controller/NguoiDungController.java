@@ -61,6 +61,25 @@ public class NguoiDungController {
             return ResponseEntity.ok("Cập nhật thông tin thành công!");
         }).orElse(ResponseEntity.notFound().build());
     }
+    @DeleteMapping("/thanh-vien/{id}")
+    public ResponseEntity<?> xoaVinhVienThanhVien(@PathVariable Integer id) {
+        try {
+            return nguoiDungRepository.findById(id).map(user -> {
+                if (user.getVaiTros() != null) {
+                    user.getVaiTros().clear();
+                    nguoiDungRepository.save(user);
+                }
+                
+                // 2. Thực hiện xóa vĩnh viễn
+                nguoiDungRepository.delete(user);
+                return ResponseEntity.ok("Xóa vĩnh viễn tài khoản thành công!");
+            }).orElse(ResponseEntity.notFound().build());
+            
+        } catch (Exception e) {
+            e.printStackTrace(); // In ra log để xem lỗi (nếu có)
+            return ResponseEntity.badRequest().body("Lỗi: Không thể xóa do tài khoản vẫn đang dính líu dữ liệu khác.");
+        }
+    }
 
     @PatchMapping("/thanh-vien/{id}/doi-trang-thai")
     public ResponseEntity<?> doiTrangThaiThanhVien(@PathVariable Integer id) {
