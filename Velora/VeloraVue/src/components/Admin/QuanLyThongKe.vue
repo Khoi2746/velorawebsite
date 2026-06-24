@@ -373,7 +373,6 @@ const loadMonthlyChartData = async () => {
 
             yearlyTotalRevenue.value = totalRev; yearlyTotalOrders.value = totalOrd; yearlyTotalProducts.value = totalProd;
 
-            // CHẠY LOGIC XÓA SẢN PHẨM NẾU TỔNG DOANH THU = 0
             updateReportProductStats(totalRev);
 
             monthlyChartData.value = { labels: labels, datasets: [{ label: `Biến động doanh thu năm ${selectedYear.value} (VNĐ)`, borderColor: '#3e332e', backgroundColor: 'rgba(209, 170, 104, 0.2)', borderWidth: 2, pointBackgroundColor: '#d1aa68', fill: true, tension: 0.3, data: dataValues }] };
@@ -385,7 +384,6 @@ const loadMonthlyChartData = async () => {
 
         yearlyTotalRevenue.value = 5993000000; yearlyTotalOrders.value = 145; yearlyTotalProducts.value = 168;
 
-        // CHẠY LOGIC MOCK NẾU CHƯA CÓ API
         updateReportProductStats(5993000000);
     }
 };
