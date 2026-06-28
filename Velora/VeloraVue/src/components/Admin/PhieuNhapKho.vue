@@ -24,6 +24,32 @@
                 </div>
             </header>
 
+            <div class="controls-container">
+                <div class="filter-group">
+                    <div class="filter-item">
+                        <label>Trạng Thái:</label>
+                        <select v-model="filterTrangThai">
+                            <option value="all">Tất cả</option>
+                            <option value="CHO_DUYET">Chờ duyệt</option>
+                            <option value="DA_DUYET">Đã duyệt</option>
+                            <option value="TU_CHOI">Từ chối</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-item">
+                        <label>Người Yêu Cầu:</label>
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input 
+                                type="text" 
+                                v-model="searchNguoiYeuCau" 
+                                placeholder="Nhập ID nhân viên..." 
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <section class="table-container">
                 <table class="admin-table">
                     <thead>
@@ -37,7 +63,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="receipt in receipts" :key="receipt.maPhieuNhap">
+                        <tr v-for="receipt in filteredReceipts" :key="receipt.maPhieuNhap">
                             <td class="receipt-code">{{ receipt.maPhieuNhapCode || 'PNK-#' + receipt.maPhieuNhap }}</td>
                             <td><strong>Nhân viên #{{ receipt.maNguoiYeuCau }}</strong></td>
                             <td>{{ formatDate(receipt.ngayYeuCau) }}</td>
@@ -67,8 +93,8 @@
                                 </button>
                             </td>
                         </tr>
-                        <tr v-if="receipts.length === 0">
-                            <td colspan="6" class="empty-state">Chưa có phiếu nhập kho nào trong hệ thống...</td>
+                        <tr v-if="filteredReceipts.length === 0">
+                            <td colspan="6" class="empty-state">Không tìm thấy phiếu nhập nào phù hợp.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -118,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 
 const menuItems = [
     { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
@@ -132,24 +158,39 @@ const menuItems = [
     { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
     { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
 ];
+
 const receipts = ref([]);
 const showDetailModal = ref(false);
 const selectedReceipt = ref(null);
 const receiptDetails = ref([]);
+
+// State cho việc lọc
+const filterTrangThai = ref('all');
+const searchNguoiYeuCau = ref('');
+
+// Computed Property để tự động lọc phiếu nhập
+const filteredReceipts = computed(() => {
+    return receipts.value.filter(receipt => {
+        // Lọc theo trạng thái
+        const matchTrangThai = filterTrangThai.value === 'all' || receipt.trangThai === filterTrangThai.value;
+        
+        // Lọc theo mã người yêu cầu (so sánh chuỗi bất chấp chữ hoa/thường)
+        const matchNguoiYeuCau = !searchNguoiYeuCau.value || 
+            String(receipt.maNguoiYeuCau).toLowerCase().includes(searchNguoiYeuCau.value.toLowerCase());
+            
+        return matchTrangThai && matchNguoiYeuCau;
+    });
+});
 
 const formatPrice = (value) => {
     if (!value) return '0 ₫';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
-// =========================================================
-// 🔥 ĐÂY LÀ ĐOẠN CODE "BẤT TỬ" SẼ TIÊU DIỆT LỖI N/A
-// =========================================================
 const formatDate = (dateInput) => {
     if (!dateInput) return 'N/A';
     
     try {
-        // Trường hợp 1: Backend trả về một mảng số [2026, 6, 18, 10, 30]
         if (Array.isArray(dateInput)) {
             const [y, m, d, h = 0, min = 0, s = 0] = dateInput;
             const date = new Date(y, m - 1, d, h, min, s);
@@ -159,9 +200,8 @@ const formatDate = (dateInput) => {
             });
         }
 
-        // Trường hợp 2: Backend trả về chuỗi String "2026-06-18T10:30"
         const date = new Date(dateInput);
-        if (isNaN(date.getTime())) return 'N/A'; // Nếu vẫn lỗi thì mới ra N/A
+        if (isNaN(date.getTime())) return 'N/A';
         
         return date.toLocaleDateString('vi-VN', { 
             day: '2-digit', month: '2-digit', year: 'numeric', 
@@ -172,9 +212,7 @@ const formatDate = (dateInput) => {
         return 'N/A';
     }
 };
-// =========================================================
 
-// Cấu hình giao diện Trạng Thái
 const getStatusClass = (status) => {
     if (status === 'DA_DUYET') return 'approved';
     if (status === 'TU_CHOI') return 'rejected';
@@ -193,14 +231,13 @@ const getStatusIcon = (status) => {
     return 'fa-solid fa-clock';
 };
 
-// Lấy danh sách phiếu nhập
 const loadReceipts = async () => {
     try {
         const res = await fetch('http://localhost:8080/api/phieu-nhap');
         if (res.ok) {
             receipts.value = await res.json();
         } else {
-            loadMockData(); // Nếu API lỗi thì nạp data mẫu
+            loadMockData(); 
         }
     } catch (error) {
         console.warn("Chưa kết nối được Backend. Đang dùng dữ liệu mẫu.");
@@ -212,11 +249,10 @@ const loadMockData = () => {
     receipts.value = [
         { maPhieuNhap: 1, maPhieuNhapCode: 'PNK-2026061501', maNguoiYeuCau: 2, ngayYeuCau: '2026-06-15T08:30:00', trangThai: 'DA_DUYET', ngayDuyet: '2026-06-15T09:00:00', ghiChu: 'Nhập lô hàng Velora Noir Starlight' },
         { maPhieuNhap: 2, maPhieuNhapCode: 'PNK-2026061701', maNguoiYeuCau: 2, ngayYeuCau: '2026-06-17T14:15:00', trangThai: 'CHO_DUYET', ngayDuyet: null, ghiChu: 'Yêu cầu nhập bổ sung Rolex Daytona' },
-        { maPhieuNhap: 3, maPhieuNhapCode: 'PNK-2026061805', maNguoiYeuCau: 2, ngayYeuCau: '2026-06-18T10:00:00', trangThai: 'CHO_DUYET', ngayDuyet: null, ghiChu: 'Nhập hàng test' }
+        { maPhieuNhap: 3, maPhieuNhapCode: 'PNK-2026061805', maNguoiYeuCau: 5, ngayYeuCau: '2026-06-18T10:00:00', trangThai: 'CHO_DUYET', ngayDuyet: null, ghiChu: 'Nhập hàng test' }
     ];
 };
 
-// Admin Xử lý phiếu (Duyệt hoặc Từ Chối)
 const processReceipt = async (id, trangThaiMoi) => {
     const isApprove = trangThaiMoi === 'DA_DUYET';
     const message = isApprove
@@ -234,11 +270,9 @@ const processReceipt = async (id, trangThaiMoi) => {
             alert(isApprove ? "Đã duyệt phiếu và cộng kho thành công!" : "Đã từ chối phiếu nhập!");
             loadReceipts();
         } else {
-            // Demo Frontend khi chưa có API
             processMockReceipt(id, trangThaiMoi);
         }
     } catch (error) {
-        // Demo Frontend khi sập mạng
         processMockReceipt(id, trangThaiMoi);
     }
 };
@@ -252,7 +286,6 @@ const processMockReceipt = (id, trangThaiMoi) => {
     }
 };
 
-// Xem chi tiết phiếu
 const viewDetails = async (receipt) => {
     selectedReceipt.value = receipt;
     showDetailModal.value = true;
@@ -375,7 +408,7 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
 }
 
 .header h1 {
@@ -387,6 +420,81 @@ onMounted(() => {
 .header p {
     color: #888;
     font-size: 14px;
+}
+
+/* ================= CSS THANH LỌC VÀ TÌM KIẾM ================= */
+.controls-container {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.filter-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-item label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+}
+
+.filter-item select {
+    padding: 0 10px;
+    border: 1px solid #ddd;
+    color: #333;
+    outline: none;
+    cursor: pointer;
+    min-width: 140px;
+    height: 40px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.filter-item select:focus {
+    border-color: #d1aa68;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box i {
+    position: absolute;
+    left: 12px;
+    color: #999;
+}
+
+.search-box input {
+    padding: 0 10px 0 35px;
+    border: 1px solid #ddd;
+    width: 250px;
+    transition: 0.3s;
+    height: 40px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #d1aa68;
 }
 
 /* ================= BẢNG DỮ LIỆU ================= */
@@ -540,15 +648,8 @@ onMounted(() => {
 }
 
 @keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-30px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-header {
@@ -657,4 +758,4 @@ onMounted(() => {
 .btn-cancel:hover {
     background: #ccbfb5;
 }
-</style>    
+</style>
