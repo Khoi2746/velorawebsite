@@ -21,10 +21,32 @@
           <h1>Quản Lý <span class="gold">Đơn Hàng</span></h1>
           <p>Theo dõi, luân chuyển trạng thái và xử lý các giao dịch giao hàng.</p>
         </div>
-        <div class="header-right">
-          <button class="btn-export"><i class="fa-solid fa-file-export"></i> Xuất Báo Cáo</button>
-        </div>
       </header>
+
+      <!-- KHU VỰC THANH TÌM KIẾM & BỘ LỌC ĐA NĂNG -->
+      <section class="filter-wrapper">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input 
+            type="text" 
+            v-model="searchQuery" 
+            placeholder="Tìm theo mã đơn, số điện thoại, tên khách hàng..." 
+            class="input-search"
+          />
+        </div>
+        <div class="date-box">
+          <label for="filterDate" class="label-date"><i class="fa-solid fa-calendar-days"></i> Lọc ngày:</label>
+          <input 
+            type="date" 
+            id="filterDate" 
+            v-model="filterDate" 
+            class="input-date"
+          />
+          <button v-if="filterDate" class="btn-clear-date" title="Xóa lọc ngày" @click="filterDate = ''">
+            <i class="fa-solid fa-circle-xmark"></i>
+          </button>
+        </div>
+      </section>
 
       <section class="table-container">
         <table class="admin-table">
@@ -36,11 +58,11 @@
               <th>Tổng Tiền</th>
               <th>Thanh Toán</th>
               <th>Trạng Thái</th>
-              <th>Hành Động</th>
+              <th style="width: 160px;">Hành Động</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="order in orders" :key="order.maDonHang">
+            <tr v-for="order in filteredOrders" :key="order.maDonHang">
               <td class="order-code">{{ order.maDonHangCode }}</td>
               <td class="customer-info">
                 <strong>{{ order.tenNguoiNhan }}</strong>
@@ -49,48 +71,77 @@
               <td>{{ formatDate(order.ngayTao) }}</td>
               <td class="price">{{ formatPrice(order.tongTien) }}</td>
               <td>
-                <span class="payment-status" :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'paid' : 'unpaid'">
-                  <i
-                    :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'fa-solid fa-check-circle' : 'fa-solid fa-clock'"></i>
-                  {{ order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'Đã Thanh Toán' : 'Chưa Thanh Toán' }}
-                </span>
+                <div class="payment-edit-group">
+                  <select 
+                    v-model="order.phuongThucThanhToan" 
+                    @change="changePaymentMethod(order.maDonHang, order.phuongThucThanhToan)"
+                    class="payment-select"
+                  >
+                    <option v-for="method in paymentMethods" :key="method" :value="method">
+                      {{ 
+                        method === 'CHUYEN_KHOAN_QR' ? 'Chuyển Khoản QR' : 
+                        method === 'THE_TIN_DUNG' ? 'Thẻ Tín Dụng' : 
+                        method === 'VNPAY' ? 'Cổng VNPAY' : method 
+                      }}
+                    </option>
+                  </select>
+                  <button class="btn-add-payment-method" title="Tạo thêm hình thức thanh toán mới" @click="openAddPaymentModal">+</button>
+                </div>
+                
+                <div style="margin-top: 6px;">
+                  <span class="payment-status" :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'paid' : 'unpaid'">
+                    <i :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'fa-solid fa-check-circle' : 'fa-solid fa-clock'"></i>
+                    {{ order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'Đã Thanh Toán' : 'Chưa Thanh Toán' }}
+                  </span>
+                </div>
               </td>
               <td>
                 <span class="status-badge" :class="getStatusClass(order.trangThaiDonHang)">
                   {{ getStatusText(order.trangThaiDonHang) }}
                 </span>
               </td>
-              <td class="actions">
-                <button class="btn-action view" title="Xem chi tiết" @click="viewOrderDetails(order)">
-                  <i class="fa-solid fa-eye"></i>
-                </button>
-
-                <button class="btn-action shipping" title="Xác nhận giao hàng (Chuyển thành Đang Giao)"
-                  v-if="order.trangThaiDonHang === 'CHO_XU_LY'"
-                  @click="changeOrderStatus(order.maDonHang, 'DANG_GIAO')">
-                  <i class="fa-solid fa-truck"></i>
-                </button>
-
-                <button class="btn-action approve" title="Xác nhận khách đã nhận (Chuyển thành Đã Giao)"
-                  v-if="order.trangThaiDonHang === 'DANG_GIAO'" @click="changeOrderStatus(order.maDonHang, 'DA_GIAO')">
-                  <i class="fa-solid fa-check"></i>
-                </button>
-
-                <button class="btn-action cancel" title="Hủy đơn hàng này"
-                  v-if="order.trangThaiDonHang === 'CHO_XU_LY' || order.trangThaiDonHang === 'DANG_GIAO'"
-                  @click="changeOrderStatus(order.maDonHang, 'DA_HUY')">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
+              <td>
+                <select 
+                  class="action-select" 
+                  value=""
+                  @change="handleActionSelect(order, $event)"
+                >
+                  <option value="" disabled selected>-- Chọn lệnh --</option>
+                  <option value="VIEW">👁️ Xem chi tiết</option>
+                  
+                  <option 
+                    v-if="order.trangThaiDonHang === 'CHO_XU_LY'" 
+                    value="SHIPPING"
+                  >
+                    🚚 Giao hàng
+                  </option>
+                  
+                  <option 
+                    v-if="order.trangThaiDonHang === 'DANG_GIAO'" 
+                    value="APPROVE"
+                  >
+                    ✅ Hoàn thành giao
+                  </option>
+                  
+                  <option 
+                    v-if="order.trangThaiDonHang === 'CHO_XU_LY' || order.trangThaiDonHang === 'DANG_GIAO'" 
+                    value="CANCEL"
+                    class="option-danger"
+                  >
+                    ❌ Hủy đơn hàng
+                  </option>
+                </select>
               </td>
             </tr>
-            <tr v-if="orders.length === 0">
-              <td colspan="7" class="empty-state">Đang tải dữ liệu hoặc chưa có đơn hàng nào...</td>
+            <tr v-if="filteredOrders.length === 0">
+              <td colspan="7" class="empty-state">Không tìm thấy đơn hàng nào khớp với bộ lọc...</td>
             </tr>
           </tbody>
         </table>
       </section>
     </main>
 
+    <!-- MODAL XEM CHI TIẾT ĐƠN HÀNG -->
     <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
       <div class="modal-box modal-lg">
         <div class="modal-header">
@@ -143,11 +194,37 @@
         </div>
       </div>
     </div>
+
+    <!-- MODAL POPUP THÊM HÌNH THỨC THANH TOÁN MỚI -->
+    <div class="modal-overlay" v-if="showAddPaymentModal" @click.self="closeAddPaymentModal">
+      <div class="modal-box modal-sm">
+        <div class="modal-header">
+          <h2>Thêm <span class="gold">Hình Thức Mới</span></h2>
+          <button class="btn-close" @click="closeAddPaymentModal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group-payment">
+            <label for="newPaymentMethod" class="label-payment">Tên hình thức thanh toán:</label>
+            <input 
+              type="text" 
+              id="newPaymentMethod" 
+              v-model="newMethodName" 
+              placeholder="Ví dụ: MoMo, Trả Góp 0%,..."
+              class="input-payment"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-submit-payment" @click="addNewPaymentMethod">Xác Nhận Thêm</button>
+          <button class="btn-cancel" @click="closeAddPaymentModal">Hủy</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 
 const menuItems = [
     { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
@@ -157,7 +234,7 @@ const menuItems = [
     { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
     { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
     { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
-    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
+    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-gem fa-solid' },
     { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
     { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
 ];
@@ -165,6 +242,31 @@ const orders = ref([]);
 const showDetailModal = ref(false);
 const selectedOrder = ref(null);
 const orderDetails = ref([]);
+
+const searchQuery = ref('');
+const filterDate = ref('');
+
+const paymentMethods = ref(['COD', 'CHUYEN_KHOAN_QR', 'VNPAY', 'THE_TIN_DUNG']);
+const showAddPaymentModal = ref(false);
+const newMethodName = ref('');
+
+const filteredOrders = computed(() => {
+  return orders.value.filter(order => {
+    const query = searchQuery.value.trim().toLowerCase();
+    const matchesQuery = !query || 
+      (order.maDonHangCode && order.maDonHangCode.toLowerCase().includes(query)) ||
+      (order.tenNguoiNhan && order.tenNguoiNhan.toLowerCase().includes(query)) ||
+      (order.soDienThoaiGiaoHang && order.soDienThoaiGiaoHang.includes(query));
+
+    let matchesDate = true;
+    if (filterDate.value && order.ngayTao) {
+      const orderDate = new Date(order.ngayTao).toISOString().split('T')[0];
+      matchesDate = (orderDate === filterDate.value);
+    }
+
+    return matchesQuery && matchesDate;
+  });
+});
 
 const formatPrice = (value) => {
   if (!value) return '0 ₫';
@@ -207,23 +309,67 @@ const loadOrders = async () => {
   }
 };
 
-// HÀM CHUYỂN ĐỔI TRẠNG THÁI TỔNG HỢP CỰC KỲ THÔNG MINH
+const changePaymentMethod = async (id, hinhThucMoi) => {
+  try {
+    const res = await fetch(`http://localhost:8080/api/don-hang/${id}/cap-nhat-thanh-toan?phuongThucMoi=${hinhThucMoi}`, {
+      method: 'PATCH'
+    });
+
+    if (res.ok) {
+      alert("Cập nhật phương thức thanh toán của đơn hàng thành công!");
+      loadOrders();
+    } else {
+      alert("Lỗi cập nhật backend: " + await res.text());
+    }
+  } catch (error) {
+    alert("Không thể đồng bộ hình thức thanh toán mới lên máy chủ.");
+  }
+};
+
+const handleActionSelect = (order, event) => {
+  const selectedAction = event.target.value;
+  if (!selectedAction) return;
+
+  if (selectedAction === 'VIEW') {
+    viewOrderDetails(order);
+  } else if (selectedAction === 'SHIPPING') {
+    changeOrderStatus(order.maDonHang, 'DANG_GIAO');
+  } else if (selectedAction === 'APPROVE') {
+    changeOrderStatus(order.maDonHang, 'DA_GIAO');
+  } else if (selectedAction === 'CANCEL') {
+    changeOrderStatus(order.maDonHang, 'DA_HUY');
+  }
+
+  event.target.value = "";
+};
+
+// ĐÃ SỬA: ÉP TRUYỀN THAM SỐ THANH TOÁN TRỰC TIẾP TỪ FRONTEND ĐỂ KHÔNG SỢ LỆCH LOGIC
 const changeOrderStatus = async (id, statusMoi) => {
   let thongBao = "Bạn có chắc muốn thực hiện hành động này?";
-  if (statusMoi === 'DANG_GIAO') thongBao = "Xác nhận chuyển đơn hàng sang trạng thái [ĐANG GIAO]?";
-  if (statusMoi === 'DA_GIAO') thongBao = "Xác nhận shipper đã giao đơn hàng này [THÀNH CÔNG]?";
-  if (statusMoi === 'DA_HUY') thongBao = "CẢNH BÁO: Bạn có chắc chắn muốn [HỦY] đơn hàng này?";
+  let url = `http://localhost:8080/api/don-hang/${id}/trang-thai?trangThaiMoi=${statusMoi}`;
+
+  if (statusMoi === 'DANG_GIAO') {
+    thongBao = "Xác nhận chuyển đơn hàng sang trạng thái [ĐANG GIAO]?";
+  }
+  if (statusMoi === 'DA_GIAO') {
+    thongBao = "Xác nhận đã giao hàng thành công?\nHệ thống sẽ tự động chuyển trạng thái thanh toán thành [ĐÃ THANH TOÁN].";
+    // Ép thêm param trực tiếp lên URL để Backend nhận lệnh xử lý luôn
+    url += `&trangThaiThanhToanMoi=DA_THANH_TOAN`;
+  }
+  if (statusMoi === 'DA_HUY') {
+    thongBao = "CẢNH BÁO: Bạn có chắc chắn muốn [HỦY] đơn hàng này?";
+  }
 
   if (!confirm(thongBao)) return;
 
   try {
-    const res = await fetch(`http://localhost:8080/api/don-hang/${id}/trang-thai?trangThaiMoi=${statusMoi}`, {
+    const res = await fetch(url, {
       method: 'PATCH'
     });
 
     if (res.ok) {
       alert("Cập nhật trạng thái đơn đặt hàng thành công!");
-      loadOrders(); // Tải lại bảng để cập nhật màu và nút bấm realtime
+      loadOrders(); 
     } else {
       alert("Lỗi: " + await res.text());
     }
@@ -252,6 +398,37 @@ const closeDetailModal = () => {
   selectedOrder.value = null;
 };
 
+const openAddPaymentModal = () => {
+  newMethodName.value = '';
+  showAddPaymentModal.value = true;
+};
+const closeAddPaymentModal = () => {
+  showAddPaymentModal.value = false;
+};
+const addNewPaymentMethod = () => {
+  let valueTrimmed = newMethodName.value.trim().toUpperCase();
+  valueTrimmed = valueTrimmed.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+  valueTrimmed = valueTrimmed.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+  valueTrimmed = valueTrimmed.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+  valueTrimmed = valueTrimmed.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+  valueTrimmed = valueTrimmed.replace(/Ù|Ú|Ụ|Ủ|U|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+  valueTrimmed = valueTrimmed.replace(/Ỳ|Ý|Y|Ỷ|Ỹ/g, "Y");
+  valueTrimmed = valueTrimmed.replace(/Đ/g, "D");
+  valueTrimmed = valueTrimmed.replace(/[^A-Z0-9\s]/g, '').replace(/\s+/g, '_');
+
+  if (!valueTrimmed) {
+    alert("Vui lòng điền tên hình thức thanh toán mới!");
+    return;
+  }
+  if (paymentMethods.value.includes(valueTrimmed)) {
+    alert("Hình thức thanh toán này đã tồn tại trong danh sách!");
+    return;
+  }
+  paymentMethods.value.push(valueTrimmed);
+  showAddPaymentModal.value = false;
+  alert(`Đã thêm thành công [${valueTrimmed}] vào danh sách lựa chọn!`);
+};
+
 const handleLogout = () => {
   localStorage.removeItem('user');
   window.location.href = '/';
@@ -261,7 +438,127 @@ onMounted(() => { loadOrders(); });
 </script>
 
 <style scoped>
-/* ================= LAYOUT VÀ BẢNG GỐC CỦA EM ================= */
+/* CSS DROPDOWN HÀNH ĐỘNG */
+.action-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e0dcd5;
+  background-color: #faf9f6;
+  color: #3e332e;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.action-select:focus {
+  border-color: #d1aa68;
+  background-color: #fff;
+  box-shadow: 0 0 5px rgba(209, 170, 104, 0.2);
+}
+
+.option-danger {
+  color: #c62828;
+  font-weight: bold;
+}
+
+/* CSS BỘ LỌC TÌM KIẾM */
+.filter-wrapper {
+  background: #ffffff;
+  border: 1px solid #e0dcd5;
+  border-radius: 8px;
+  padding: 15px 20px;
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.01);
+}
+
+.search-box {
+  flex: 1;
+  position: relative;
+  max-width: 500px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a09a95;
+  font-size: 15px;
+}
+
+.input-search {
+  width: 100%;
+  padding: 10px 15px 10px 42px;
+  border: 1px solid #e0dcd5;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+  background-color: #faf9f6;
+}
+
+.input-search:focus {
+  border-color: #d1aa68;
+  background-color: #fff;
+  box-shadow: 0 0 5px rgba(209, 170, 104, 0.2);
+}
+
+.date-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.label-date {
+  font-size: 14px;
+  font-weight: bold;
+  color: #3e332e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.input-date {
+  padding: 9px 12px;
+  border: 1px solid #e0dcd5;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  background-color: #faf9f6;
+  cursor: pointer;
+  font-family: sans-serif;
+}
+
+.input-date:focus {
+  border-color: #d1aa68;
+  background-color: #fff;
+}
+
+.btn-clear-date {
+  background: none;
+  border: none;
+  color: #c62828;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.btn-clear-date:hover {
+  color: #e53935;
+}
+
+/* CSS GIAO DIỆN CHÍNH */
 .admin-wrapper {
   display: flex;
   min-height: 100vh;
@@ -355,25 +652,6 @@ onMounted(() => { loadOrders(); });
 .header p {
   color: #888;
   font-size: 14px;
-}
-
-.btn-export {
-  background-color: #fff;
-  color: #3e332e;
-  border: 1px solid #d1aa68;
-  padding: 12px 24px;
-  font-weight: bold;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-export:hover {
-  background-color: #d1aa68;
-  color: #fff;
 }
 
 .table-container {
@@ -473,7 +751,6 @@ onMounted(() => { loadOrders(); });
   color: #1565c0;
 }
 
-/* Màu xanh dương xịn cho đang giao */
 .status-delivered {
   background-color: #e8f5e9;
   color: #2e7d32;
@@ -484,71 +761,13 @@ onMounted(() => { loadOrders(); });
   color: #c62828;
 }
 
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-/* TINH CHỈNH CSS CHO CÁC NÚT HÀNH ĐỘNG MỚI */
-.btn-action {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.btn-action.view {
-  background-color: #f4f1ea;
-  color: #3e332e;
-}
-
-.btn-action.view:hover {
-  background-color: #d1aa68;
-  color: #fff;
-}
-
-.btn-action.shipping {
-  background-color: #e3f2fd;
-  color: #1565c0;
-}
-
-.btn-action.shipping:hover {
-  background-color: #1565c0;
-  color: #fff;
-}
-
-.btn-action.approve {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-}
-
-.btn-action.approve:hover {
-  background-color: #2e7d32;
-  color: #fff;
-}
-
-.btn-action.cancel {
-  background-color: #ffebee;
-  color: #c62828;
-}
-
-.btn-action.cancel:hover {
-  background-color: #c62828;
-  color: #fff;
-}
-
 .empty-state {
   text-align: center;
   padding: 40px !important;
   color: #888;
 }
 
-/* ================= MODAL POPUP CHI TIẾT ================= */
+/* CSS MODAL POPUP */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -579,16 +798,13 @@ onMounted(() => { loadOrders(); });
   width: 750px;
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
+.modal-sm {
+  width: 400px;
+}
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-header {
@@ -741,5 +957,88 @@ onMounted(() => { loadOrders(); });
 
 .btn-cancel:hover {
   background: #ccbfb5;
+}
+
+.payment-edit-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.payment-select {
+  padding: 6px 10px;
+  border: 1px solid #e0dcd5;
+  background-color: #fff;
+  color: #3e332e;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  max-width: 150px;
+}
+
+.payment-select:focus {
+  border-color: #d1aa68;
+}
+
+.btn-add-payment-method {
+  background-color: #3e332e;
+  color: #d1aa68;
+  border: 1px solid #d1aa68;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-add-payment-method:hover {
+  background-color: #d1aa68;
+  color: #fff;
+}
+
+.form-group-payment {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.label-payment {
+  font-size: 14px;
+  font-weight: bold;
+  color: #3e332e;
+}
+
+.input-payment {
+  padding: 10px;
+  border: 1px solid #e0dcd5;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+
+.input-payment:focus {
+  border-color: #d1aa68;
+}
+
+.btn-submit-payment {
+  background-color: #d1aa68;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.btn-submit-payment:hover {
+  background-color: #b59253;
 }
 </style>
