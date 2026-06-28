@@ -39,21 +39,32 @@
               <input type="text" v-model="userForm.hoTen" required
                 style="width:100%; padding:10px; border:1px solid #e0dcd5; border-radius:4px;">
             </div>
+            
             <div>
               <label style="display:block; margin-bottom:8px; color:#3e332e; font-weight:bold;">Email Đăng Nhập</label>
               <input type="email" v-model="userForm.email" :disabled="isEditMode" required
                 style="width:100%; padding:10px; border:1px solid #e0dcd5; border-radius:4px; background-color: #f5f5f5;">
             </div>
+
+            <div>
+              <label style="display:block; margin-bottom:8px; color:#3e332e; font-weight:bold;">Mật Khẩu</label>
+              <input type="text" v-model="userForm.matKhauMaHoa" 
+                :placeholder="isEditMode ? 'Bỏ trống nếu không muốn đổi' : 'Bỏ trống mặc định là 123456'"
+                style="width:100%; padding:10px; border:1px solid #e0dcd5; border-radius:4px;">
+            </div>
+            
             <div>
               <label style="display:block; margin-bottom:8px; color:#3e332e; font-weight:bold;">Số Điện Thoại</label>
               <input type="text" v-model="userForm.soDienThoai"
                 style="width:100%; padding:10px; border:1px solid #e0dcd5; border-radius:4px;">
             </div>
+            
             <div>
               <label style="display:block; margin-bottom:8px; color:#3e332e; font-weight:bold;">Địa Chỉ</label>
               <input type="text" v-model="userForm.diaChi"
                 style="width:100%; padding:10px; border:1px solid #e0dcd5; border-radius:4px;">
             </div>
+            
             <div>
               <label style="display:block; margin-bottom:8px; color:#3e332e; font-weight:bold;">Phân Quyền</label>
               <select v-model="selectedRoleId" @change="updateRoleInForm($event)"
@@ -64,6 +75,7 @@
               </select>
             </div>
           </div>
+          
           <div style="display: flex; gap: 10px;">
             <button type="submit" class="btn-add">Lưu Thông Tin</button>
             <button type="button" @click="closeForm"
@@ -150,7 +162,6 @@ const menuItems = [
     { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
 ];
 
-
 const users = ref([]);
 const showForm = ref(false);
 const isEditMode = ref(false);
@@ -160,6 +171,7 @@ const userForm = ref({
   maNguoiDung: null,
   hoTen: '',
   email: '',
+  matKhauMaHoa: '', // Thêm trường password vào Form
   soDienThoai: '',
   diaChi: '',
   trangThai: 'HOAT_DONG',
@@ -201,6 +213,7 @@ const openAddModal = () => {
     maNguoiDung: null,
     hoTen: '',
     email: '',
+    matKhauMaHoa: '', // Reset trắng password khi thêm mới
     soDienThoai: '',
     diaChi: '',
     trangThai: 'HOAT_DONG',
@@ -212,6 +225,10 @@ const openAddModal = () => {
 const openEditModal = (user) => {
   isEditMode.value = true;
   userForm.value = JSON.parse(JSON.stringify(user));
+  
+  // Quan trọng: Clear password khi mở form Edit, 
+  // Để nếu họ không gõ gì thì Backend biết đường không Update password cũ
+  userForm.value.matKhauMaHoa = ''; 
 
   if (user.vaiTros && user.vaiTros.length > 0) {
     selectedRoleId.value = user.vaiTros[0].maVaiTro;
@@ -254,7 +271,6 @@ const saveUser = async () => {
   }
 };
 
-// HÀM XÓA TÀI KHOẢN MỚI THÊM VÀO
 const deleteUser = async (id) => {
   if (!confirm("Bạn có chắc chắn muốn XÓA tài khoản này khỏi hệ thống?")) return;
   try {
@@ -507,7 +523,6 @@ onMounted(() => { loadUsers(); });
   color: #fff;
 }
 
-/* CSS MỚI CHO NÚT XÓA */
 .btn-action.delete {
   background-color: #ffebee;
   color: #c62828;

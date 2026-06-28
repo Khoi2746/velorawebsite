@@ -2,8 +2,8 @@ package com.velora.website.Controller;
 
 import com.velora.website.Entity.NguoiDung;
 import com.velora.website.Repository.NguoiDungRepository;
-
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // IMPORT THƯ VIỆN NÀY
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
@@ -15,6 +15,9 @@ import java.util.List;
 public class NguoiDungController {
 
     private final NguoiDungRepository nguoiDungRepository;
+    
+    // TẠO CÔNG CỤ BĂM MẬT KHẨU
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     NguoiDungController(NguoiDungRepository nguoiDungRepository) {
         this.nguoiDungRepository = nguoiDungRepository;
@@ -33,12 +36,17 @@ public class NguoiDungController {
         
         nguoiDung.setNgayTao(new Date());
         nguoiDung.setNgayCapNhat(new Date());
-        if (nguoiDung.getTrangThai() == null) {
+        if (nguoiDung.getTrangThai() == null || nguoiDung.getTrangThai().isEmpty()) {
             nguoiDung.setTrangThai("HOAT_DONG");
         }
         
-        if (nguoiDung.getMatKhauMaHoa() == null) {
-            nguoiDung.setMatKhauMaHoa("$2a$10$sTfIDAN4qV1QZXN.hGhtueWm9zV94BwhoYt2jyaRTuooS8QP7cv9.");
+        // KIỂM TRA VÀ MÃ HÓA MẬT KHẨU TRƯỚC KHI LƯU
+        if (nguoiDung.getMatKhauMaHoa() == null || nguoiDung.getMatKhauMaHoa().trim().isEmpty()) {
+            // Nếu bỏ trống -> Băm mật khẩu mặc định 123456
+            nguoiDung.setMatKhauMaHoa(passwordEncoder.encode("123456"));
+        } else {
+            // Nếu có nhập mật khẩu (VD: thanhkhoi123) -> Băm chính mật khẩu đó
+            nguoiDung.setMatKhauMaHoa(passwordEncoder.encode(nguoiDung.getMatKhauMaHoa()));
         }
 
         NguoiDung saved = nguoiDungRepository.save(nguoiDung);
@@ -53,6 +61,11 @@ public class NguoiDungController {
             user.setDiaChi(form.getDiaChi());
             user.setNgayCapNhat(new Date());
             
+            // Xử lý đổi mật khẩu khi Edit
+            if (form.getMatKhauMaHoa() != null && !form.getMatKhauMaHoa().trim().isEmpty()) {
+                 user.setMatKhauMaHoa(passwordEncoder.encode(form.getMatKhauMaHoa()));
+            }
+            
             if (form.getVaiTros() != null) {
                 user.setVaiTros(form.getVaiTros());
             }
@@ -61,6 +74,7 @@ public class NguoiDungController {
             return ResponseEntity.ok("Cập nhật thông tin thành công!");
         }).orElse(ResponseEntity.notFound().build());
     }
+
     @DeleteMapping("/thanh-vien/{id}")
     public ResponseEntity<?> xoaVinhVienThanhVien(@PathVariable Integer id) {
         try {
@@ -69,14 +83,12 @@ public class NguoiDungController {
                     user.getVaiTros().clear();
                     nguoiDungRepository.save(user);
                 }
-                
-                // 2. Thực hiện xóa vĩnh viễn
                 nguoiDungRepository.delete(user);
                 return ResponseEntity.ok("Xóa vĩnh viễn tài khoản thành công!");
             }).orElse(ResponseEntity.notFound().build());
             
         } catch (Exception e) {
-            e.printStackTrace(); // In ra log để xem lỗi (nếu có)
+            e.printStackTrace(); 
             return ResponseEntity.badRequest().body("Lỗi: Không thể xóa do tài khoản vẫn đang dính líu dữ liệu khác.");
         }
     }
