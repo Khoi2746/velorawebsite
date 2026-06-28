@@ -14,17 +14,23 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/don-hang")
 @CrossOrigin("*")
-@RequiredArgsConstructor
+@RequiredArgsConstructor // Tự động tạo Constructor giúp tránh gạch vàng cảnh báo hệ thống
 public class DonHangController {
 
     private final DonHangRepository donHangRepository;
 
+    /**
+     * Lấy danh sách tất cả các đơn hàng
+     */
     @GetMapping
     public ResponseEntity<List<DonHang>> getAllDonHang() {
         return ResponseEntity.ok(donHangRepository.findAll());
     }
 
-    // API CẬP NHẬT TRẠNG THÁI LINH HOẠT CHUYỂN BƯỚC HOẶC HỦY ĐƠN
+    /**
+     * API CẬP NHẬT TRẠNG THÁI LINH HOẠT CHUYỂN BƯỚC HOẶC HỦY ĐƠN
+     * LOGIC ĐỒNG BỘ: Khi cập nhật thành "Đã giao hàng" -> Tự động chuyển trạng thái thanh toán sang "Đã thanh toán"
+     */
     @PatchMapping("/{id}/trang-thai")
     public ResponseEntity<?> capNhatTrangThai(@PathVariable Integer id, @RequestParam String trangThaiMoi) {
         Optional<DonHang> optionalDonHang = donHangRepository.findById(id);
@@ -35,10 +41,17 @@ public class DonHangController {
 
         DonHang donHang = optionalDonHang.get();
         
-        // Cập nhật trạng thái mới nhận từ RequestParam công lên
+        // 1. Cập nhật trạng thái mới nhận từ RequestParam vào trường chuẩn trangThaiDonHang
         donHang.setTrangThaiDonHang(trangThaiMoi);
+        
+        // 2. LOGIC ĐỒNG BỘ: Nếu trạng thái giao là "Đã giao hàng", ép trạng thái thanh toán thành "Đã thanh toán"
+        if (trangThaiMoi != null && "Đã giao hàng".equalsIgnoreCase(trangThaiMoi.trim())) {
+            donHang.setTrangThaiThanhToan("Đã thanh toán");
+        }
+
+        // 3. Lưu thực thể đơn hàng đã đồng bộ vào database
         donHangRepository.save(donHang);
         
-        return ResponseEntity.ok("Cập nhật trạng thái đơn hàng thành công!");
+        return ResponseEntity.ok("Cập nhật trạng thái đơn hàng và đồng bộ thanh toán thành công!");
     }
 }
