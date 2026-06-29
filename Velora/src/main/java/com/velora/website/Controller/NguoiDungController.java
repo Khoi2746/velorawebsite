@@ -93,17 +93,30 @@ public class NguoiDungController {
         }
     }
 
-    @PatchMapping("/thanh-vien/{id}/doi-trang-thai")
-    public ResponseEntity<?> doiTrangThaiThanhVien(@PathVariable Integer id) {
-        return nguoiDungRepository.findById(id).map(user -> {
-            if ("HOAT_DONG".equals(user.getTrangThai())) {
-                user.setTrangThai("BI_KHOA");
-            } else {
-                user.setTrangThai("HOAT_DONG");
-            }
-            user.setNgayCapNhat(new Date());
-            nguoiDungRepository.save(user);
-            return ResponseEntity.ok(user);
-        }).orElse(ResponseEntity.notFound().build());
+@PatchMapping("/{id}/doi-trang-thai")
+public ResponseEntity<?> doiTrangThai(@PathVariable Integer id) {
+    
+    // 1. Tìm người dùng trong DB
+    NguoiDung user = nguoiDungRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với mã này"));
+
+    // 2. Kiểm tra nếu thực sự là tài khoản Admin tối cao thì mới chặn
+    boolean isAdmin = user.getVaiTros() != null && user.getVaiTros().stream()
+            .anyMatch(vt -> "ROLE_ADMIN".equalsIgnoreCase(vt.getTenVaiTro()));
+            
+    if (isAdmin) {
+        return ResponseEntity.badRequest().body("Không thể khóa tài khoản thuộc quyền Quản trị viên (ROLE_ADMIN)!");
     }
+
+    // 3. Sử dụng equalsIgnoreCase để loại bỏ hoàn toàn lỗi viết hoa/thường hoặc khoảng trắng dữ liệu
+    if (user.getTrangThai() != null && user.getTrangThai().equalsIgnoreCase("HOAT_DONG")) {
+        user.setTrangThai("KHOA");
+    } else {
+        user.setTrangThai("HOAT_DONG");
+    }
+
+    // 4. Lưu lại thông tin thay đổi
+    nguoiDungRepository.save(user);
+    return ResponseEntity.ok("Thay đổi trạng thái tài khoản thành công!");
+}
 }
