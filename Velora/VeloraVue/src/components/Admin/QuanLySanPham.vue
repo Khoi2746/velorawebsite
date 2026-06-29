@@ -29,6 +29,27 @@
                 </div>
             </header>
 
+            <section class="filter-wrapper">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" v-model="searchQuery" placeholder="Tìm kiếm theo tên sản phẩm..." />
+                </div>
+                <div class="filter-boxes">
+                    <select v-model="filterDanhMuc">
+                        <option value="">-- Tất cả danh mục --</option>
+                        <option v-for="dm in mainCategories" :key="dm.maDanhMuc" :value="dm.maDanhMuc">
+                            {{ dm.tenDanhMuc }}
+                        </option>
+                    </select>
+
+                    <select v-model="filterTrangThai">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="CON_HANG">Còn Hàng</option>
+                        <option value="HET_HANG">Hết Hàng</option>
+                    </select>
+                </div>
+            </section>
+
             <section class="table-container">
                 <table class="admin-table">
                     <thead>
@@ -45,7 +66,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="product in products" :key="product.maSanPham">
+                        <tr v-for="product in filteredProducts" :key="product.maSanPham">
                             <td>#{{ product.maSanPham }}</td>
                             <td>
                                 <div class="img-wrapper">
@@ -54,12 +75,10 @@
                             </td>
                             <td class="product-name">{{ product.tenSanPham }}</td>
                             
-                            <!-- Hiển thị Danh mục chính -->
                             <td>
                                 {{ product.danhMuc ? product.danhMuc.tenDanhMuc : 'Chưa chọn' }}
                             </td>
 
-                            <!-- Hiển thị loaiSanPham từ ma_loai SQL -->
                             <td class="category-name">
                                 {{ product.loaiSanPham ? product.loaiSanPham.tenLoai : 'Không có' }}
                             </td>
@@ -86,8 +105,8 @@
                                 </button>
                             </td>
                         </tr>
-                        <tr v-if="products.length === 0">
-                            <td colspan="9" class="empty-state">Đang tải dữ liệu sản phẩm...</td>
+                        <tr v-if="filteredProducts.length === 0">
+                            <td colspan="9" class="empty-state">Không tìm thấy sản phẩm nào phù hợp.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -106,7 +125,6 @@
                         <input type="text" v-model="form.tenSanPham" required placeholder="Ví dụ: Rolex Cosmograph" />
                     </div>
 
-                    <!-- Ô chọn Danh mục chính -->
                     <div class="form-group">
                         <label>Danh mục chính *</label>
                         <select v-model="form.maDanhMucSelected" required>
@@ -117,7 +135,6 @@
                         </select>
                     </div>
 
-                    <!-- Ô chọn Loại đặc tính sản phẩm (Không ép required để đổi cơ khí sang pin không bị lỗi) -->
                     <div class="form-group">
                         <label>Loại sản phẩm (Đặc tính cơ khí)</label>
                         <select v-model="form.maLoaiSelected">
@@ -132,18 +149,25 @@
                         <label>Giá bán (VNĐ) *</label>
                         <input type="number" v-model.number="form.giaBan" required min="0" />
                     </div>
+
                     <div class="form-group">
-                        <label>Tên file hình ảnh</label>
-                        <input type="text" v-model="form.anhDaiDien"
-                            placeholder="Ví dụ: rolex.png hoặc đường dẫn URL" />
+                        <label>Hình ảnh sản phẩm *</label>
+                        <input type="file" accept="image/*" @change="handleFileChange" :required="!isEditMode" />
+                        <div v-if="imagePreview" class="file-preview-wrapper">
+                            <p>Xem trước:</p>
+                            <img :src="imagePreview" class="file-preview-img" />
+                            <small class="file-name-text">Tên file sẽ lưu: <b>{{ form.anhDaiDien }}</b></small>
+                        </div>
                     </div>
-                    <div class="form-group">
+
+                    <div v-if="isEditMode" class="form-group">
                         <label>Trạng thái</label>
                         <select v-model="form.trangThai">
                             <option value="CON_HANG">Còn Hàng</option>
                             <option value="HET_HANG">Hết Hàng</option>
                         </select>
                     </div>
+
                     <div class="modal-actions">
                         <button type="button" class="btn-cancel" @click="closeModal">Hủy bỏ</button>
                         <button type="submit" class="btn-submit">Lưu lại</button>
@@ -155,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 
 const API_URL = 'http://localhost:8080/api/san-pham';
 const CAT_API_URL = 'http://localhost:8080/api/loai-san-pham'; 
@@ -169,26 +193,51 @@ const menuItems = [
     { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
     { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
     { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
-    { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
-    { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
+    { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' }
 ];
+
 const products = ref([]);
 const categories = ref([]); 
 const mainCategories = ref([]); 
 
+// State cho bộ tìm kiếm và lọc
+const searchQuery = ref('');
+const filterDanhMuc = ref('');
+const filterTrangThai = ref('');
+
 const showModal = ref(false);
 const isEditMode = ref(false);
 const currentProductId = ref(null);
+const imagePreview = ref(''); // Lưu URL preview ảnh
 
 const defaultForm = {
     tenSanPham: '',
     giaBan: 0,
     anhDaiDien: '',
-    trangThai: 'CON_HANG',
+    trangThai: 'CON_HANG', // Thêm mới mặc định vẫn gửi CON_HANG lên DB
     maDanhMucSelected: '',
     maLoaiSelected: '' 
 };
 const form = ref({ ...defaultForm });
+
+// LOGIC TÌM KIẾM VÀ LỌC SẢN PHẨM (COMPUTED CHẠY REAL-TIME)
+const filteredProducts = computed(() => {
+    return products.value.filter(product => {
+        const matchName = product.tenSanPham.toLowerCase().includes(searchQuery.value.toLowerCase());
+        const matchDanhMuc = !filterDanhMuc.value || (product.danhMuc && product.danhMuc.maDanhMuc === Number(filterDanhMuc.value));
+        const matchTrangThai = !filterTrangThai.value || product.trangThai === filterTrangThai.value;
+        return matchName && matchDanhMuc && matchTrangThai;
+    });
+});
+
+// Xử lý sự kiện khi người dùng chọn file hình ảnh từ máy tính
+const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        form.value.anhDaiDien = file.name; // Trích xuất tên file (ví dụ: "dongho.png") đưa vào form gửi đi
+        imagePreview.value = URL.createObjectURL(file); // Tạo đường dẫn tạm thời để hiển thị xem trước
+    }
+};
 
 const getImageUrl = (img) => {
     if (!img) return '/img/default-watch.png';
@@ -233,6 +282,7 @@ const openAddModal = () => {
     isEditMode.value = false;
     currentProductId.value = null;
     form.value = { ...defaultForm };
+    imagePreview.value = ''; // Reset ảnh preview
     showModal.value = true;
 };
 
@@ -245,10 +295,12 @@ const openEditModal = (product) => {
         giaBan: product.giaBan,
         anhDaiDien: product.anhDaiDien,
         trangThai: product.trangThai,
-        // Ép kiểu ID về nguyên bản để khớp chuẩn xác với v-model của select option
         maDanhMucSelected: product.danhMuc ? product.danhMuc.maDanhMuc : '',
         maLoaiSelected: product.loaiSanPham ? product.loaiSanPham.maLoai : ''
     }; 
+    
+    // Nếu sản phẩm đã có tên ảnh cũ, thực hiện hiển thị preview
+    imagePreview.value = product.anhDaiDien ? getImageUrl(product.anhDaiDien) : '';
     showModal.value = true;
 };
 
@@ -332,7 +384,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Toàn bộ CSS gốc được giữ nguyên vẹn */
+/* CSS GỐC + CSS BỔ SUNG CHO THANH LỌC VÀ PREVIEW FILE */
 .admin-wrapper {
     display: flex;
     min-height: 100vh;
@@ -402,7 +454,7 @@ onMounted(() => {
 
 .content {
     flex: 1;
-    padding: 60px;
+    padding: 40px 60px;
     min-width: 0;
 }
 
@@ -414,7 +466,7 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 40px;
+    margin-bottom: 25px;
 }
 
 .header h1 {
@@ -426,6 +478,84 @@ onMounted(() => {
 .header p {
     color: #888;
     font-size: 14px;
+}
+
+/* CSS CHO THANH TÌM KIẾM VÀ BỘ LỌC MỚI THÊM */
+.filter-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 25px;
+    background: #fff;
+    padding: 15px 20px;
+    border: 1px solid #e0dcd5;
+    border-radius: 8px;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fcfbf9;
+    border: 1px solid #ccbfb5;
+    padding: 10px 15px;
+    border-radius: 6px;
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-box input {
+    border: none;
+    padding: 0;
+    background: transparent;
+}
+
+.search-box input:focus {
+    outline: none;
+}
+
+.search-box i {
+    color: #888;
+}
+
+.filter-boxes {
+    display: flex;
+    gap: 15px;
+}
+
+.filter-boxes select {
+    width: 200px;
+    background: #fcfbf9;
+}
+
+/* CSS CHỌN FILE VÀ PREVIEW ẢNH */
+.file-preview-wrapper {
+    margin-top: 10px;
+    padding: 10px;
+    background: #fdfaf5;
+    border: 1px dashed #d1aa68;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.file-preview-wrapper p {
+    margin: 0 0 5px 0;
+    font-size: 12px;
+    color: #666;
+}
+
+.file-preview-img {
+    max-height: 100px;
+    object-fit: contain;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.file-name-text {
+    display: block;
+    font-size: 11px;
+    color: #444;
 }
 
 .btn-add {
@@ -600,6 +730,8 @@ onMounted(() => {
     width: 500px;
     max-width: 90%;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-header {
@@ -651,6 +783,13 @@ input:focus,
 select:focus {
     border-color: #d1aa68;
     outline: none;
+}
+
+/* Kiểu riêng cho ô input file cho đẹp */
+input[type="file"] {
+    padding: 5px;
+    background: #fcfbf9;
+    cursor: pointer;
 }
 
 .modal-actions {
