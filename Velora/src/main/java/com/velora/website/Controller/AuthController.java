@@ -102,4 +102,40 @@ public class AuthController {
         
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("NOT_FOUND");
     }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody NguoiDung nguoiDung) {
+        // Kiểm tra trùng email
+        if (nguoiDungRepository.findByEmail(nguoiDung.getEmail()).isPresent()) {
+            return ResponseEntity.badRequest().body("Email này đã tồn tại!");
+        }
+
+        // Băm mật khẩu trước khi lưu
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        nguoiDung.setMatKhauMaHoa(encoder.encode(nguoiDung.getMatKhauMaHoa()));
+        nguoiDung.setTrangThai("HOAT_DONG");
+        nguoiDung.setNgayTao(new java.util.Date());
+
+        nguoiDungRepository.save(nguoiDung);
+        
+        return ResponseEntity.ok("Đăng ký thành công!");
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(email);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy email trong hệ thống!");
+        }
+
+        // Lưu ý: Ở bản demo, mình reset về '123456', sau này em tích hợp gửi Email qua JavaMailSender nhé!
+        NguoiDung user = userOpt.get();
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        user.setMatKhauMaHoa(encoder.encode("123456")); 
+        nguoiDungRepository.save(user);
+
+        return ResponseEntity.ok("Mật khẩu đã được reset về 123456!");
+    }
 }
