@@ -76,34 +76,39 @@ public class NguoiDungController {
         return ResponseEntity.ok(saved);
     }
 
-   @PutMapping("/thanh-vien/{id}")
-    @Transactional
-    public ResponseEntity<?> capNhatThanhVien(@PathVariable Integer id, @RequestBody NguoiDung form) {
-        return nguoiDungRepository.findById(id).map(user -> {
-            user.setHoTen(form.getHoTen());
-            user.setSoDienThoai(form.getSoDienThoai());
-            user.setDiaChi(form.getDiaChi());
-            user.setTrangThai(form.getTrangThai());
-            user.setNgayCapNhat(new Date());
-            
-            NguoiDung updatedUser = nguoiDungRepository.saveAndFlush(user);
+  // SỬA TẠI ĐÂY: Thêm "/thanh-vien" vào trước đường dẫn
+@PatchMapping("/thanh-vien/{id}/doi-trang-thai")
+@Transactional
+public ResponseEntity<?> doiTrangThai(@PathVariable Integer id) {
+    NguoiDung user = nguoiDungRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
 
-            // Gửi mail chi tiết
-            try {
-                String tieuDe = "Thông báo: Thông tin tài khoản của bạn đã được cập nhật";
-                String noiDung = "Xin chào " + updatedUser.getHoTen() + ",\n\n"
-                        + "Quản trị viên vừa cập nhật thông tin cá nhân của bạn trên hệ thống Velora Clock.\n"
-                        + "Nếu có bất kỳ thắc mắc nào, vui lòng phản hồi email này.\n\n"
-                        + "Trân trọng,\nĐội ngũ Velora.";
-                emailService.sendEmail(updatedUser.getEmail(), tieuDe, noiDung);
-            } catch (Exception e) {
-                System.err.println("Lỗi gửi mail khi sửa: " + e.getMessage());
-            }
-
-            return ResponseEntity.ok(updatedUser);
-        }).orElse(ResponseEntity.notFound().build());
+    if (user.getVaiTros().stream().anyMatch(vt -> "ROLE_ADMIN".equalsIgnoreCase(vt.getTenVaiTro()))) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không thể khóa tài khoản Quản trị viên!");
     }
 
+    String trangThaiMoi = "HOAT_DONG".equalsIgnoreCase(user.getTrangThai()) ? "KHOA" : "HOAT_DONG";
+    user.setTrangThai(trangThaiMoi);
+    user.setNgayCapNhat(new Date());
+
+    NguoiDung updatedUser = nguoiDungRepository.saveAndFlush(user);
+
+    // Gửi mail chi tiết theo trạng thái
+    try {
+        boolean isKhoa = "KHOA".equals(trangThaiMoi);
+        String tieuDe = isKhoa ? "CẢNH BÁO: Tài khoản của bạn đã bị KHÓA" : "Thông báo: Tài khoản đã được MỞ KHÓA";
+        String noiDung = "Xin chào " + updatedUser.getHoTen() + ",\n\n"
+                + (isKhoa 
+                    ? "Tài khoản của bạn đã bị khóa bởi quản trị viên. Bạn sẽ không thể truy cập hệ thống lúc này." 
+                    : "Tài khoản của bạn đã được quản trị viên mở khóa. Bạn có thể đăng nhập lại bình thường.")
+                + "\n\nTrân trọng,\nĐội ngũ Velora.";
+        emailService.sendEmail(updatedUser.getEmail(), tieuDe, noiDung);
+    } catch (Exception e) {
+        System.err.println("Lỗi gửi mail trạng thái: " + e.getMessage());
+    }
+
+    return ResponseEntity.ok(updatedUser);
+}
     @DeleteMapping("/thanh-vien/{id}")
     public ResponseEntity<?> xoaVinhVienThanhVien(@PathVariable Integer id) {
         try {

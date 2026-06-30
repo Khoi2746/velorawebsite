@@ -23,49 +23,63 @@ public class AuthController {
     private final NguoiDungRepository nguoiDungRepository;
 
     /**
-     * API ĐĂNG NHẬP HỆ THỐNG
+     * API ĐĂNG NHẬP HỆ THỐNG (ĐÃ CHUẨN HÓA LỖI JSON)
      */
-   @PostMapping("/login")
-public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-    System.out.println("--- ĐANG DEBUG LOGIN ---");
-    
-    // 1. Tìm người dùng trong Database
-    Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(loginRequest.getEmail());
-
-    if (!userOpt.isPresent()) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sai email hoặc mật khẩu!");
-    }
-
-    NguoiDung user = userOpt.get();
-
-    // 🔥 ĐƯA ĐOẠN NÀY LÊN TRÊN HẾT: Cứ bị khóa là chặn luôn, không cần check mật khẩu!
-    String trangThai = user.getTrangThai();
-    if ("KHOA".equalsIgnoreCase(trangThai) || "BI_KHOA".equalsIgnoreCase(trangThai)) {
-        System.out.println("=> CHẶN LẬP TỨC: Tài khoản dính trạng thái khóa!");
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Tài khoản của bạn đã bị khóa bởi Ban quản trị!");
-    }
-
-    // 2. Sau đó mới so sánh mật khẩu Bcrypt
-    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-    boolean isMatch = encoder.matches(loginRequest.getPassword(), user.getMatKhauMaHoa());
-    
-    if (isMatch) {
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("maNguoiDung", user.getMaNguoiDung());
-        responseData.put("hoTen", user.getHoTen());
-        responseData.put("email", user.getEmail());
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        System.out.println("--- ĐANG DEBUG LOGIN ---");
         
-        String roleName = "ROLE_CUSTOMER";
-        if (user.getVaiTros() != null && !user.getVaiTros().isEmpty()) {
-            roleName = user.getVaiTros().get(0).getTenVaiTro();
-        }
-        responseData.put("vaiTro", roleName);
+        // 1. Tìm người dùng trong Database
+        Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(loginRequest.getEmail());
 
-        return ResponseEntity.ok(responseData); 
-    } else {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sai email hoặc mật khẩu!");
+        if (!userOpt.isPresent()) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("code", "INVALID_CREDENTIALS");
+            errorResponse.put("message", "Sai email hoặc mật khẩu!");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
+
+        NguoiDung user = userOpt.get();
+
+        // 2. KIỂM TRA KHÓA TÀI KHOẢN TRƯỚC (Bọc lỗi qua JSON Object tránh lỗi 403 trình duyệt)
+        String trangThai = user.getTrangThai();
+        if ("KHOA".equalsIgnoreCase(trangThai) || "BI_KHOA".equalsIgnoreCase(trangThai)) {
+            System.out.println("=> CHẶN LẬP TỨC: Tài khoản dính trạng thái khóa!");
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("code", "ACCOUNT_LOCKED");
+            errorResponse.put("message", "Tài khoản của bạn đã bị khóa bởi Ban quản trị!");
+            
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+
+        // 3. So sánh mật khẩu Bcrypt
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        boolean isMatch = encoder.matches(loginRequest.getPassword(), user.getMatKhauMaHoa());
+        
+        if (isMatch) {
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("maNguoiDung", user.getMaNguoiDung());
+            responseData.put("hoTen", user.getHoTen());
+            responseData.put("email", user.getEmail());
+            
+            String roleName = "ROLE_CUSTOMER";
+            if (user.getVaiTros() != null && !user.getVaiTros().isEmpty()) {
+                roleName = user.getVaiTros().get(0).getTenVaiTro();
+            }
+            responseData.put("vaiTro", roleName);
+
+            return ResponseEntity.ok(responseData); 
+        } else {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("code", "INVALID_CREDENTIALS");
+            errorResponse.put("message", "Sai email hoặc mật khẩu!");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        }
     }
-}
 
     /**
      * API KIỂM TRA TRẠNG THÁI THỜI GIAN THỰC (Dùng cho Vue Router Guard)
@@ -78,7 +92,6 @@ public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         if (userOpt.isPresent()) {
             String trangThai = userOpt.get().getTrangThai();
             
-            // Nếu cột trạng thái trong Database đang bị null hoặc rỗng, mặc định là HOAT_DONG
             if (trangThai == null || trangThai.trim().isEmpty()) {
                 trangThai = "HOAT_DONG";
             }

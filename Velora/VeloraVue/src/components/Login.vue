@@ -50,8 +50,8 @@
                 </form>
             </div>
         </div>
+        <Footer />
     </div>
-    <Footer />
 </template>
 
 <script setup>
@@ -79,30 +79,40 @@ const handleLogin = async () => {
             body: JSON.stringify({ email: email.value, password: password.value })
         })
 
-        if (response.ok) {
-            const userData = await response.json()
-            
-            // 1. IN RA ĐỂ KIỂM TRA CHẮC CHẮN CÓ CỘT vaiTro KHÔNG
-            console.log("Dữ liệu nhận từ Backend:", userData)
+        // Nếu HTTP status trả về lỗi (400, 401, 403...)
+        if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(errorText) // Đẩy thẳng nội dung chữ thô từ Backend xuống catch
+        }
 
-            // 2. Lưu vào Local Storage
-            localStorage.setItem('user', JSON.stringify(userData))
+        // Nếu đăng nhập thành công (200 OK)
+        const userData = await response.json()
+        console.log("Dữ liệu nhận từ Backend:", userData)
+
+        localStorage.setItem('user', JSON.stringify(userData))
+        alert('Đăng nhập thành công! Chào mừng trở lại Velora Clock.')
+        window.location.href = '/'
             
-            alert('Đăng nhập thành công! Chào mừng trở lại Velora Clock.')
-            
-            // 3. QUAN TRỌNG NHẤT: Ép load lại trang để Header cập nhật quyền Admin
-            window.location.href = '/'
-            
+    } catch (error) {
+        console.error('Lỗi xảy ra trong quá trình xử lý:', error)
+        
+        // ĐÃ SỬA: Dùng "const" chuẩn cú pháp JavaScript thay vì "String" của Java
+        const errorString = String(error)
+        
+        // Kiểm tra điều kiện dựa trên chuỗi văn bản lỗi tổng thể xuất hiện trên console
+        if (
+            errorString.includes("khóa") || 
+            errorString.includes("khoa") || 
+            errorString.includes("quản trị") || 
+            errorString.includes("ACCOUNT_LOCKED")
+        ) {
+            alert("Tài khoản của bạn đã bị khóa bởi Ban quản trị!")
         } else {
             alert('Sai email hoặc mật khẩu. Vui lòng kiểm tra lại!')
         }
-    } catch (error) {
-        console.error('Lỗi kết nối Server:', error)
-        alert('Không thể kết nối đến máy chủ. Vui lòng thử lại sau!')
     }
 }
 </script>
-
 <style scoped>
 /* ================= KHUNG CHỨA TOÀN TRANG ================= */
 .login-page {

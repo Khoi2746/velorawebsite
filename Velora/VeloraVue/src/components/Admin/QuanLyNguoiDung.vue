@@ -65,7 +65,6 @@
                 </span>
               </td>
               <td>
-                <!-- SỬA ĐỔI: Nhận diện linh hoạt cả chữ HOA tiếng Anh lẫn tiếng Việt từ DB -->
                 <span class="status-badge"
                   :class="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'active-status' : 'banned-status'">
                   {{ (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'Đang Hoạt Động' : 'Bị Khóa' }}
@@ -76,14 +75,12 @@
                   <i class="fa-solid fa-pen"></i>
                 </button>
 
-                <!-- SỬA ĐỔI: Nút chuyển trạng thái thông minh tự động đổi màu sắc, icon dựa trên state thực tế -->
                 <button class="btn-action" :style="{
                   backgroundColor: (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? '#ffebee' : '#e8f5e9',
                   color: (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? '#c62828' : '#2e7d32'
                 }" @click="toggleUserStatus(user)"
                   :title="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'Khóa tài khoản' : 'Mở khóa tài khoản'">
-                  <i
-                    :class="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'fa-solid fa-user-lock' : 'fa-solid fa-user-check'"></i>
+                  <i :class="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'fa-solid fa-user-lock' : 'fa-solid fa-user-check'"></i>
                 </button>
 
                 <button class="btn-action delete" @click="deleteUser(user.maNguoiDung)" title="Xóa tài khoản">
@@ -97,7 +94,6 @@
           </tbody>
         </table>
 
-        <!-- Thanh phân trang (Pagination UI) -->
         <div class="pagination-wrapper" v-if="totalPages > 1">
           <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
             <i class="fa-solid fa-chevron-left"></i> Trước
@@ -112,7 +108,6 @@
       </section>
     </main>
 
-    <!-- Modal Popup Thêm / Sửa thành viên -->
     <div v-if="showForm" class="modal-overlay">
       <div class="modal-box">
         <div class="modal-header">
@@ -183,6 +178,9 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const menuItems = [
   { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
@@ -254,7 +252,7 @@ const loadUsers = async () => {
   }
 };
 
-// SỬA ĐỔI HOÀN CHỈNH: Hàm khóa/mở khóa nhanh bằng phương thức PUT chuẩn hóa cấu trúc Object lồng nhau
+// Hàm khóa/mở khóa nhanh và đồng bộ cấu trúc reactive object
 const toggleUserStatus = async (user) => {
   try {
     const res = await fetch(`http://localhost:8080/api/admin/${user.maNguoiDung}/doi-trang-thai`, {
@@ -263,17 +261,17 @@ const toggleUserStatus = async (user) => {
 
     if (res.ok) {
       const updatedUser = await res.json();
-      // Tìm và thay thế object cũ bằng object mới nhận từ backend
       const index = users.value.findIndex(u => u.maNguoiDung === updatedUser.maNguoiDung);
       if (index !== -1) {
-        users.value[index] = updatedUser; // Vue sẽ tự nhận diện sự thay đổi
+        users.value[index] = updatedUser; 
       }
-      alert('Thay đổi trạng thái thành công!');
+      alert('Thay đổi trạng thái tài khoản thành công!');
     }
   } catch (error) {
-    alert("Lỗi kết nối Backend. Kiểm tra URL!");
+    alert("Lỗi kết nối Backend. Vui lòng kiểm tra lại URL máy chủ!");
   }
 };
+
 const openAddModal = () => {
   isEditMode.value = false;
   selectedRoleId.value = 3;
@@ -295,6 +293,13 @@ const openEditModal = (user) => {
   userForm.value = JSON.parse(JSON.stringify(user));
   userForm.value.matKhauMaHoa = '';
 
+  // ĐỒNG BỘ: Chuẩn hóa text tiếng Việt thô từ DB sang dạng KEY viết hoa không dấu để gán đúng khớp với <select>
+  if (userForm.value.trangThai === 'ĐANG HOẠT ĐỘNG') {
+    userForm.value.trangThai = 'HOAT_DONG';
+  } else if (userForm.value.trangThai === 'BỊ KHÓA') {
+    userForm.value.trangThai = 'KHOA';
+  }
+
   if (user.vaiTros && user.vaiTros.length > 0) {
     selectedRoleId.value = user.vaiTros[0].maVaiTro;
   } else {
@@ -307,54 +312,46 @@ const openEditModal = (user) => {
 const closeForm = () => { showForm.value = false; };
 
 const saveUser = async () => {
-  // Kiểm tra URL và Data trước khi gửi
   const url = isEditMode.value
     ? `http://localhost:8080/api/admin/thanh-vien/${userForm.value.maNguoiDung}`
     : 'http://localhost:8080/api/admin/thanh-vien';
 
   const method = isEditMode.value ? 'PUT' : 'POST';
 
-  // Log dữ liệu để debug
   console.log("Đang gửi đến URL:", url);
   console.log("Data gửi đi:", JSON.stringify(userForm.value));
 
   try {
     const res = await fetch(url, {
-  method: method,
-  mode: 'cors', // THÊM DÒNG NÀY VÀO
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  },
-  body: JSON.stringify(userForm.value)
-});
+      method: method,
+      mode: 'cors', 
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(userForm.value)
+    });
 
-    // 1. Kiểm tra response từ server
     if (res.ok) {
-      // Nhận kết quả từ Backend
       const updatedUser = await res.json();
+      alert(isEditMode.value ? 'Cập nhật thông tin thành công!' : 'Thêm tài khoản thành công!');
       
-      alert(isEditMode.value ? 'Cập nhật thành công!' : 'Thêm tài khoản thành công!');
-      
-      // 2. Cập nhật giao diện mà không cần F5
       if (isEditMode.value) {
         const index = users.value.findIndex(u => u.maNguoiDung === updatedUser.maNguoiDung);
         if (index !== -1) {
-          users.value[index] = updatedUser; // Cập nhật trực tiếp
+          users.value[index] = updatedUser; 
         }
       } else {
-        users.value.push(updatedUser); // Thêm vào danh sách
+        users.value.push(updatedUser); 
       }
 
       showForm.value = false;
     } else {
-      // 3. Nếu server trả lỗi (vd: 400 Bad Request, 500), bắt lấy lỗi đó
       const errText = await res.text();
       console.error("Lỗi từ server:", errText);
-      alert("Lỗi Backend: " + errText);
+      alert("Lỗi hệ thống: " + errText);
     }
   } catch (error) {
-    // 4. Lỗi này thường do mất kết nối hoặc sai CORS
     console.error("Lỗi kết nối:", error);
     alert("Không thể kết nối đến máy chủ Backend. Kiểm tra xem Server Java còn chạy không nhé!");
   }
@@ -380,7 +377,8 @@ const deleteUser = async (id) => {
 
 const handleLogout = () => {
   localStorage.removeItem('user');
-  window.location.href = '/';
+  // Chuyển trang mượt mà bằng Vue Router, không reload lại trình duyệt
+  router.push('/');
 };
 
 const updateRoleInForm = (event) => {
@@ -389,7 +387,6 @@ const updateRoleInForm = (event) => {
   if (value === 1) name = 'ROLE_ADMIN';
   if (value === 2) name = 'ROLE_STAFF';
   
-  // Gán lại vào form
   userForm.value.vaiTros = [{ maVaiTro: value, tenVaiTro: name }];
   selectedRoleId.value = value;
 };
