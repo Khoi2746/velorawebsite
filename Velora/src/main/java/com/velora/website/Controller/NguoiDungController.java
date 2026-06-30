@@ -77,17 +77,26 @@ public class NguoiDungController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // 4. Xóa
+    // 4. Xóa (ĐÃ FIX: CHẶN KHÔNG CHO XÓA ADMIN)
     @DeleteMapping("/thanh-vien/{id}")
     public ResponseEntity<?> xoaThanhVien(@PathVariable Integer id) {
         return nguoiDungRepository.findById(id).map(user -> {
+            
+            // KIỂM TRA: Nếu tài khoản có chứa quyền ROLE_ADMIN thì chặn lại ngay lập tức
+            if (user.getVaiTros() != null && user.getVaiTros().stream()
+                    .anyMatch(vt -> "ROLE_ADMIN".equalsIgnoreCase(vt.getTenVaiTro()))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không thể xóa tài khoản Quản trị viên!");
+            }
+            
+            // Nếu không phải Admin -> Tiến hành xóa như bình thường
             nguoiDungRepository.delete(user);
             return ResponseEntity.ok("Xóa thành công!");
+            
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // 5. Đổi trạng thái (KHÓA/MỞ)
-    @PatchMapping("/thanh-vien/{id}/doi-trang-thai")
+    // 5. Đổi trạng thái 
+    @PatchMapping("/{id}/doi-trang-thai")
     @Transactional
     public ResponseEntity<?> doiTrangThai(@PathVariable Integer id) {
         NguoiDung user = nguoiDungRepository.findById(id)
@@ -97,13 +106,17 @@ public class NguoiDungController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không thể khóa Admin!");
         }
 
-        String trangThaiMoi = "HOAT_DONG".equalsIgnoreCase(user.getTrangThai()) ? "KHOA" : "HOAT_DONG";
+        String currentStatus = user.getTrangThai() != null ? user.getTrangThai().toUpperCase() : "";
+        String trangThaiMoi = (currentStatus.contains("HOAT_DONG") || currentStatus.contains("HOẠT ĐỘNG")) ? "KHOA" : "HOAT_DONG";
+        
         user.setTrangThai(trangThaiMoi);
         user.setNgayCapNhat(new Date());
         NguoiDung updatedUser = nguoiDungRepository.saveAndFlush(user);
 
         try {
-            emailService.sendEmail(updatedUser.getEmail(), "Thông báo trạng thái", "Tài khoản đã: " + trangThaiMoi);
+            String statusText = "KHOA".equals(trangThaiMoi) ? "BỊ KHÓA" : "MỞ KHÓA (HOẠT ĐỘNG)";
+            emailService.sendEmail(updatedUser.getEmail(), "Thông báo trạng thái tài khoản Velora", 
+                "Tài khoản của bạn trên Velora Clock hiện tại đã chuyển sang trạng thái: " + statusText);
         } catch (Exception e) { System.err.println("Mail lỗi: " + e.getMessage()); }
 
         return ResponseEntity.ok(updatedUser);

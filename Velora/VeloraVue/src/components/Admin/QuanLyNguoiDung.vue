@@ -28,6 +28,30 @@
         </div>
       </header>
 
+      <!-- Thanh Tìm Kiếm và Lọc Dữ Liệu -->
+      <section class="filter-bar" style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <div class="search-box" style="flex: 2; min-width: 250px;">
+          <input type="text" v-model="searchQuery" @input="currentPage = 1" 
+            placeholder="Tìm theo tên, email hoặc số điện thoại..." 
+            style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none;" />
+        </div>
+        <div class="filter-box" style="flex: 1; min-width: 180px;">
+          <select v-model="filterRole" @change="currentPage = 1" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none; background: #fff; cursor: pointer;">
+            <option value="">-- Tất cả vai trò --</option>
+            <option value="ROLE_ADMIN">ROLE_ADMIN</option>
+            <option value="ROLE_STAFF">ROLE_STAFF</option>
+            <option value="ROLE_CUSTOMER">ROLE_CUSTOMER</option>
+          </select>
+        </div>
+        <div class="filter-box" style="flex: 1; min-width: 180px;">
+          <select v-model="filterStatus" @change="currentPage = 1" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none; background: #fff; cursor: pointer;">
+            <option value="">-- Tất cả trạng thái --</option>
+            <option value="HOAT_DONG">Đang Hoạt Động</option>
+            <option value="KHOA">Bị Khóa</option>
+          </select>
+        </div>
+      </section>
+
       <section class="table-container">
         <table class="admin-table">
           <thead>
@@ -88,8 +112,10 @@
                 </button>
               </td>
             </tr>
-            <tr v-if="users.length === 0">
-              <td colspan="7" class="empty-state">Đang nạp dữ liệu từ hệ thống Velora...</td>
+            <tr v-if="filteredUsers.length === 0">
+              <td colspan="7" class="empty-state" style="text-align: center; padding: 30px; color: #888;">
+                Không tìm thấy người dùng nào phù hợp với bộ lọc.
+              </td>
             </tr>
           </tbody>
         </table>
@@ -108,6 +134,7 @@
       </section>
     </main>
 
+    <!-- Modal Form Thêm/Sửa Tài Khoản -->
     <div v-if="showForm" class="modal-overlay">
       <div class="modal-box">
         <div class="modal-header">
@@ -200,17 +227,49 @@ const showForm = ref(false);
 const isEditMode = ref(false);
 const selectedRoleId = ref(3);
 
+// Các biến lưu giá trị Tìm Kiếm & Lọc
+const searchQuery = ref('');
+const filterRole = ref('');
+const filterStatus = ref('');
+
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 
-const totalPages = computed(() => {
-  return Math.ceil(users.value.length / itemsPerPage.value);
+// Logic xử lý tìm kiếm và lọc dữ liệu thô
+const filteredUsers = computed(() => {
+  return users.value.filter(user => {
+    // 1. Tìm kiếm theo Tên, Email hoặc Số điện thoại (Không phân biệt chữ hoa/thường)
+    const query = searchQuery.value.toLowerCase().trim();
+    const matchQuery = !query || 
+      (user.hoTen && user.hoTen.toLowerCase().includes(query)) ||
+      (user.email && user.email.toLowerCase().includes(query)) ||
+      (user.soDienThoai && user.soDienThoai.toLowerCase().includes(query));
+
+    // 2. Lọc theo Vai Trò
+    const matchRole = !filterRole.value || 
+      (user.vaiTros && user.vaiTros.some(vt => vt.tenVaiTro === filterRole.value));
+
+    // 3. Lọc theo Trạng Thái (Tính toán linh hoạt dựa trên cả văn bản thô tiếng Việt hoặc key DB)
+    let standardizedStatus = 'KHOA';
+    if (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') {
+      standardizedStatus = 'HOAT_DONG';
+    }
+    const matchStatus = !filterStatus.value || standardizedStatus === filterStatus.value;
+
+    return matchQuery && matchRole && matchStatus;
+  });
 });
 
+// Tính số lượng trang dựa trên mảng ĐÃ LỌC
+const totalPages = computed(() => {
+  return Math.ceil(filteredUsers.value.length / itemsPerPage.value);
+});
+
+// Cắt dữ liệu hiển thị theo phân trang dựa trên mảng ĐÃ LỌC
 const paginatedUsers = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value;
   const end = start + itemsPerPage.value;
-  return users.value.slice(start, end);
+  return filteredUsers.value.slice(start, end);
 });
 
 const changePage = (page) => {
@@ -252,7 +311,6 @@ const loadUsers = async () => {
   }
 };
 
-// Hàm khóa/mở khóa nhanh và đồng bộ cấu trúc reactive object
 const toggleUserStatus = async (user) => {
   try {
     const res = await fetch(`http://localhost:8080/api/admin/${user.maNguoiDung}/doi-trang-thai`, {
@@ -266,6 +324,8 @@ const toggleUserStatus = async (user) => {
         users.value[index] = updatedUser; 
       }
       alert('Thay đổi trạng thái tài khoản thành công!');
+    } else if (res.status === 403) {
+      alert('Không thể khóa tài khoản có vai trò Admin!');
     }
   } catch (error) {
     alert("Lỗi kết nối Backend. Vui lòng kiểm tra lại URL máy chủ!");
@@ -293,7 +353,6 @@ const openEditModal = (user) => {
   userForm.value = JSON.parse(JSON.stringify(user));
   userForm.value.matKhauMaHoa = '';
 
-  // ĐỒNG BỘ: Chuẩn hóa text tiếng Việt thô từ DB sang dạng KEY viết hoa không dấu để gán đúng khớp với <select>
   if (userForm.value.trangThai === 'ĐANG HOẠT ĐỘNG') {
     userForm.value.trangThai = 'HOAT_DONG';
   } else if (userForm.value.trangThai === 'BỊ KHÓA') {
@@ -317,9 +376,6 @@ const saveUser = async () => {
     : 'http://localhost:8080/api/admin/thanh-vien';
 
   const method = isEditMode.value ? 'PUT' : 'POST';
-
-  console.log("Đang gửi đến URL:", url);
-  console.log("Data gửi đi:", JSON.stringify(userForm.value));
 
   try {
     const res = await fetch(url, {
@@ -348,11 +404,9 @@ const saveUser = async () => {
       showForm.value = false;
     } else {
       const errText = await res.text();
-      console.error("Lỗi từ server:", errText);
       alert("Lỗi hệ thống: " + errText);
     }
   } catch (error) {
-    console.error("Lỗi kết nối:", error);
     alert("Không thể kết nối đến máy chủ Backend. Kiểm tra xem Server Java còn chạy không nhé!");
   }
 };
@@ -364,20 +418,23 @@ const deleteUser = async (id) => {
       method: 'DELETE',
       headers: { 'Accept': 'application/json' }
     });
+    
     if (res.ok) {
       alert("Đã xóa tài khoản thành công!");
       await loadUsers();
     } else {
-      alert("Không thể xóa tài khoản này!");
+      // ĐỌC NỘI DUNG LỖI TỪ BACKEND GỬI VỀ (Ví dụ: "Không thể xóa tài khoản Quản trị viên!")
+      const errText = await res.text();
+      alert(errText || "Không thể xóa tài khoản này!");
     }
   } catch (error) {
     console.error('Lỗi kết nối khi xóa:', error);
+    alert("Lỗi kết nối hệ thống!");
   }
 };
 
 const handleLogout = () => {
   localStorage.removeItem('user');
-  // Chuyển trang mượt mà bằng Vue Router, không reload lại trình duyệt
   router.push('/');
 };
 
