@@ -307,7 +307,6 @@ const openEditModal = (user) => {
 const closeForm = () => { showForm.value = false; };
 
 const saveUser = async () => {
-alert("Hàm saveUser đã được kích hoạt!");
   // Kiểm tra URL và Data trước khi gửi
   const url = isEditMode.value
     ? `http://localhost:8080/api/admin/thanh-vien/${userForm.value.maNguoiDung}`
