@@ -32,7 +32,8 @@
             <section class="filter-wrapper">
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" v-model="searchQuery" placeholder="Tìm kiếm theo tên sản phẩm..." />
+                    <!-- Cập nhật placeholder tại đây -->
+                    <input type="text" :value="searchQuery" @input="searchQuery = $event.target.value" placeholder="Tìm kiếm theo mã ID hoặc tên sản phẩm..." />
                 </div>
                 <div class="filter-boxes">
                     <select v-model="filterDanhMuc">
@@ -58,7 +59,7 @@
                             <th>Hình Ảnh</th>
                             <th>Tên Sản Phẩm</th>
                             <th>Danh Mục</th>
-                            <th>Loại Sản Phẩm</th> 
+                            <th>Loại Sản Phẩm</th>
                             <th>Giá Bán</th>
                             <th>Tồn Kho</th>
                             <th>Trạng Thái</th>
@@ -74,7 +75,7 @@
                                 </div>
                             </td>
                             <td class="product-name">{{ product.tenSanPham }}</td>
-                            
+
                             <td>
                                 {{ product.danhMuc ? product.danhMuc.tenDanhMuc : 'Chưa chọn' }}
                             </td>
@@ -95,7 +96,7 @@
                                     {{ product.trangThai === 'CON_HANG' ? 'Còn Hàng' : 'Hết Hàng' }}
                                 </span>
                             </td>
-                            
+
                             <td class="actions">
                                 <button class="btn-action edit" @click="openEditModal(product)" title="Chỉnh sửa">
                                     <i class="fa-solid fa-pen"></i>
@@ -182,7 +183,7 @@
 import { ref, onMounted, computed } from 'vue';
 
 const API_URL = 'http://localhost:8080/api/san-pham';
-const CAT_API_URL = 'http://localhost:8080/api/loai-san-pham'; 
+const CAT_API_URL = 'http://localhost:8080/api/loai-san-pham';
 
 const menuItems = [
     { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
@@ -198,8 +199,8 @@ const menuItems = [
 ];
 
 const products = ref([]);
-const categories = ref([]); 
-const mainCategories = ref([]); 
+const categories = ref([]);
+const mainCategories = ref([]);
 
 // State cho bộ tìm kiếm và lọc
 const searchQuery = ref('');
@@ -217,17 +218,36 @@ const defaultForm = {
     anhDaiDien: '',
     trangThai: 'CON_HANG', // Thêm mới mặc định vẫn gửi CON_HANG lên DB
     maDanhMucSelected: '',
-    maLoaiSelected: '' 
+    maLoaiSelected: ''
 };
 const form = ref({ ...defaultForm });
 
 // LOGIC TÌM KIẾM VÀ LỌC SẢN PHẨM (COMPUTED CHẠY REAL-TIME)
+// LOGIC TÌM KIẾM VÀ LỌC SẢN PHẨM (TÌM REAL-TIME KHÔNG CẦN ENTER)
 const filteredProducts = computed(() => {
+    // Chỉ chuyển chữ thường, KHÔNG dùng .trim() ở đây để tránh nghẹn khoảng trắng khi đang gõ
+    const query = searchQuery.value.toLowerCase();
+
     return products.value.filter(product => {
-        const matchName = product.tenSanPham.toLowerCase().includes(searchQuery.value.toLowerCase());
+        // Nếu không gõ gì thì bỏ qua, hiện hết
+        if (!query.trim()) {
+            const matchDanhMuc = !filterDanhMuc.value || (product.danhMuc && product.danhMuc.maDanhMuc === Number(filterDanhMuc.value));
+            const matchTrangThai = !filterTrangThai.value || product.trangThai === filterTrangThai.value;
+            return matchDanhMuc && matchTrangThai;
+        }
+
+        // 1. Kiểm tra khớp Tên sản phẩm (dùng .trim() khi so sánh thực tế)
+        const matchName = product.tenSanPham ? product.tenSanPham.toLowerCase().includes(query.trim()) : false;
+        
+        // 2. Kiểm tra khớp Mã ID (maSanPham)
+        const matchId = product.maSanPham ? String(product.maSanPham).includes(query.trim()) : false;
+
+        // Các bộ lọc danh mục và trạng thái
         const matchDanhMuc = !filterDanhMuc.value || (product.danhMuc && product.danhMuc.maDanhMuc === Number(filterDanhMuc.value));
         const matchTrangThai = !filterTrangThai.value || product.trangThai === filterTrangThai.value;
-        return matchName && matchDanhMuc && matchTrangThai;
+
+        // Thỏa mãn (Tên hoặc ID) và bộ lọc đi kèm
+        return (matchName || matchId) && matchDanhMuc && matchTrangThai;
     });
 });
 
@@ -290,16 +310,16 @@ const openAddModal = () => {
 const openEditModal = (product) => {
     isEditMode.value = true;
     currentProductId.value = product.maSanPham;
-    
-    form.value = { 
+
+    form.value = {
         tenSanPham: product.tenSanPham,
         giaBan: product.giaBan,
         anhDaiDien: product.anhDaiDien,
         trangThai: product.trangThai,
         maDanhMucSelected: product.danhMuc ? product.danhMuc.maDanhMuc : '',
         maLoaiSelected: product.loaiSanPham ? product.loaiSanPham.maLoai : ''
-    }; 
-    
+    };
+
     // Nếu sản phẩm đã có tên ảnh cũ, thực hiện hiển thị preview
     imagePreview.value = product.anhDaiDien ? getImageUrl(product.anhDaiDien) : '';
     showModal.value = true;
@@ -314,7 +334,7 @@ const saveProduct = async () => {
         let url = API_URL;
         let method = 'POST';
 
-        const dataToSend = { 
+        const dataToSend = {
             tenSanPham: form.value.tenSanPham,
             giaBan: form.value.giaBan,
             anhDaiDien: form.value.anhDaiDien,
@@ -327,7 +347,7 @@ const saveProduct = async () => {
                 maLoai: Number(form.value.maLoaiSelected)
             };
         } else {
-            dataToSend.loaiSanPham = null; 
+            dataToSend.loaiSanPham = null;
         }
 
         if (isEditMode.value) {
@@ -344,7 +364,7 @@ const saveProduct = async () => {
         if (res.ok) {
             alert(isEditMode.value ? 'Cập nhật sản phẩm thành công!' : 'Thêm sản phẩm thành công!');
             closeModal();
-            loadProducts(); 
+            loadProducts();
         } else {
             const errorText = await res.text();
             alert(`Có lỗi xảy ra: ${errorText || 'Vui lòng kiểm tra lại dữ liệu.'}`);
@@ -362,7 +382,7 @@ const deleteProduct = async (id) => {
             });
             if (res.ok) {
                 alert('Xóa sản phẩm thành công!');
-                loadProducts(); 
+                loadProducts();
             } else {
                 alert('Xóa thất bại. Sản phẩm có thể đang vướng đơn hàng!');
             }
@@ -379,7 +399,7 @@ const handleLogout = () => {
 
 onMounted(() => {
     loadProducts();
-    loadCategories(); 
+    loadCategories();
     loadMainCategories();
 });
 </script>
