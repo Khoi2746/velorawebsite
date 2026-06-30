@@ -2,7 +2,6 @@ package com.velora.website.Controller;
 
 import com.velora.website.Entity.LoaiSanPham;
 import com.velora.website.Repository.LoaiSanPhamRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,11 +9,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/loai-san-pham")
-@CrossOrigin(origins = "*") // Cho phép Vue (port 5173) gọi API không bị lỗi CORS
 public class LoaiSanPhamController {
 
-    @Autowired
-    private LoaiSanPhamRepository loaiSanPhamRepository;
+    private final LoaiSanPhamRepository loaiSanPhamRepository;
+
+    LoaiSanPhamController(LoaiSanPhamRepository loaiSanPhamRepository) {
+        this.loaiSanPhamRepository = loaiSanPhamRepository;
+    }
 
     // 1. Lấy danh sách loại sản phẩm (Vue: loadCategories)
     @GetMapping

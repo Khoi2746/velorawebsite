@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/thong-ke")
-@CrossOrigin("*")
 @RequiredArgsConstructor
 public class ThongKeController {
 

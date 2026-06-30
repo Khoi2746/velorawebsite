@@ -2,10 +2,9 @@ package com.velora.website.Controller;
 
 import com.velora.website.Entity.MaGiamGia;
 import com.velora.website.Repository.MaGiamGiaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -13,8 +12,11 @@ import org.springframework.web.bind.annotation.*;
 
 public class MaGiamGiaController {
 
-    @Autowired
-    private MaGiamGiaRepository maGiamGiaRepository;
+    private final MaGiamGiaRepository maGiamGiaRepository;
+
+    MaGiamGiaController(MaGiamGiaRepository maGiamGiaRepository) {
+        this.maGiamGiaRepository = maGiamGiaRepository;
+    }
 
     @GetMapping
     public ResponseEntity<?> layDanhSach(@RequestParam(defaultValue = "0") int page,

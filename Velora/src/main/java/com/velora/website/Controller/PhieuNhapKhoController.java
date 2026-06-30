@@ -20,7 +20,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/phieu-nhap")
-@CrossOrigin("*")
 @RequiredArgsConstructor
 public class PhieuNhapKhoController {
 

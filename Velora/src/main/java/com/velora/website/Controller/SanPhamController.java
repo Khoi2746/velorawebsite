@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/san-pham")
-@CrossOrigin("*") // Mở cửa cho Vue ở cổng khác gọi vào
 @RequiredArgsConstructor // GẮN LOMBOK VÀO ĐỂ TỰ ĐỘNG TIÊM DEPENDENCY
 public class SanPhamController {
     

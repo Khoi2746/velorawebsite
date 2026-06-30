@@ -13,7 +13,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/don-hang")
-@CrossOrigin("*")
 @RequiredArgsConstructor // Tự động tạo Constructor giúp tránh gạch vàng cảnh báo hệ thống
 public class DonHangController {
 
