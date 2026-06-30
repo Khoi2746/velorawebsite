@@ -18,6 +18,7 @@ import QuanLyThuongHieu from '../components/Admin/QuanLyThuongHieu.vue'
 import PhieuNhap from '../components/Admin/PhieuNhapKho.vue' 
 import LoaiSanPham from '../components/Admin/LoaiSanPham.vue'
 import QuanLyMaGiamGia from '../components/Admin/QuanLyMaGiamGia.vue' 
+import QuanLyThongKe from '../components/Admin/QuanLyThongKe.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -107,6 +108,12 @@ const router = createRouter({
       path: '/admin/ma-giam-gia',
       name: 'QuanLyMaGiamGia',
       component: QuanLyMaGiamGia, 
+      meta: { requiresAdmin: true }
+    },
+    {
+      path: '/admin/statistics',
+      name: 'QuanLyThongKe',
+      component: QuanLyThongKe,
       meta: { requiresAdmin: true }
     }
   ]
