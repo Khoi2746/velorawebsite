@@ -222,11 +222,7 @@ const defaultForm = {
     maLoaiSelected: ''
 };
 const form = ref({ ...defaultForm });
-
-// LOGIC TÌM KIẾM VÀ LỌC SẢN PHẨM (COMPUTED CHẠY REAL-TIME)
-// LOGIC TÌM KIẾM VÀ LỌC SẢN PHẨM (TÌM REAL-TIME KHÔNG CẦN ENTER)
 const filteredProducts = computed(() => {
-    // Chỉ chuyển chữ thường, KHÔNG dùng .trim() ở đây để tránh nghẹn khoảng trắng khi đang gõ
     const query = searchQuery.value.toLowerCase();
 
     return products.value.filter(product => {

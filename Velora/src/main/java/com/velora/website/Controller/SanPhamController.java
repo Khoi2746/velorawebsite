@@ -32,9 +32,6 @@ public class SanPhamController {
         return sanPhamRepository.findById(id).orElse(null);
     }
 
-    // =========================================================================
-    // GIỮ NGUYÊN VẸN LOGIC QUẢN LÝ KHO CŨ - KHÔNG THAY ĐỔI
-    // =========================================================================
     @PutMapping("/{id}/cap-nhat-kho")
     public ResponseEntity<?> capNhatKhoMoiNhat(
             @PathVariable Integer id, 
@@ -80,10 +77,6 @@ public class SanPhamController {
         }
     }
 
-    // =========================================================================
-    // HÀM CRUD ĐÃ ĐƯỢC LOẠI BỎ TỒN KHO ĐỂ KHỚP VỚI GIAO DIỆN VUE
-    // =========================================================================
-
     // 1. Thêm sản phẩm mới 
 @PostMapping
     public ResponseEntity<?> createProduct(@RequestBody SanPham sanPham) {
@@ -120,7 +113,7 @@ public class SanPhamController {
                 sanPham.setThuongHieu(thMaoDanh);
             }
             
-            // ĐÃ SỬA: Nếu Vue truyền Danh mục lên thì giữ nguyên để lưu, không đè cứng ID = 1 nữa
+            // Nếu Vue truyền Danh mục lên thì giữ nguyên để lưu, không đè cứng ID = 1 nữa
             if (sanPham.getDanhMuc() == null || sanPham.getDanhMuc().getMaDanhMuc() == null) {
                 DanhMuc dmMaoDanh = new DanhMuc();
                 dmMaoDanh.setMaDanhMuc(1); 
