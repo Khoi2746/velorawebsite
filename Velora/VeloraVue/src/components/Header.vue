@@ -141,6 +141,20 @@ const searchInputRef = ref(null)
 
 const cartCount = ref(0)
 
+// ================= HÀM LẤY KHÓA GIỎ HÀNG (MỚI) =================
+const getCartKey = () => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+        try {
+            const user = JSON.parse(userStr);
+            return user.maNguoiDung ? `cart_${user.maNguoiDung}` : 'cart_guest';
+        } catch (e) {
+            return 'cart_guest';
+        }
+    }
+    return 'cart_guest';
+}
+
 // ================= LOGIC TÀI KHOẢN (AUTH) =================
 const checkAuth = () => {
     const userStr = localStorage.getItem('user');
@@ -150,12 +164,16 @@ const checkAuth = () => {
             isLoggedIn.value = true;
             userName.value = user.hoTen;
             isAdmin.value = (user.vaiTro && user.vaiTro.toUpperCase() === 'ROLE_ADMIN');
+            
+            // Fix: Cập nhật số lượng giỏ hàng ngay khi checkAuth thành công
+            updateCartCount(); 
         } catch (e) {
             console.error("Lỗi parse JSON:", e);
         }
     } else {
         isLoggedIn.value = false;
         isAdmin.value = false;
+        updateCartCount(); // Fix: Cập nhật số lượng cho khách vãng lai
     }
 }
 
@@ -163,6 +181,7 @@ const logout = () => {
     localStorage.removeItem('user')
     isLoggedIn.value = false
     isAdmin.value = false
+    cartCount.value = 0 // Fix: Xóa số chấm vàng ngay lập tức khi đăng xuất
     alert('Đã đăng xuất!')
     window.location.href = '/'
 }
@@ -198,23 +217,18 @@ const closeSearch = () => {
 
 // ================= LOGIC TÌM KIẾM THỰC TẾ =================
 const handleSearch = (e) => {
-    // Lấy từ khóa khách gõ và xóa khoảng trắng thừa
     const keyword = e.target.value.trim() 
     
     if (keyword) {
         console.log("Đang tìm kiếm:", keyword)
-        // Chuyển sang trang sản phẩm và đẩy từ khóa lên URL
         router.push({ path: '/dong-ho-co-san', query: { search: keyword } })
-        
-        // Xóa trắng ô input để lần sau gõ tiếp
         e.target.value = '' 
     }
-    closeSearch() // Đóng popup mờ
+    closeSearch() 
 }
 
 const quickSearch = (keyword) => {
     if (searchInputRef.value) {
-        // Khách lười gõ, bấm vào tag Gợi ý là nhảy đi tìm luôn
         router.push({ path: '/dong-ho-co-san', query: { search: keyword } })
         closeSearch()
     }
@@ -229,21 +243,27 @@ const handleEsc = (e) => {
 
 // ================= LOGIC GIỎ HÀNG =================
 const updateCartCount = () => {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]')
+    const key = getCartKey(); // Fix: Lấy đúng két sắt của người dùng
+    const cart = JSON.parse(localStorage.getItem(key) || '[]')
     cartCount.value = cart.length
 }
 
 // ================= VÒNG ĐỜI VUE =================
 onMounted(() => {
     checkAuth()
-    updateCartCount()
     window.addEventListener('keydown', handleEsc)
     document.addEventListener('click', handleClickOutside)
+    
+    // Fix: Bật "lỗ tai" lắng nghe sự kiện thêm hàng
+    window.addEventListener('cart-updated', updateCartCount) 
 })
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleEsc)
     document.removeEventListener('click', handleClickOutside)
+    
+    // Fix: Tắt lắng nghe khi rời trang
+    window.removeEventListener('cart-updated', updateCartCount) 
 })
 </script>
 

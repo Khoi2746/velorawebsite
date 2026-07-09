@@ -41,19 +41,29 @@ public class NguoiDungController {
         nguoiDung.setNgayCapNhat(new Date());
         nguoiDung.setTrangThai("HOAT_DONG");
         
-        String passThucTe = "123456";
+        // 1. Lấy mật khẩu thực tế từ Frontend gửi lên
+        String passThucTe = nguoiDung.getMatKhauMaHoa(); 
+        
+        // 2. Nếu Frontend trống (không nhập), mới gán mặc định là 123456
+        if (passThucTe == null || passThucTe.trim().isEmpty()) {
+            passThucTe = "123456";
+        }
+        
+        // 3. Mã hóa mật khẩu và lưu lại
         nguoiDung.setMatKhauMaHoa(passwordEncoder.encode(passThucTe));
         
         NguoiDung saved = nguoiDungRepository.save(nguoiDung);
         
         try {
+            // Gửi email báo luôn mật khẩu thực tế cho khách
             emailService.sendEmail(saved.getEmail(), "Chào mừng đến Velora Clock", 
-                "Tài khoản đã tạo. MK: " + passThucTe);
-        } catch (Exception e) { System.err.println("Mail lỗi: " + e.getMessage()); }
+                "Tài khoản đã tạo. Mật khẩu đăng nhập của bạn là: " + passThucTe);
+        } catch (Exception e) { 
+            System.err.println("Mail lỗi: " + e.getMessage()); 
+        }
         
         return ResponseEntity.ok(saved);
     }
-
     // 3. Sửa thông tin
     @PutMapping("/thanh-vien/{id}")
     @Transactional

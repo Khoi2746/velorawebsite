@@ -206,9 +206,24 @@ const formatPrice = (value) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 }
 
+// ================= HÀM LẤY KHÓA GIỎ HÀNG (MỚI) =================
+const getCartKey = () => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+        try {
+            const user = JSON.parse(userStr);
+            return user.maNguoiDung ? `cart_${user.maNguoiDung}` : 'cart_guest';
+        } catch (e) {
+            return 'cart_guest';
+        }
+    }
+    return 'cart_guest';
+}
+
 // LOGIC THÊM VÀO GIỎ HÀNG
 const addToCart = () => {
-  let cart = JSON.parse(localStorage.getItem('cart') || '[]')
+  const key = getCartKey() // Fix: Lấy đúng key
+  let cart = JSON.parse(localStorage.getItem(key) || '[]')
 
   const existingItemIndex = cart.findIndex(item => item.maSanPham === product.value.maSanPham)
 
@@ -225,8 +240,11 @@ const addToCart = () => {
     })
   }
 
-  localStorage.setItem('cart', JSON.stringify(cart))
-  window.dispatchEvent(new Event('cart-updated')) // Cập nhật Header
+  localStorage.setItem(key, JSON.stringify(cart)) // Fix: Lưu đúng key
+  
+  // Fix: Bắn tín hiệu để Header nhảy số liền
+  window.dispatchEvent(new Event('cart-updated')) 
+  
   alert('Đã thêm ' + product.value.tenSanPham + ' vào giỏ hàng!')
 }
 

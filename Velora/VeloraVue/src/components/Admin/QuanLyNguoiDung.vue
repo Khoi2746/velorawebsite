@@ -158,8 +158,7 @@
 
           <div class="form-group" v-if="!isEditMode">
             <label>Mật Khẩu Khởi Tạo *</label>
-            <input type="password" v-model="userForm.matKhauMaHoa" required
-              placeholder="Nhập mật khẩu tối thiểu 6 ký tự" />
+            <input type="password" v-model="userForm.matKhauMaHoa" required placeholder="Nhập mật khẩu tối thiểu 6 ký tự" />
           </div>
 
           <div class="form-group">
@@ -279,11 +278,12 @@ const changePage = (page) => {
   }
 };
 
+// ĐÃ SỬA: Thay đổi cấu trúc dữ liệu form từ matKhauMaHoa sang matKhau
 const userForm = ref({
   maNguoiDung: null,
   hoTen: '',
   email: '',
-  matKhauMaHoa: '',
+  matKhau: '', 
   soDienThoai: '',
   diaChi: '',
   trangThai: 'HOAT_DONG',
@@ -336,11 +336,12 @@ const toggleUserStatus = async (user) => {
 const openAddModal = () => {
   isEditMode.value = false;
   selectedRoleId.value = 3;
+  // ĐÃ SỬA: Làm sạch trường mật khẩu mới
   userForm.value = {
     maNguoiDung: null,
     hoTen: '',
     email: '',
-    matKhauMaHoa: '',
+    matKhau: '', 
     soDienThoai: '',
     diaChi: '',
     trangThai: 'HOAT_DONG',
@@ -352,7 +353,8 @@ const openAddModal = () => {
 const openEditModal = (user) => {
   isEditMode.value = true;
   userForm.value = JSON.parse(JSON.stringify(user));
-  userForm.value.matKhauMaHoa = '';
+  // ĐÃ SỬA: Đồng bộ reset trường mật khẩu khi tiến hành chỉnh sửa
+  userForm.value.matKhau = '';
 
   if (userForm.value.trangThai === 'ĐANG HOẠT ĐỘNG') {
     userForm.value.trangThai = 'HOAT_DONG';
@@ -424,7 +426,6 @@ const deleteUser = async (id) => {
       alert("Đã xóa tài khoản thành công!");
       await loadUsers();
     } else {
-      // ĐỌC NỘI DUNG LỖI TỪ BACKEND GỬI VỀ (Ví dụ: "Không thể xóa tài khoản Quản trị viên!")
       const errText = await res.text();
       alert(errText || "Không thể xóa tài khoản này!");
     }

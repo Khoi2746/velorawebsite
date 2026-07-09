@@ -105,17 +105,35 @@ import Footer from '../Footer.vue'
 const router = useRouter()
 const cartItems = ref([])
 
+// ================= HÀM LẤY KHÓA GIỎ HÀNG (MỚI) =================
+const getCartKey = () => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+        try {
+            const user = JSON.parse(userStr);
+            return user.maNguoiDung ? `cart_${user.maNguoiDung}` : 'cart_guest';
+        } catch (e) {
+            return 'cart_guest';
+        }
+    }
+    return 'cart_guest';
+}
+
 // Load giỏ hàng từ localStorage
 const loadCart = () => {
-  const storedCart = localStorage.getItem('cart')
+  const key = getCartKey() // Fix: Lấy đúng key
+  const storedCart = localStorage.getItem(key)
   if (storedCart) {
     cartItems.value = JSON.parse(storedCart)
+  } else {
+    cartItems.value = [] // Fix: Đảm bảo giỏ hàng trống nếu chuyển tài khoản
   }
 }
 
 // Lưu lại giỏ hàng và kích hoạt event để Header update cái chấm vàng
 const saveCart = () => {
-  localStorage.setItem('cart', JSON.stringify(cartItems.value))
+  const key = getCartKey() // Fix: Lưu đúng key
+  localStorage.setItem(key, JSON.stringify(cartItems.value))
   // Trigger event để các component khác (như Header) biết giỏ hàng thay đổi
   window.dispatchEvent(new Event('cart-updated')) 
 }
@@ -131,7 +149,7 @@ const subTotal = computed(() => {
 })
 
 const increaseQty = (index) => {
-  if (cartItems.value[index].soLuong < 5) { // Giới hạn mua 5 chiếc mỗi loại cho đúng độ khan hiếm
+  if (cartItems.value[index].soLuong < 5) { 
     cartItems.value[index].soLuong++
     saveCart()
   }
