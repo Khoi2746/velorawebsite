@@ -1,4 +1,6 @@
-/* Reset lại toàn bộ khoảng cách mặc định */
+/* ==========================================================================
+   1. CẤU HÌNH HỆ THỐNG & RESET TOÀN CỤC
+   ========================================================================== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -10,14 +12,348 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100vh;
-  background-color: #1e1b18; /* Màu nền tối luxury theo thiết kế */
-  overflow-x: hidden; /* Chống xuất hiện thanh cuộn ngang */
+  background-color: #1e1b18; 
+  overflow-x: hidden; 
 }
 
-/* Ép thẻ chứa web tràn full 100% màn hình */
 #app {
   width: 100% !important;
   max-width: 100% !important;
   margin: 0;
   padding: 0;
+}
+
+/* ==========================================================================
+   2. COMPONENT: HEADER & THANH ĐIỀU HƯỚNG (THEME NÂU)
+   ========================================================================== */
+/* Nền của Header chuyển sang màu trắng tương phản */
+body.theme-brown .header-top,
+body.theme-brown .header-bottom {
+  background-color: #ffffff !important;
+  color: #1a1714 !important;
+  border-color: #eeeeee !important;
+}
+
+/* Chuyển toàn bộ chữ và icon trên Header về màu tối */
+body.theme-brown .header-top *,
+body.theme-brown .header-bottom *,
+body.theme-brown .nav-item,
+body.theme-brown .btn-menu,
+body.theme-brown .user-greeting,
+body.theme-brown .action-icons a,
+body.theme-brown .search-box input {
+  color: #1a1714 !important;
+}
+
+/* Giữ hiệu ứng Vàng Kim khi rê chuột vào thanh Menu */
+body.theme-brown .nav-item:hover,
+body.theme-brown .nav-item.active,
+body.theme-brown .btn-menu:hover,
+body.theme-brown .action-icons a:hover {
+  color: #d1aa68 !important;
+}
+
+/* Định hình lại thanh tìm kiếm trên nền sáng */
+body.theme-brown .search-box {
+  background-color: #f5f5f5 !important;
+  border: 1px solid #dddddd !important;
+}
+
+body.theme-brown .search-box .search-icon {
+  color: #888888 !important;
+}
+
+/* Lật ngược màu logo chữ trắng thành đen tuyền */
+body.theme-brown .logo-img {
+  filter: brightness(0) !important; 
+}
+
+/* Khối Menu Dropdown của Tài khoản */
+body.theme-brown .dropdown-menu {
+  background-color: #ffffff !important;
+  border: 1px solid #dddddd !important;
+}
+
+body.theme-brown .dropdown-item {
+  color: #1a1714 !important;
+}
+
+body.theme-brown .dropdown-item:hover {
+  background-color: #f5f5f5 !important;
+  color: #d1aa68 !important;
+}
+
+/* ==========================================================================
+   3. COMPONENT: INFO & FOOTER CHÂN TRANG (THEME NÂU)
+   ========================================================================== */
+/* Nền của Footer lật sang màu trắng tương phản */
+body.theme-brown footer,
+body.theme-brown .footer,
+body.theme-brown .velora-footer {
+  background-color: #ffffff !important;
+  color: #1a1714 !important;
+  border-color: #eeeeee !important;
+}
+
+body.theme-brown footer * {
+  color: #1a1714 !important;
+}
+
+body.theme-brown footer a:hover {
+  color: #d1aa68 !important;
+}
+
+/* Ép các thành phần văn bản của khối Info sang màu tối */
+body.theme-brown .info-section h1,
+body.theme-brown .info-section h2,
+body.theme-brown .info-section h3,
+body.theme-brown .info-section h4,
+body.theme-brown .info-section p,
+body.theme-brown .info-section span,
+body.theme-brown .info-section li,
+body.theme-brown .info-section a,
+body.theme-brown .info-container *,
+body.theme-brown .info-wrapper * {
+  color: #1a1714 !important;
+}
+
+body.theme-brown .info-section a:hover,
+body.theme-brown .info-container a:hover,
+body.theme-brown .info-wrapper a:hover {
+  color: #d1aa68 !important;
+}
+
+/* ==========================================================================
+   4. GIAO DIỆN: TRANG CHỦ - HOME PAGE (THEME NÂU)
+   ========================================================================== */
+body.theme-brown [class*="home"],
+body.theme-brown [class*="TrangChu"],
+body.theme-brown .home-wrapper,
+body.theme-brown .values-section,
+body.theme-brown .collections-section,
+body.theme-brown .highlight-section {
+  background-color: #1a1714 !important;
+  color: #ffffff !important;
+}
+
+body.theme-brown .values-section { 
+  background-color: #12100f !important; 
+  border-color: #24201D !important; 
+}
+
+/* Khối văn bản và Tiêu đề */
+body.theme-brown .hero-text h1,
+body.theme-brown .collection-content h3,
+body.theme-brown .btn-link {
+  color: #ffffff !important;
+}
+
+body.theme-brown .hero-text p,
+body.theme-brown .value-item p,
+body.theme-brown .value-item p {
+  color: #aaaaaa !important;
+}
+
+body.theme-brown .section-title,
+body.theme-brown .value-item h3,
+body.theme-brown .card-meta h4,
+body.theme-brown .collection-content span,
+body.theme-brown .btn-link i {
+  color: #d1aa68 !important;
+}
+
+/* Các thẻ thông số, khối sản phẩm đáng chú ý */
+body.theme-brown .value-item,
+body.theme-brown .showcase-card {
+  background-color: #24201D !important;
+  border: 1px solid #332d27 !important;
+}
+
+body.theme-brown .value-icon {
+  background-color: #1a1714 !important; 
+  border-color: #d1aa68 !important;
+}
+
+/* Nút bấm điều hướng hành động */
+body.theme-brown .btn-explore {
+  background-color: #d1aa68 !important;
+  color: #1a1714 !important;
+  border-color: #d1aa68 !important;
+}
+
+body.theme-brown .btn-explore:hover {
+  background-color: #ffffff !important;
+  color: #1a1714 !important;
+}
+
+body.theme-brown .btn-view-more {
+  background-color: #1a1714 !important;
+  color: #d1aa68 !important;
+  border-color: #332d27 !important;
+}
+
+body.theme-brown .showcase-card:hover .btn-view-more {
+  background-color: #d1aa68 !important;
+  color: #111111 !important;
+}
+
+/* ==========================================================================
+   5. GIAO DIỆN: TRANG DANH SÁCH SẢN PHẨM - SHOP PAGE (THEME NÂU)
+   ========================================================================== */
+body.theme-brown .shop-page {
+  background-color: #1a1714 !important;
+  color: #cccccc !important; 
+}
+
+/* Thanh bộ lọc (Filter Bar) */
+body.theme-brown .dropdown-selected {
+  color: #ffffff !important; 
+}
+
+body.theme-brown .dropdown-selected::after {
+  color: #d1aa68 !important; 
+}
+
+/* Thẻ hiển thị sản phẩm (Product Card) */
+body.theme-brown .shop-page .product-card {
+  background-color: #24201D !important;
+  border-color: #332d27 !important;
+}
+
+body.theme-brown .shop-page h1,
+body.theme-brown .shop-page h2,
+body.theme-brown .shop-page h3,
+body.theme-brown .shop-page .product-name,
+body.theme-brown .shop-page .page-title {
+  color: #d1aa68 !important;
+}
+
+body.theme-brown .shop-page .page-subtitle {
+  color: #aaaaaa !important;
+}
+
+body.theme-brown .shop-page .btn-contact {
+  background-color: #d1aa68 !important;
+  color: #111111 !important;
+  border-color: #d1aa68 !important;
+}
+
+/* ==========================================================================
+   6. GIAO DIỆN: TRANG CHI TIẾT SẢN PHẨM - PRODUCT DETAIL (THEME NÂU)
+   ========================================================================== */
+body.theme-brown .product-detail-page { 
+  background-color: #1a1714 !important; 
+}
+
+/* Khung ảnh và các nút điều hướng trượt sản phẩm liên quan */
+body.theme-brown .product-detail-page .main-image-wrapper,
+body.theme-brown .product-detail-page .carousel-btn,
+body.theme-brown .product-detail-page .product-card {
+  background-color: #24201D !important;
+  border-color: #332d27 !important;
+}
+
+/* Toàn bộ hệ thống chữ chuyển sang màu sáng rõ nét */
+body.theme-brown .product-detail-page .product-title,
+body.theme-brown .product-detail-page .section-header h2,
+body.theme-brown .product-detail-page .spec-value,
+body.theme-brown .product-detail-page .accordion-header,
+body.theme-brown .product-detail-page .current,
+body.theme-brown .product-detail-page .product-name {
+  color: #ffffff !important;
+}
+
+/* Toàn bộ hệ thống chữ chú thích chuyển sang màu xám mờ */
+body.theme-brown .product-detail-page .short-description,
+body.theme-brown .product-detail-page .accordion-content,
+body.theme-brown .product-detail-page .spec-label {
+  color: #aaaaaa !important;
+}
+
+/* Trạng thái kho hàng */
+body.theme-brown .product-detail-page .status-in-stock {
+  color: #4ade80 !important; 
+}
+
+body.theme-brown .product-detail-page .status-out-stock {
+  color: #d1aa68 !important; 
+}
+
+/* Thanh trượt và nút tương tác sản phẩm liên quan */
+body.theme-brown .product-detail-page .carousel-btn { 
+  color: #d1aa68 !important; 
+}
+
+body.theme-brown .product-detail-page .carousel-btn:hover { 
+  background-color: #d1aa68 !important; 
+  color: #1a1714 !important; 
+}
+
+/* Các khối nút bấm đặt hàng và tư vấn */
+body.theme-brown .product-detail-page .btn-primary {
+  background-color: #d1aa68 !important;
+  color: #111111 !important;
+  border-color: #d1aa68 !important;
+}
+
+body.theme-brown .product-detail-page .btn-secondary {
+  border-color: #555555 !important;
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+body.theme-brown .product-detail-page .btn-secondary:hover {
+  border-color: #d1aa68 !important;
+  color: #d1aa68 !important;
+}
+
+/* ==========================================================================
+   7. GIAO DIỆN: TRANG DANH SÁCH THƯƠNG HIỆU - BRAND PAGE (THEME NÂU)
+   ========================================================================== */
+body.theme-brown .brand-page {
+  background-color: #1a1714 !important;
+  color: #ffffff !important;
+}
+
+body.theme-brown .brand-card {
+  background-color: #24201D !important;
+  border: 1px solid #332d27 !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.theme-brown .brand-name-placeholder {
+  color: #d1aa68 !important;
+}
+
+/* Kỹ thuật xử lý hòa trộn lật màu cho các ảnh logo có nền trắng cứng */
+body.theme-brown .brand-logo {
+  filter: grayscale(100%) invert(1) opacity(0.7) !important;
+  mix-blend-mode: screen !important; 
+}
+
+body.theme-brown .brand-card:hover .brand-logo {
+  filter: grayscale(100%) invert(1) opacity(1) !important;
+}
+
+
+/* ================= ĐẢO MÀU NÚT TÌM KIẾM KHI NỀN TRẮNG ================= */
+body.theme-brown .search-trigger {
+    border-color: #dddddd !important; /* Đổi viền thành xám nhạt */
+}
+
+/* Đổi màu kính lúp và chữ thành Nâu Đen */
+body.theme-brown .search-trigger .search-icon,
+body.theme-brown .search-trigger span {
+    color: #1a1714 !important; 
+}
+
+/* Khi hover vào vẫn giữ độ sang chảnh (viền và chữ lên màu Vàng Kim) */
+body.theme-brown .search-trigger:hover {
+    border-color: #d1aa68 !important;
+    background-color: rgba(209, 170, 104, 0.05) !important;
+}
+
+body.theme-brown .search-trigger:hover .search-icon,
+body.theme-brown .search-trigger:hover span {
+    color: #d1aa68 !important;
 }

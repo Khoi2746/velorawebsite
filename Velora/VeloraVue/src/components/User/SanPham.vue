@@ -13,10 +13,8 @@
         </div>
 
         <div class="filter-bar">
-
           <div class="custom-dropdown" :class="{ active: activeDropdown === 'price' }" @click="toggleDropdown('price')">
             <div class="dropdown-selected">{{ filters.priceText || 'KHOẢNG GIÁ' }}</div>
-
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'price'">
                 <div class="option-item" @click.stop="selectOption('price', '', 'KHOẢNG GIÁ')">KHOẢNG GIÁ</div>
@@ -32,7 +30,6 @@
 
           <div class="custom-dropdown" :class="{ active: activeDropdown === 'brand' }" @click="toggleDropdown('brand')">
             <div class="dropdown-selected">{{ filters.brandText || 'THƯƠNG HIỆU' }}</div>
-
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'brand'">
                 <div class="option-item" @click.stop="selectOption('brand', '', 'THƯƠNG HIỆU')">THƯƠNG HIỆU</div>
@@ -44,11 +41,9 @@
             </Transition>
           </div>
 
-          <!-- ĐÃ SỬA: Biến dropdown Bộ Sưu Tập thành Động theo đúng Loại Sản Phẩm -->
           <div class="custom-dropdown" :class="{ active: activeDropdown === 'category' }"
             @click="toggleDropdown('category')">
             <div class="dropdown-selected">{{ filters.categoryText || 'LOẠI SẢN PHẨM' }}</div>
-
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'category'">
                 <div class="option-item" @click.stop="selectOption('category', '', 'LOẠI SẢN PHẨM')">LOẠI SẢN PHẨM</div>
@@ -63,7 +58,6 @@
           <div class="custom-dropdown" :class="{ active: activeDropdown === 'gender' }"
             @click="toggleDropdown('gender')">
             <div class="dropdown-selected">{{ filters.genderText || 'GIỚI TÍNH' }}</div>
-
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'gender'">
                 <div class="option-item" @click.stop="selectOption('gender', '', 'GIỚI TÍNH')">GIỚI TÍNH</div>
@@ -72,30 +66,31 @@
               </div>
             </Transition>
           </div>
-
         </div>
 
         <div class="product-grid" v-if="filteredProducts.length > 0">
           <div class="product-card" v-for="product in filteredProducts" :key="product.maSanPham">
-            
-            <!-- ĐÃ SỬA: Hiển thị tag Tên Loại Sản Phẩm thực tế thay vì nhãn ngẫu nhiên -->
+
             <div class="tag-new" v-if="product.loaiSanPham">
               {{ product.loaiSanPham.tenLoai }}
             </div>
-            
-            <div class="product-image-wrapper">
+
+            <router-link :to="`/san-pham/${product.maSanPham}`" class="product-image-wrapper">
               <img
                 :src="product.anhDaiDien && product.anhDaiDien.startsWith('http') ? product.anhDaiDien : '/img/' + product.anhDaiDien"
                 :alt="product.tenSanPham" class="product-image" />
-            </div>
-            
+            </router-link>
+
             <div class="product-info">
-              <h3 class="product-name">{{ product.tenSanPham }}</h3>
+              <router-link :to="`/san-pham/${product.maSanPham}`" class="product-name-link">
+                <h3 class="product-name">{{ product.tenSanPham }}</h3>
+              </router-link>
+
               <div class="product-price">
                 {{ product.giaBan > 400000000 ? 'Giá chờ hàng' : formatPrice(product.giaBan) }}
               </div>
             </div>
-            
+
             <div class="product-action">
               <router-link :to="`/san-pham/${product.maSanPham}`" class="btn-contact">
                 XEM CHI TIẾT
@@ -124,13 +119,13 @@ import Info from '../info.vue'
 const products = ref([])
 const filteredProducts = ref([])
 const brands = ref([])
-const categories = ref([]) // ĐÃ BỔ SUNG: Mảng lưu trữ danh sách Loại sản phẩm động
+const categories = ref([])
 const activeDropdown = ref(null)
 
 const filters = ref({
   price: '', priceText: '',
   brand: '', brandText: '',
-  category: '', categoryText: '', // ĐÃ SỬA: collection -> category
+  category: '', categoryText: '',
   gender: '', genderText: ''
 })
 
@@ -172,7 +167,6 @@ const loadData = async () => {
     if (resBrands.ok) {
       brands.value = await resBrands.json()
     }
-    // ĐÃ BỔ SUNG: Đồng bộ API lấy danh sách Loại sản phẩm thực tế từ cơ sở dữ liệu
     const resCategories = await fetch('http://localhost:8080/api/loai-san-pham')
     if (resCategories.ok) {
       categories.value = await resCategories.json()
@@ -184,29 +178,22 @@ const loadData = async () => {
 
 const applyFilters = () => {
   let result = [...products.value]
-  
-  // 1. Lọc theo thương hiệu
+
   if (filters.value.brand) {
     result = result.filter(p => p.maThuongHieu === parseInt(filters.value.brand) || (p.thuongHieu && p.thuongHieu.maThuongHieu === parseInt(filters.value.brand)))
   }
-  
-  // 2. Lọc theo khoảng giá
   if (filters.value.price) {
     if (filters.value.price === 'under-100m') result = result.filter(p => p.giaBan < 100000000)
     else if (filters.value.price === '100m-500m') result = result.filter(p => p.giaBan >= 100000000 && p.giaBan <= 500000000)
     else if (filters.value.price === 'over-500m') result = result.filter(p => p.giaBan > 500000000)
   }
-  
-  // 3. ĐÃ SỬA: Lọc chính xác theo ID Loại sản phẩm động (Khóa ngoại maLoai)
   if (filters.value.category) {
     result = result.filter(p => p.loaiSanPham && p.loaiSanPham.maLoai === parseInt(filters.value.category))
   }
-  
-  // 4. Lọc theo giới tính
   if (filters.value.gender) {
     result = result.filter(p => p.moTaChiTiet && p.moTaChiTiet.toLowerCase().includes(filters.value.gender.toLowerCase()))
   }
-  
+
   filteredProducts.value = result
 }
 
@@ -220,7 +207,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Toàn bộ CSS gốc tinh tế của bạn được giữ nguyên */
+/* Toàn bộ CSS gốc của ku em */
 .shop-page {
   width: 100%;
   min-height: 100vh;
@@ -413,6 +400,7 @@ onUnmounted(() => {
   justify-content: center;
   margin-bottom: 25px;
   overflow: hidden;
+  display: block;
 }
 
 .product-image {
@@ -431,6 +419,12 @@ onUnmounted(() => {
   width: 100%;
 }
 
+/* Style cho Tên sản phẩm click được */
+.product-name-link {
+  text-decoration: none;
+  display: block;
+}
+
 .product-name {
   font-size: 15px;
   color: #24201D;
@@ -439,6 +433,11 @@ onUnmounted(() => {
   margin-bottom: 10px;
   letter-spacing: 0.5px;
   text-transform: capitalize;
+  transition: color 0.3s ease;
+}
+
+.product-name-link:hover .product-name {
+  color: #d1aa68;
 }
 
 .product-price {
@@ -500,7 +499,7 @@ onUnmounted(() => {
   .product-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .page-title {
     font-size: 26px;
   }

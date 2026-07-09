@@ -6,6 +6,7 @@ import DangNhap from '../components/Login.vue'
 import DangKy from '../components/SignIn.vue'
 import ThuongHieu from '../components/User/ThuongHieu.vue'
 import SanPham from '../components/User/SanPham.vue'
+import ChiTietSanPham from '../components/User/ChiTietSanPham.vue' // ĐÃ THÊM: Import trang chi tiết sản phẩm
 
 // Các file giao diện Quản trị (Admin)
 import AdminDashboard from '../components/Admin/AdminDashboard.vue'
@@ -47,6 +48,11 @@ const router = createRouter({
       path: '/dong-ho-co-san',
       name: 'SanPham',
       component: SanPham
+    },
+    {
+      path: '/san-pham/:id', // ĐÃ THÊM: Khai báo đường dẫn động để bắt ID sản phẩm khi bấm xem chi tiết
+      name: 'ChiTietSanPham',
+      component: ChiTietSanPham
     },
     
     // ================== VÙNG ROUTE BẢO MẬT CỦA ADMIN ==================

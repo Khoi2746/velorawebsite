@@ -52,6 +52,12 @@
         </div>
         <Footer />
     </div>
+    <ToastPopup 
+    :visible="showToast" 
+    :message="toastMsg" 
+    :type="toastType"
+    :loading="loading" 
+/>
 </template>
 
 <script setup>
@@ -59,6 +65,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '../components/Header.vue' 
 import Footer from '../components/Footer.vue'
+import ToastPopup from '../components/ToastPopup.vue'
 
 const router = useRouter()
 
@@ -66,50 +73,62 @@ const email = ref('')
 const password = ref('')
 const rememberMe = ref(false)
 const showPassword = ref(false)
+const showToast = ref(false)
+const toastMsg = ref('')
+const toastType = ref('success')
+const loading = ref(false)
 
 const togglePassword = () => {
     showPassword.value = !showPassword.value
 }
 
 const handleLogin = async () => {
+    // 1. Khởi tạo trạng thái Loading
+    loading.value = true;
+    showToast.value = true;
+    toastMsg.value = 'Đang xác thực...';
+    toastType.value = 'loading'; // Tùy chỉnh CSS để hiện icon xoay
+
     try {
         const response = await fetch('http://localhost:8080/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: email.value, password: password.value })
-        })
+        });
 
-        // Nếu HTTP status trả về lỗi (400, 401, 403...)
+        // 2. Ép buộc chờ 2 giây để hiển thị hiệu ứng xoay (dù server phản hồi nhanh hay chậm)
+        await new Promise(resolve => setTimeout(resolve, 4000));
+
         if (!response.ok) {
-            const errorText = await response.text()
-            throw new Error(errorText) // Đẩy thẳng nội dung chữ thô từ Backend xuống catch
+            // Lấy lỗi từ backend
+            const errorData = await response.json().catch(() => ({ message: 'Lỗi hệ thống!' }));
+            throw new Error(errorData.message || 'Sai email hoặc mật khẩu!');
         }
 
-        // Nếu đăng nhập thành công (200 OK)
-        const userData = await response.json()
-        console.log("Dữ liệu nhận từ Backend:", userData)
+        // Đăng nhập thành công
+        const userData = await response.json();
+        localStorage.setItem('user', JSON.stringify(userData));
 
-        localStorage.setItem('user', JSON.stringify(userData))
-        alert('Đăng nhập thành công! Chào mừng trở lại Velora Clock.')
-        window.location.href = '/'
-            
+        // 3. Chuyển sang trạng thái thành công (Tick xanh)
+        loading.value = false;
+        toastMsg.value = 'Đăng nhập thành công!';
+        toastType.value = 'success';
+
+        // Đợi 1.5 giây sau khi hiện tick rồi mới chuyển trang
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 1500);
+
     } catch (error) {
-        console.error('Lỗi xảy ra trong quá trình xử lý:', error)
-        
-        // ĐÃ SỬA: Dùng "const" chuẩn cú pháp JavaScript thay vì "String" của Java
-        const errorString = String(error)
-        
-        // Kiểm tra điều kiện dựa trên chuỗi văn bản lỗi tổng thể xuất hiện trên console
-        if (
-            errorString.includes("khóa") || 
-            errorString.includes("khoa") || 
-            errorString.includes("quản trị") || 
-            errorString.includes("ACCOUNT_LOCKED")
-        ) {
-            alert("Tài khoản của bạn đã bị khóa bởi Ban quản trị!")
-        } else {
-            alert('Sai email hoặc mật khẩu. Vui lòng kiểm tra lại!')
-        }
+        // 4. Chuyển sang trạng thái thất bại (Dấu chéo X)
+        loading.value = false;
+        toastMsg.value = error.message;
+        toastType.value = 'error';
+
+        // Tự tắt thông báo sau 3 giây
+        setTimeout(() => { 
+            showToast.value = false; 
+        }, 3000);
     }
 }
 </script>
@@ -125,15 +144,60 @@ const handleLogin = async () => {
 }
 
 /* ================= VÙNG BAO QUANH FORM (CĂN GIỮA) ================= */
+/* 1. Phần bao bọc toàn bộ trang (Nền không gian có quầng sáng) */
 .login-wrapper {
-    flex: 1;
-    /* Tự động chiếm trọn phần không gian còn lại bên dưới Header */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-image: radial-gradient(circle at center, #1a1a1a 0%, #0d0d0d 100%);
-    padding: 40px 20px;
-    font-family: 'Arial', sans-serif;
+  position: relative;
+  background-color: #0a0908; /* Màu đen tuyền ngả chút nâu rất sang */
+  min-height: 80vh; /* Hoặc chiều cao tùy chỉnh của em */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Tạo một quầng sáng ma thuật tỏa ra từ phía sau form đăng nhập */
+.login-wrapper::before {
+  content: "";
+  position: absolute;
+  width: 700px;
+  height: 700px;
+  /* Quầng sáng màu vàng kim tỏa ra và mờ dần */
+  background: radial-gradient(circle, rgba(209, 170, 104, 0.12) 0%, transparent 60%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  pointer-events: none; /* Không cản trở việc click chuột */
+}
+
+/* 2. Form đăng nhập (Chuyển sang phong cách Kính Mờ cao cấp) */
+.login-box {
+  /* Làm trong suốt nền hiện tại của em */
+  background: rgba(26, 23, 20, 0.4); 
+  /* Hiệu ứng kính mờ - VVIP ở đây! */
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  /* Viền mỏng màu vàng kim tạo cảm giác kim loại khối */
+  border: 1px solid rgba(209, 170, 104, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+  padding: 40px; /* Tùy chỉnh theo padding hiện có của em */
+  position: relative;
+  overflow: hidden;
+}
+
+/* 3. Nút bấm (Thêm hiệu ứng Hover rực sáng) */
+.btn-login {
+  background-color: #d1aa68;
+  color: #111;
+  transition: all 0.3s ease;
+}
+
+.btn-login:hover {
+  background-color: #e2c083; /* Sáng hơn khi di chuột */
+  box-shadow: 0 0 20px rgba(209, 170, 104, 0.5); /* Tỏa sáng */
+  transform: translateY(-2px); /* Hơi nảy lên một chút */
 }
 
 /* ================= KHUNG FORM TRÒN GÓC LUXURY ================= */

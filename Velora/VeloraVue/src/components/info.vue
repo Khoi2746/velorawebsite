@@ -102,4 +102,29 @@
 @media (max-width: 600px) {
   .contact-grid { grid-template-columns: 1fr; }
 }
+
+/* ================== SỬA LẠI: CHỈ ĐỔI CHỮ TRẮNG, NỀN TỐI ================== */
+
+/* 1. Xóa nền trắng, trả lại nền trong suốt để nó chìm vào nền nâu của trang */
+body.theme-brown .brand-contact-info {
+  background-color: transparent !important;
+  border-top: 1px solid #332d27 !important; /* Đổi viền trên thành màu tối cho sang */
+}
+
+/* 2. ĐÂY NÈ: Chỉ đổi 2 class chữ thành màu TRẮNG */
+body.theme-brown .brand-contact-info .contact-text,
+body.theme-brown .brand-contact-info .text-highlight {
+  color: #ffffff !important; 
+}
+
+/* 3. Giữ icon luôn là màu vàng kim */
+body.theme-brown .brand-contact-info .contact-icon,
+body.theme-brown .brand-contact-info .contact-icon i {
+  color: #d1aa68 !important;
+}
+
+/* 4. Vạch kẻ dọc chuyển sang màu tối mờ để không bị chói */
+body.theme-brown .contact-item:not(:last-child)::after {
+  background-color: #332d27 !important;
+}
 </style>

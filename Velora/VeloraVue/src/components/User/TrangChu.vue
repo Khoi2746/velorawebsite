@@ -121,12 +121,12 @@ import Footer from '../Footer.vue'
 </script>
 
 <style scoped>
-/* ================= TỔNG THỂ TRANG CHỦ ================= */
+/* ================= TỔNG THỂ TRANG CHỦ (MẶC ĐỊNH NỀN TRẮNG) ================= */
 .home-wrapper {
   width: 100%;
   min-height: 100vh;
-  background-color: #0d0d0d;
-  color: #ffffff;
+  background-color: #fdfdfd; /* Đổi thành nền trắng */
+  color: #111111; /* Đổi thành chữ đen */
   font-family: 'Arial', sans-serif;
   overflow-x: hidden;
 }
@@ -147,7 +147,7 @@ import Footer from '../Footer.vue'
   font-family: 'Times New Roman', serif;
   font-size: 28px;
   letter-spacing: 5px;
-  color: #ffffff;
+  color: #111111; /* Chữ đen */
   font-weight: 300;
   text-transform: uppercase;
 }
@@ -175,7 +175,7 @@ import Footer from '../Footer.vue'
   transform: rotate(45deg);
 }
 
-/* ================= HERO BANNER SECTION ================= */
+/* ================= HERO BANNER SECTION (GIỮ NỀN TỐI CHO SANG) ================= */
 .hero-section {
   height: calc(100vh - 80px); 
   display: flex;
@@ -236,9 +236,9 @@ import Footer from '../Footer.vue'
 /* ================= CORE VALUES SECTION ================= */
 .values-section {
   padding: 80px 0;
-  background-color: #12100f;
-  border-top: 1px solid #24201D;
-  border-bottom: 1px solid #24201D;
+  background-color: #f9f9f9; /* Nền xám sáng */
+  border-top: 1px solid #eeeeee;
+  border-bottom: 1px solid #eeeeee;
 }
 
 .values-grid {
@@ -263,21 +263,21 @@ import Footer from '../Footer.vue'
   font-size: 14px;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: #ffffff;
+  color: #111111; /* Chữ đen */
   margin-bottom: 12px;
   font-weight: 500;
 }
 
 .value-item p {
   font-size: 13px;
-  color: #888888;
+  color: #555555; /* Chữ xám đậm */
   line-height: 1.6;
 }
 
 /* ================= FEATURED COLLECTIONS SECTION ================= */
 .collections-section {
   padding: 100px 0;
-  background-color: #0d0d0d;
+  background-color: #fdfdfd; /* Nền trắng */
 }
 
 .collections-grid {
@@ -295,7 +295,7 @@ import Footer from '../Footer.vue'
   align-items: flex-end;
   padding: 40px;
   overflow: hidden;
-  border: 1px solid #24201D;
+  border: 1px solid #eeeeee;
   background-size: cover;
   background-position: center;
   transition: all 0.5s ease;
@@ -351,7 +351,7 @@ import Footer from '../Footer.vue'
 /* ================= PRODUCT SHOWCASE SECTION ================= */
 .highlight-section {
   padding: 0 0 120px 0;
-  background-color: #0d0d0d;
+  background-color: #fdfdfd; /* Nền trắng */
 }
 
 .showcase-grid {
@@ -361,8 +361,8 @@ import Footer from '../Footer.vue'
 }
 
 .showcase-card {
-  background-color: #12100f;
-  border: 1px solid #1f1a17;
+  background-color: #ffffff; /* Card trắng */
+  border: 1px solid #eeeeee;
   padding: 40px 25px;
   text-align: center;
   position: relative;
@@ -373,7 +373,7 @@ import Footer from '../Footer.vue'
 .showcase-card:hover {
   transform: translateY(-8px);
   border-color: #d1aa68;
-  box-shadow: 0 15px 40px rgba(209, 170, 104, 0.05);
+  box-shadow: 0 15px 40px rgba(36, 32, 29, 0.06);
 }
 
 .card-tag {
@@ -399,7 +399,6 @@ import Footer from '../Footer.vue'
   max-width: 80%;
   max-height: 100%;
   object-fit: contain;
-  filter: brightness(0.95);
   transition: transform 0.5s ease;
 }
 
@@ -409,7 +408,7 @@ import Footer from '../Footer.vue'
 
 .card-meta h4 {
   font-size: 15px;
-  color: #ffffff;
+  color: #111111; /* Chữ đen */
   font-weight: 500;
   margin-bottom: 8px;
   letter-spacing: 0.5px;
@@ -426,9 +425,9 @@ import Footer from '../Footer.vue'
   display: block;
   width: 100%;
   padding: 12px 0;
-  background-color: #1a1714;
-  color: #ffffff;
-  border: 1px solid #24201D;
+  background-color: #111111; /* Nút đen */
+  color: #ffffff; /* Chữ trắng */
+  border: 1px solid #111111;
   font-size: 11px;
   letter-spacing: 2px;
   text-decoration: none;
