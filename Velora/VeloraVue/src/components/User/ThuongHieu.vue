@@ -12,7 +12,8 @@
                 </div>
 
                 <div class="brand-grid" v-if="brands.length > 0">
-                    <div class="brand-card" v-for="brand in brands" :key="brand.maThuongHieu">
+                    <!-- ĐÃ BỔ SUNG: Gắn sự kiện click gọi hàm goToBrand -->
+                    <div class="brand-card" v-for="brand in brands" :key="brand.maThuongHieu" @click="goToBrand(brand.maThuongHieu)">
                         <img v-if="brand.logoThuongHieu"
                             :src="brand.logoThuongHieu.startsWith('http') ? brand.logoThuongHieu : '/img/' + brand.logoThuongHieu"
                             :alt="brand.tenThuongHieu" class="brand-logo" />
@@ -35,9 +36,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router' // ĐÃ BỔ SUNG: Import vue-router
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
 import Info from '../info.vue'
+
+// Khởi tạo router để chuyển trang
+const router = useRouter()
 
 // Tự động nhúng Font Awesome nếu project của em chưa có để hiện icon điện thoại, map, email
 onMounted(() => {
@@ -69,6 +74,14 @@ const fetchBrands = async () => {
     } catch (error) {
         console.error('Không thể kết nối đến Backend. Spring Boot đã chạy chưa?', error)
     }
+}
+
+// ĐÃ BỔ SUNG: Hàm chuyển hướng sang trang Đồng Hồ Có Sẵn kèm ID thương hiệu
+const goToBrand = (idThuongHieu) => {
+    router.push({ 
+        path: '/dong-ho-co-san', 
+        query: { brand: idThuongHieu } 
+    })
 }
 
 onMounted(() => {

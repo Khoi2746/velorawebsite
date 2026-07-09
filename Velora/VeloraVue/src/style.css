@@ -357,3 +357,82 @@ body.theme-brown .search-trigger:hover .search-icon,
 body.theme-brown .search-trigger:hover span {
     color: #d1aa68 !important;
 }
+
+/* ==========================================================================
+   8. GIAO DIỆN: TRANG TƯ VẤN - TUVAN.VUE (THEME NÂU)
+   ========================================================================== */
+
+/* Nền tổng thể trang Tư Vấn */
+body.theme-brown .tuvan-page {
+  background-color: #1a1714 !important;
+  color: #ffffff !important;
+}
+
+/* Các khung chính (Booking & Chat) */
+body.theme-brown .booking-section,
+body.theme-brown .chat-section {
+  background-color: #24201D !important;
+  border: 1px solid #332d27 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Tiêu đề trong trang Tư Vấn */
+body.theme-brown .tuvan-page h2,
+body.theme-brown .tuvan-page h3,
+body.theme-brown .tuvan-page p {
+  color: #ffffff !important;
+}
+
+body.theme-brown .tuvan-page .status-indicator {
+  color: #d1aa68 !important;
+}
+
+/* Form Input & Select */
+body.theme-brown .tuvan-page input,
+body.theme-brown .tuvan-page select {
+  background-color: #1a1714 !important;
+  border: 1px solid #444444 !important;
+  color: #ffffff !important;
+}
+
+body.theme-brown .tuvan-page input::placeholder {
+  color: #888888 !important;
+}
+
+/* Nút bấm Đặt lịch */
+body.theme-brown .btn-book {
+  background-color: #d1aa68 !important;
+  color: #1a1714 !important;
+}
+
+body.theme-brown .btn-book:hover {
+  background-color: #ffffff !important;
+  color: #1a1714 !important;
+}
+
+/* Chatbox Messages */
+body.theme-brown .chat-messages {
+  background-color: #1a1714 !important;
+  border: 1px solid #332d27 !important;
+}
+
+body.theme-brown .msg.bot {
+  background-color: #332d27 !important;
+  color: #ffffff !important;
+}
+
+body.theme-brown .msg.user {
+  background-color: #d1aa68 !important;
+  color: #111111 !important;
+}
+
+/* Nút Liên hệ nhân viên */
+body.theme-brown .btn-human {
+  border-color: #d1aa68 !important;
+  color: #d1aa68 !important;
+}
+
+body.theme-brown .btn-human:hover {
+  background-color: #d1aa68 !important;
+  color: #111111 !important;
+}

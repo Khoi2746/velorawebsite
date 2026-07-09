@@ -18,12 +18,9 @@
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'price'">
                 <div class="option-item" @click.stop="selectOption('price', '', 'KHOẢNG GIÁ')">KHOẢNG GIÁ</div>
-                <div class="option-item" @click.stop="selectOption('price', 'under-100m', 'DƯỚI 100 TRIỆU')">DƯỚI 100
-                  TRIỆU</div>
-                <div class="option-item" @click.stop="selectOption('price', '100m-500m', '100 TRIỆU - 500 TRIỆU')">100
-                  TRIỆU - 500 TRIỆU</div>
-                <div class="option-item" @click.stop="selectOption('price', 'over-500m', 'TRÊN 500 TRIỆU')">TRÊN 500
-                  TRIỆU</div>
+                <div class="option-item" @click.stop="selectOption('price', 'under-100m', 'DƯỚI 100 TRIỆU')">DƯỚI 100 TRIỆU</div>
+                <div class="option-item" @click.stop="selectOption('price', '100m-500m', '100 TRIỆU - 500 TRIỆU')">100 TRIỆU - 500 TRIỆU</div>
+                <div class="option-item" @click.stop="selectOption('price', 'over-500m', 'TRÊN 500 TRIỆU')">TRÊN 500 TRIỆU</div>
               </div>
             </Transition>
           </div>
@@ -33,30 +30,26 @@
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'brand'">
                 <div class="option-item" @click.stop="selectOption('brand', '', 'THƯƠNG HIỆU')">THƯƠNG HIỆU</div>
-                <div class="option-item" v-for="b in brands" :key="b.maThuongHieu"
-                  @click.stop="selectOption('brand', b.maThuongHieu, b.tenThuongHieu)">
+                <div class="option-item" v-for="b in brands" :key="b.maThuongHieu" @click.stop="selectOption('brand', b.maThuongHieu, b.tenThuongHieu)">
                   {{ b.tenThuongHieu }}
                 </div>
               </div>
             </Transition>
           </div>
 
-          <div class="custom-dropdown" :class="{ active: activeDropdown === 'category' }"
-            @click="toggleDropdown('category')">
+          <div class="custom-dropdown" :class="{ active: activeDropdown === 'category' }" @click="toggleDropdown('category')">
             <div class="dropdown-selected">{{ filters.categoryText || 'LOẠI SẢN PHẨM' }}</div>
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'category'">
                 <div class="option-item" @click.stop="selectOption('category', '', 'LOẠI SẢN PHẨM')">LOẠI SẢN PHẨM</div>
-                <div class="option-item" v-for="cat in categories" :key="cat.maLoai"
-                  @click.stop="selectOption('category', cat.maLoai, cat.tenLoai)">
+                <div class="option-item" v-for="cat in categories" :key="cat.maLoai" @click.stop="selectOption('category', cat.maLoai, cat.tenLoai)">
                   {{ cat.tenLoai }}
                 </div>
               </div>
             </Transition>
           </div>
 
-          <div class="custom-dropdown" :class="{ active: activeDropdown === 'gender' }"
-            @click="toggleDropdown('gender')">
+          <div class="custom-dropdown" :class="{ active: activeDropdown === 'gender' }" @click="toggleDropdown('gender')">
             <div class="dropdown-selected">{{ filters.genderText || 'GIỚI TÍNH' }}</div>
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'gender'">
@@ -111,10 +104,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue' // ĐÃ THÊM: watch để theo dõi URL thay đổi
+import { useRoute } from 'vue-router'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
 import Info from '../info.vue'
+
+const route = useRoute()
 
 const products = ref([])
 const filteredProducts = ref([])
@@ -122,7 +118,9 @@ const brands = ref([])
 const categories = ref([])
 const activeDropdown = ref(null)
 
+// ĐÃ BỔ SUNG: Thêm trường search vào bộ lọc
 const filters = ref({
+  search: '', 
   price: '', priceText: '',
   brand: '', brandText: '',
   category: '', categoryText: '',
@@ -135,6 +133,42 @@ const toggleDropdown = (dropdownName) => {
   } else {
     activeDropdown.value = dropdownName
   }
+}
+
+// BỘ LỌC TỔNG HỢP: Xử lý cả Hãng, Giá, Giới tính và TỪ KHÓA TÌM KIẾM
+const applyFilters = () => {
+  let result = [...products.value]
+
+  // 1. Lọc theo TỪ KHÓA trên thanh tìm kiếm
+  if (filters.value.search) {
+    const keyword = filters.value.search.toLowerCase()
+    result = result.filter(p => 
+      // Tìm trong Tên sản phẩm HOẶC Tên thương hiệu
+      p.tenSanPham.toLowerCase().includes(keyword) || 
+      (p.thuongHieu && p.thuongHieu.tenThuongHieu.toLowerCase().includes(keyword))
+    )
+  }
+
+  // 2. Lọc theo Thương hiệu
+  if (filters.value.brand) {
+    result = result.filter(p => p.maThuongHieu === parseInt(filters.value.brand) || (p.thuongHieu && p.thuongHieu.maThuongHieu === parseInt(filters.value.brand)))
+  }
+  // 3. Lọc theo Giá
+  if (filters.value.price) {
+    if (filters.value.price === 'under-100m') result = result.filter(p => p.giaBan < 100000000)
+    else if (filters.value.price === '100m-500m') result = result.filter(p => p.giaBan >= 100000000 && p.giaBan <= 500000000)
+    else if (filters.value.price === 'over-500m') result = result.filter(p => p.giaBan > 500000000)
+  }
+  // 4. Lọc theo Loại
+  if (filters.value.category) {
+    result = result.filter(p => p.loaiSanPham && p.loaiSanPham.maLoai === parseInt(filters.value.category))
+  }
+  // 5. Lọc theo Giới tính
+  if (filters.value.gender) {
+    result = result.filter(p => p.moTaChiTiet && p.moTaChiTiet.toLowerCase().includes(filters.value.gender.toLowerCase()))
+  }
+
+  filteredProducts.value = result
 }
 
 const selectOption = (type, value, text) => {
@@ -163,39 +197,52 @@ const loadData = async () => {
       products.value = dataProd.filter(p => p.trangThai === 'CON_HANG' || p.trangThai === 1)
       filteredProducts.value = products.value
     }
+    
     const resBrands = await fetch('http://localhost:8080/api/thuong-hieu')
     if (resBrands.ok) {
       brands.value = await resBrands.json()
     }
+    
     const resCategories = await fetch('http://localhost:8080/api/loai-san-pham')
     if (resCategories.ok) {
       categories.value = await resCategories.json()
     }
+
+    // Sau khi tải xong hết Data, mồi URL một lần để kích hoạt bộ lọc
+    syncFiltersFromUrl()
+
   } catch (error) {
     console.error('Lỗi kết nối API hệ thống:', error)
   }
 }
 
-const applyFilters = () => {
-  let result = [...products.value]
+// BÍ KÍP: Hàm đồng bộ hóa bộ lọc với URL (kết hợp cả Search và Brand)
+const syncFiltersFromUrl = () => {
+  // Lấy keyword tìm kiếm
+  filters.value.search = route.query.search || ''
 
-  if (filters.value.brand) {
-    result = result.filter(p => p.maThuongHieu === parseInt(filters.value.brand) || (p.thuongHieu && p.thuongHieu.maThuongHieu === parseInt(filters.value.brand)))
-  }
-  if (filters.value.price) {
-    if (filters.value.price === 'under-100m') result = result.filter(p => p.giaBan < 100000000)
-    else if (filters.value.price === '100m-500m') result = result.filter(p => p.giaBan >= 100000000 && p.giaBan <= 500000000)
-    else if (filters.value.price === 'over-500m') result = result.filter(p => p.giaBan > 500000000)
-  }
-  if (filters.value.category) {
-    result = result.filter(p => p.loaiSanPham && p.loaiSanPham.maLoai === parseInt(filters.value.category))
-  }
-  if (filters.value.gender) {
-    result = result.filter(p => p.moTaChiTiet && p.moTaChiTiet.toLowerCase().includes(filters.value.gender.toLowerCase()))
+  // Lấy ID thương hiệu
+  if (route.query.brand) {
+    const brandIdFromUrl = parseInt(route.query.brand)
+    const targetBrand = brands.value.find(b => b.maThuongHieu === brandIdFromUrl)
+    if (targetBrand) {
+      filters.value.brand = brandIdFromUrl
+      filters.value.brandText = targetBrand.tenThuongHieu
+    }
+  } else {
+    // Nếu URL không có brand, reset lại filter brand
+    filters.value.brand = ''
+    filters.value.brandText = ''
   }
 
-  filteredProducts.value = result
+  // Chạy lệnh lọc sản phẩm
+  applyFilters()
 }
+
+// RA-ĐA QUÉT URL: Nếu khách đang ở trang Sản Phẩm mà gõ tìm kiếm tiếp, hàm này sẽ tự nhảy
+watch(() => route.query, () => {
+  syncFiltersFromUrl()
+})
 
 onMounted(() => {
   loadData()
@@ -207,7 +254,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Toàn bộ CSS gốc của ku em */
 .shop-page {
   width: 100%;
   min-height: 100vh;
@@ -419,7 +465,6 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* Style cho Tên sản phẩm click được */
 .product-name-link {
   text-decoration: none;
   display: block;
@@ -488,7 +533,6 @@ onUnmounted(() => {
     grid-template-columns: repeat(2, 1fr);
     gap: 30px;
   }
-
   .filter-bar {
     gap: 25px;
     flex-wrap: wrap;
@@ -499,7 +543,6 @@ onUnmounted(() => {
   .product-grid {
     grid-template-columns: 1fr;
   }
-
   .page-title {
     font-size: 26px;
   }

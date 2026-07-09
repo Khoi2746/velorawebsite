@@ -79,11 +79,13 @@
             </ul>
 
             <div class="action-buttons">
-              <button v-if="product.giaBan && product.giaBan <= 400000000" class="btn-primary">
+              <button v-if="product.giaBan && product.giaBan <= 400000000" class="btn-primary" @click="addToCart">
                 THÊM VÀO GIỎ HÀNG
               </button>
 
-              <button class="btn-secondary">LIÊN HỆ TƯ VẤN VVIP</button>
+              <button class="btn-secondary" @click="contactVVIP">
+                LIÊN HỆ TƯ VẤN VVIP
+              </button>
             </div>
 
             <div class="accordion-group">
@@ -184,26 +186,65 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
 import Info from '../info.vue'
 
 const route = useRoute()
+const router = useRouter()
 const product = ref(null)
 const loading = ref(true)
 const relatedProducts = ref([])
 const carouselRef = ref(null)
+
+// Biến lưu số lượng
+const quantity = ref(1)
 
 const formatPrice = (value) => {
   if (!value) return 'Liên hệ'
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 }
 
-// Hàm cuộn ngang thanh Carousel
+// LOGIC THÊM VÀO GIỎ HÀNG
+const addToCart = () => {
+  let cart = JSON.parse(localStorage.getItem('cart') || '[]')
+
+  const existingItemIndex = cart.findIndex(item => item.maSanPham === product.value.maSanPham)
+
+  if (existingItemIndex > -1) {
+    cart[existingItemIndex].soLuong += quantity.value
+  } else {
+    cart.push({
+      maSanPham: product.value.maSanPham,
+      tenSanPham: product.value.tenSanPham,
+      giaBan: product.value.giaBan,
+      anhDaiDien: product.value.anhDaiDien,
+      thuongHieu: product.value.thuongHieu,
+      soLuong: quantity.value
+    })
+  }
+
+  localStorage.setItem('cart', JSON.stringify(cart))
+  window.dispatchEvent(new Event('cart-updated')) // Cập nhật Header
+  alert('Đã thêm ' + product.value.tenSanPham + ' vào giỏ hàng!')
+}
+
+// LOGIC LIÊN HỆ TƯ VẤN
+const contactVVIP = () => {
+  // Chuyển trang và đính kèm tên sản phẩm lên URL
+  router.push({
+    path: '/tu-van',
+    query: {
+      productName: product.value.tenSanPham,
+      productId: product.value.maSanPham
+    }
+  })
+}
+
+// Hàm cuộn ngang carousel
 const scrollCarousel = (direction) => {
   if (carouselRef.value) {
-    // Mỗi lần bấm cuộn đi 350px (tương đương 1 card + khoảng cách)
     carouselRef.value.scrollBy({ left: direction * 350, behavior: 'smooth' })
   }
 }
@@ -213,43 +254,30 @@ const loadProductDetail = async () => {
   const productId = route.params.id
 
   try {
-    // 1. Tải chi tiết sản phẩm hiện tại
     const res = await fetch(`http://localhost:8080/api/san-pham/${productId}`)
     if (res.ok) {
       product.value = await res.json()
-    } else {
-      product.value = null
     }
 
-    // 2. Tải danh sách sản phẩm khác (Load tất cả rồi loại trừ sản phẩm hiện tại)
     const resAll = await fetch(`http://localhost:8080/api/san-pham`)
     if (resAll.ok) {
       const allProducts = await resAll.json()
-      relatedProducts.value = allProducts.filter(p =>
-        p.maSanPham !== parseInt(productId) &&
-        (p.trangThai === 'CON_HANG' || p.trangThai === 1)
-      )
+      relatedProducts.value = allProducts.filter(p => p.maSanPham !== parseInt(productId))
     }
-
   } catch (error) {
-    console.error('Lỗi khi tải chi tiết sản phẩm:', error)
-    product.value = null
+    console.error('Lỗi tải dữ liệu:', error)
   } finally {
     loading.value = false
   }
 }
 
-// BÍ KÍP VVIP: Lắng nghe URL thay đổi để tự động reload lại trang nếu bấm vào sản phẩm khác
-watch(() => route.params.id, (newId) => {
-  if (newId) {
-    loadProductDetail()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+watch(() => route.params.id, () => {
+  loadProductDetail()
+  window.scrollTo(0, 0)
 })
 
 onMounted(() => {
   loadProductDetail()
-  window.scrollTo(0, 0)
 })
 </script>
 

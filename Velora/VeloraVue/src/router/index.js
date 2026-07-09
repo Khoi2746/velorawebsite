@@ -6,7 +6,10 @@ import DangNhap from '../components/Login.vue'
 import DangKy from '../components/SignIn.vue'
 import ThuongHieu from '../components/User/ThuongHieu.vue'
 import SanPham from '../components/User/SanPham.vue'
-import ChiTietSanPham from '../components/User/ChiTietSanPham.vue' // ĐÃ THÊM: Import trang chi tiết sản phẩm
+import ChiTietSanPham from '../components/User/ChiTietSanPham.vue'
+import GioHang from '../components/User/GioHang.vue'
+import DonHang from '../components/User/DonHang.vue'
+import TuVan from '../components/User/TuVan.vue'
 
 // Các file giao diện Quản trị (Admin)
 import AdminDashboard from '../components/Admin/AdminDashboard.vue'
@@ -48,6 +51,21 @@ const router = createRouter({
       path: '/dong-ho-co-san',
       name: 'SanPham',
       component: SanPham
+    },
+    {
+      path: '/gio-hang',
+      name: 'GioHang',
+      component: GioHang
+    },
+    {
+      path: '/don-hang',
+      name: 'DonHang',
+      component: DonHang
+    },
+    {
+      path: '/tu-van',
+      name:'TuVan',
+      component: TuVan
     },
     {
       path: '/san-pham/:id', // ĐÃ THÊM: Khai báo đường dẫn động để bắt ID sản phẩm khi bấm xem chi tiết
