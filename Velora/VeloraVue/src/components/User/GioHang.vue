@@ -105,7 +105,7 @@ import Footer from '../Footer.vue'
 const router = useRouter()
 const cartItems = ref([])
 
-// ================= HÀM LẤY KHÓA GIỎ HÀNG (MỚI) =================
+// ================= HÀM LẤY KHÓA GIỎ HÀNG =================
 const getCartKey = () => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -121,20 +121,19 @@ const getCartKey = () => {
 
 // Load giỏ hàng từ localStorage
 const loadCart = () => {
-  const key = getCartKey() // Fix: Lấy đúng key
+  const key = getCartKey()
   const storedCart = localStorage.getItem(key)
   if (storedCart) {
     cartItems.value = JSON.parse(storedCart)
   } else {
-    cartItems.value = [] // Fix: Đảm bảo giỏ hàng trống nếu chuyển tài khoản
+    cartItems.value = []
   }
 }
 
 // Lưu lại giỏ hàng và kích hoạt event để Header update cái chấm vàng
 const saveCart = () => {
-  const key = getCartKey() // Fix: Lưu đúng key
+  const key = getCartKey()
   localStorage.setItem(key, JSON.stringify(cartItems.value))
-  // Trigger event để các component khác (như Header) biết giỏ hàng thay đổi
   window.dispatchEvent(new Event('cart-updated')) 
 }
 
@@ -176,11 +175,22 @@ const proceedToCheckout = () => {
     router.push('/dang-nhap')
     return
   }
-  // Chuyển sang trang Thanh Toán (Tạo sau)
   router.push('/thanh-toan')
 }
 
+// ================= VÒNG ĐỜI VUE (ĐÃ CẬP NHẬT BẢO MẬT) =================
 onMounted(() => {
+  // 1. Kiểm tra xem có user đăng nhập chưa
+  const user = localStorage.getItem('user')
+  
+  if (!user) {
+    // 2. Nếu chưa đăng nhập -> Thông báo và đá văng về trang dang-nhap lập tức
+    alert('Vui lòng đăng nhập để xem giỏ hàng của bạn!')
+    router.push('/dang-nhap')
+    return
+  }
+
+  // 3. Nếu đã đăng nhập hợp lệ -> Cho phép load dữ liệu giỏ hàng bình thường
   loadCart()
 })
 </script>
