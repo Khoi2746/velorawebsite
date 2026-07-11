@@ -141,18 +141,25 @@ const searchInputRef = ref(null)
 
 const cartCount = ref(0)
 
-// ================= HÀM LẤY KHÓA GIỎ HÀNG (MỚI) =================
-const getCartKey = () => {
+// ================= LOGIC GIỎ HÀNG (GỌI API REAL-TIME) =================
+const fetchCartCount = async () => {
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-        try {
-            const user = JSON.parse(userStr);
-            return user.maNguoiDung ? `cart_${user.maNguoiDung}` : 'cart_guest';
-        } catch (e) {
-            return 'cart_guest';
-        }
+    if (!userStr) {
+        cartCount.value = 0;
+        return;
     }
-    return 'cart_guest';
+
+    try {
+        const user = JSON.parse(userStr);
+        const res = await fetch(`http://localhost:8080/api/gio-hang/${user.maNguoiDung}`);
+        if (res.ok) {
+            const cartItems = await res.json();
+            // Đếm số dòng dữ liệu trả về từ Database
+            cartCount.value = cartItems.length;
+        }
+    } catch (error) {
+        console.error('Lỗi tải số đếm giỏ hàng:', error);
+    }
 }
 
 // ================= LOGIC TÀI KHOẢN (AUTH) =================
@@ -165,15 +172,15 @@ const checkAuth = () => {
             userName.value = user.hoTen;
             isAdmin.value = (user.vaiTro && user.vaiTro.toUpperCase() === 'ROLE_ADMIN');
             
-            // Fix: Cập nhật số lượng giỏ hàng ngay khi checkAuth thành công
-            updateCartCount(); 
+            // Lấy số lượng giỏ hàng thực tế từ Database ngay khi checkAuth thành công
+            fetchCartCount(); 
         } catch (e) {
             console.error("Lỗi parse JSON:", e);
         }
     } else {
         isLoggedIn.value = false;
         isAdmin.value = false;
-        updateCartCount(); // Fix: Cập nhật số lượng cho khách vãng lai
+        cartCount.value = 0; 
     }
 }
 
@@ -181,7 +188,7 @@ const logout = () => {
     localStorage.removeItem('user')
     isLoggedIn.value = false
     isAdmin.value = false
-    cartCount.value = 0 // Fix: Xóa số chấm vàng ngay lập tức khi đăng xuất
+    cartCount.value = 0 // Xóa số chấm vàng ngay lập tức khi đăng xuất
     alert('Đã đăng xuất!')
     window.location.href = '/'
 }
@@ -215,7 +222,6 @@ const closeSearch = () => {
     document.body.style.overflow = 'auto'
 }
 
-// ================= LOGIC TÌM KIẾM THỰC TẾ =================
 const handleSearch = (e) => {
     const keyword = e.target.value.trim() 
     
@@ -241,29 +247,22 @@ const handleEsc = (e) => {
     }
 }
 
-// ================= LOGIC GIỎ HÀNG =================
-const updateCartCount = () => {
-    const key = getCartKey(); // Fix: Lấy đúng két sắt của người dùng
-    const cart = JSON.parse(localStorage.getItem(key) || '[]')
-    cartCount.value = cart.length
-}
-
 // ================= VÒNG ĐỜI VUE =================
 onMounted(() => {
     checkAuth()
     window.addEventListener('keydown', handleEsc)
     document.addEventListener('click', handleClickOutside)
     
-    // Fix: Bật "lỗ tai" lắng nghe sự kiện thêm hàng
-    window.addEventListener('cart-updated', updateCartCount) 
+    // Bật "lỗ tai" lắng nghe sự kiện thêm hàng để gọi lại API đếm số
+    window.addEventListener('cart-updated', fetchCartCount) 
 })
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleEsc)
     document.removeEventListener('click', handleClickOutside)
     
-    // Fix: Tắt lắng nghe khi rời trang
-    window.removeEventListener('cart-updated', updateCartCount) 
+    // Tắt lắng nghe khi rời trang
+    window.removeEventListener('cart-updated', fetchCartCount) 
 })
 </script>
 

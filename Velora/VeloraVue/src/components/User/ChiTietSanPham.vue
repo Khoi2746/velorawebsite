@@ -221,33 +221,51 @@ const getCartKey = () => {
 }
 
 // LOGIC THÊM VÀO GIỎ HÀNG
-const addToCart = () => {
-  const key = getCartKey() // Fix: Lấy đúng key
-  let cart = JSON.parse(localStorage.getItem(key) || '[]')
-
-  const existingItemIndex = cart.findIndex(item => item.maSanPham === product.value.maSanPham)
-
-  if (existingItemIndex > -1) {
-    cart[existingItemIndex].soLuong += quantity.value
-  } else {
-    cart.push({
-      maSanPham: product.value.maSanPham,
-      tenSanPham: product.value.tenSanPham,
-      giaBan: product.value.giaBan,
-      anhDaiDien: product.value.anhDaiDien,
-      thuongHieu: product.value.thuongHieu,
-      soLuong: quantity.value
-    })
+// Thay thế hoàn toàn hàm addToCart cũ bằng hàm này
+const addToCart = async () => {
+  // 1. Kiểm tra đăng nhập (Bắt buộc vì bảng GioHang cần MaNguoiDung để lưu DB)
+  const userStr = localStorage.getItem('user');
+  if (!userStr) {
+    alert('Vui lòng đăng nhập để thêm kiệt tác này vào giỏ hàng!');
+    router.push('/dang-nhap');
+    return;
   }
+  
+  const user = JSON.parse(userStr);
 
-  localStorage.setItem(key, JSON.stringify(cart)) // Fix: Lưu đúng key
-  
-  // Fix: Bắn tín hiệu để Header nhảy số liền
-  window.dispatchEvent(new Event('cart-updated')) 
-  
-  alert('Đã thêm ' + product.value.tenSanPham + ' vào giỏ hàng!')
+  // 2. Gom dữ liệu để gửi xuống Backend Java
+  const payload = {
+    maNguoiDung: user.maNguoiDung,
+    maSanPham: product.value.maSanPham,
+    soLuong: quantity.value // Lấy từ biến số lượng khách chọn trên giao diện
+  };
+
+  try {
+    // 3. Gọi API thật đẩy dữ liệu vào SQL Server
+    const response = await fetch('http://localhost:8080/api/gio-hang/them', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      // 4. Bắn sự kiện để Header nhảy số lượng chấm vàng ngay lập tức
+      window.dispatchEvent(new Event('cart-updated'));
+      
+      // 5. Báo thành công bằng alert (Không dùng biến showAddedModal để tránh crash web)
+      alert('Tuyệt vời! Đã thêm ' + product.value.tenSanPham + ' vào giỏ hàng thành công!');
+    } else {
+      // Bắt lỗi nếu Backend từ chối
+      alert('Có lỗi xảy ra khi thêm vào giỏ. Vui lòng thử lại!');
+    }
+  } catch (error) {
+    // In ra lỗi thật trong F12 để dễ soi nếu rớt mạng
+    console.error('Lỗi gọi API:', error); 
+    alert('Không thể kết nối đến máy chủ. Hãy chắc chắn Server Java đang chạy!');
+  }
 }
-
 // LOGIC LIÊN HỆ TƯ VẤN
 const contactVVIP = () => {
   // Chuyển trang và đính kèm tên sản phẩm lên URL

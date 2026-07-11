@@ -7,9 +7,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 @RestController
 @RequestMapping("/api/admin/ma-giam-gia")
-
 public class MaGiamGiaController {
 
     private final MaGiamGiaRepository maGiamGiaRepository;
@@ -53,5 +55,32 @@ public class MaGiamGiaController {
         }
         maGiamGiaRepository.deleteById(id);
         return ResponseEntity.ok("Đã xóa mã giảm giá thành công");
+    }
+
+    // ==============================================================
+    // API MỚI DÀNH CHO KHÁCH HÀNG KIỂM TRA VOUCHER TRONG GIỎ HÀNG
+    // ==============================================================
+    @GetMapping("/kiem-tra")
+    public ResponseEntity<?> kiemTraVoucher(@RequestParam String code) {
+        // Tìm mã giảm giá trong DB (trim khoảng trắng và viết hoa để tránh lỗi gõ sai)
+        Optional<MaGiamGia> optVoucher = maGiamGiaRepository.findByMaCode(code.trim().toUpperCase());
+
+        if (optVoucher.isEmpty()) {
+            return ResponseEntity.badRequest().body("Mã giảm giá không tồn tại!");
+        }
+
+        MaGiamGia voucher = optVoucher.get();
+
+        // 1. Kiểm tra xem đã hết lượt dùng chưa
+        if (voucher.getSoLuotDaDung() >= voucher.getGioiHanSuDung()) {
+            return ResponseEntity.badRequest().body("Rất tiếc! Mã giảm giá này đã hết lượt sử dụng.");
+        }
+
+        // 2. Kiểm tra xem đã hết hạn chưa (Chỉ xét nếu Admin có cài đặt ngày hết hạn)
+        if (voucher.getNgayHetHan() != null && voucher.getNgayHetHan().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("Mã giảm giá này đã hết hạn!");
+        }
+        // Vượt qua hết các ải -> Trả thông tin về cho Frontend tính tiền
+        return ResponseEntity.ok(voucher);
     }
 }

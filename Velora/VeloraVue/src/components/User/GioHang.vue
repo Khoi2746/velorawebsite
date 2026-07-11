@@ -17,16 +17,18 @@
               <div class="col-product">SẢN PHẨM</div>
               <div class="col-price">GIÁ</div>
               <div class="col-qty">SỐ LƯỢNG</div>
-              <div class="col-total">TỔNG CON</div>
+              <div class="col-total">TỔNG TIỀN</div>
             </div>
 
-            <div class="cart-item" v-for="(item, index) in cartItems" :key="index">
+            <div class="cart-item" v-for="(item, index) in cartItems" :key="item.maGioHang || index">
               <div class="col-product item-info">
                 <button class="btn-remove" @click="removeItem(index)">
                   <i class="fas fa-times"></i>
                 </button>
                 <router-link :to="`/san-pham/${item.maSanPham}`" class="item-img-link">
-                  <img :src="item.anhDaiDien && item.anhDaiDien.startsWith('http') ? item.anhDaiDien : '/img/' + item.anhDaiDien" :alt="item.tenSanPham" class="item-img" />
+                  <img
+                    :src="item.anhDaiDien && item.anhDaiDien.startsWith('http') ? item.anhDaiDien : '/img/' + item.anhDaiDien"
+                    :alt="item.tenSanPham" class="item-img" />
                 </router-link>
                 <div class="item-details">
                   <router-link :to="`/san-pham/${item.maSanPham}`" class="item-name">
@@ -37,7 +39,7 @@
               </div>
 
               <div class="col-price item-price">{{ formatPrice(item.giaBan) }}</div>
-              
+
               <div class="col-qty item-qty">
                 <div class="qty-control">
                   <button @click="decreaseQty(index)">-</button>
@@ -50,10 +52,11 @@
             </div>
           </div>
 
+          <!-- BẢNG TỔNG KẾT BÊN PHẢI -->
           <div class="cart-summary-section">
             <div class="summary-box">
               <h2 class="summary-title">TỔNG ĐƠN HÀNG</h2>
-              
+
               <div class="summary-row">
                 <span>Tạm tính</span>
                 <span>{{ formatPrice(subTotal) }}</span>
@@ -62,18 +65,40 @@
                 <span>Giao hàng</span>
                 <span>Miễn phí (VIP)</span>
               </div>
-              
+
+              <!-- PHẦN NHẬP VOUCHER MỚI -->
+              <div class="voucher-section">
+                <div class="voucher-input-group">
+                  <input type="text" v-model="voucherCode" placeholder="Nhập mã giảm giá..."
+                    @input="clearVoucherMessages" />
+                  <button @click="applyVoucher" :disabled="isCheckingVoucher">
+                    {{ isCheckingVoucher ? 'ĐANG XÉT...' : 'ÁP DỤNG' }}
+                  </button>
+                </div>
+                <p v-if="voucherError" class="voucher-msg error"><i class="fas fa-exclamation-circle"></i> {{
+                  voucherError }}</p>
+                <p v-if="voucherSuccess" class="voucher-msg success"><i class="fas fa-check-circle"></i> {{
+                  voucherSuccess }}</p>
+              </div>
+
+              <!-- HIỂN THỊ SỐ TIỀN ĐƯỢC GIẢM -->
+              <div class="summary-row discount-row" v-if="discountAmount > 0">
+                <span>Giảm giá ({{ appliedVoucher.phanTramGiam }}%)</span>
+                <span>- {{ formatPrice(discountAmount) }}</span>
+              </div>
+
               <div class="summary-divider"></div>
-              
+
               <div class="summary-row total-row">
                 <span>TỔNG CỘNG</span>
-                <span class="total-price">{{ formatPrice(subTotal) }}</span>
+                <!-- Tính toán lại TỔNG CỘNG sau khi trừ Voucher -->
+                <span class="total-price">{{ formatPrice(finalTotal) }}</span>
               </div>
 
               <button class="btn-checkout" @click="proceedToCheckout">
                 TIẾN HÀNH THANH TOÁN
               </button>
-              
+
               <router-link to="/dong-ho-co-san" class="continue-shopping">
                 <i class="fas fa-arrow-left"></i> Tiếp tục mua sắm
               </router-link>
@@ -105,97 +130,171 @@ import Footer from '../Footer.vue'
 const router = useRouter()
 const cartItems = ref([])
 
-// ================= HÀM LẤY KHÓA GIỎ HÀNG =================
-const getCartKey = () => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-        try {
-            const user = JSON.parse(userStr);
-            return user.maNguoiDung ? `cart_${user.maNguoiDung}` : 'cart_guest';
-        } catch (e) {
-            return 'cart_guest';
-        }
-    }
-    return 'cart_guest';
-}
-
-// Load giỏ hàng từ localStorage
-const loadCart = () => {
-  const key = getCartKey()
-  const storedCart = localStorage.getItem(key)
-  if (storedCart) {
-    cartItems.value = JSON.parse(storedCart)
-  } else {
-    cartItems.value = []
-  }
-}
-
-// Lưu lại giỏ hàng và kích hoạt event để Header update cái chấm vàng
-const saveCart = () => {
-  const key = getCartKey()
-  localStorage.setItem(key, JSON.stringify(cartItems.value))
-  window.dispatchEvent(new Event('cart-updated')) 
-}
+// Biến quản lý Voucher
+const voucherCode = ref('')
+const appliedVoucher = ref(null)
+const voucherError = ref('')
+const voucherSuccess = ref('')
+const isCheckingVoucher = ref(false)
 
 const formatPrice = (value) => {
   if (!value) return '0 ₫'
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 }
 
-// Tính tổng tiền
+// 1. Tính tổng tiền gốc
 const subTotal = computed(() => {
   return cartItems.value.reduce((total, item) => total + (item.giaBan * item.soLuong), 0)
 })
 
-const increaseQty = (index) => {
-  if (cartItems.value[index].soLuong < 5) { 
-    cartItems.value[index].soLuong++
-    saveCart()
+// 2. Tính số tiền được giảm
+const discountAmount = computed(() => {
+  if (!appliedVoucher.value) return 0
+  return subTotal.value * (appliedVoucher.value.phanTramGiam / 100)
+})
+
+// 3. Tính tiền khách phải trả cuối cùng
+const finalTotal = computed(() => {
+  return subTotal.value - discountAmount.value
+})
+
+// Xóa thông báo khi người dùng gõ phím khác
+const clearVoucherMessages = () => {
+  voucherError.value = ''
+  voucherSuccess.value = ''
+}
+
+// ================= GỌI API KIỂM TRA VOUCHER =================
+const applyVoucher = async () => {
+  if (!voucherCode.value.trim()) {
+    voucherError.value = 'Vui lòng nhập mã giảm giá!'
+    return
   }
+
+  isCheckingVoucher.value = true
+  clearVoucherMessages()
+
+  try {
+    const res = await fetch(`http://localhost:8080/api/admin/ma-giam-gia/kiem-tra?code=${voucherCode.value}`)
+
+    if (res.ok) {
+      const data = await res.json()
+      appliedVoucher.value = data // Lưu lại thông tin voucher
+      voucherSuccess.value = `Áp dụng mã thành công! Bạn được giảm ${data.phanTramGiam}%`
+    } else {
+      // Backend từ chối (hết hạn, hết lượt, sai mã)
+      const errorMsg = await res.text()
+      voucherError.value = errorMsg
+      appliedVoucher.value = null // Xóa trạng thái giảm giá
+    }
+  } catch (error) {
+    voucherError.value = 'Lỗi kết nối đến máy chủ!'
+    appliedVoucher.value = null
+  } finally {
+    isCheckingVoucher.value = false
+  }
+}
+
+// ================= TẢI GIỎ HÀNG TỪ DATABASE =================
+const loadCart = async () => {
+  const userStr = localStorage.getItem('user')
+  if (!userStr) return
+  const user = JSON.parse(userStr)
+
+  try {
+    const res = await fetch(`http://localhost:8080/api/gio-hang/${user.maNguoiDung}`)
+    if (res.ok) {
+      cartItems.value = await res.json()
+      window.dispatchEvent(new Event('cart-updated'))
+    }
+  } catch (error) {
+    console.error('Lỗi lấy giỏ hàng:', error)
+  }
+}
+
+// ================= CẬP NHẬT SỐ LƯỢNG (+ / -) =================
+const updateQuantity = async (index, newQuantity) => {
+  if (newQuantity < 1 || newQuantity > 5) return;
+  const item = cartItems.value[index];
+
+  try {
+    const res = await fetch(`http://localhost:8080/api/gio-hang/${item.maGioHang}/so-luong?soLuong=${newQuantity}`, {
+      method: 'PATCH'
+    })
+
+    if (res.ok) {
+      cartItems.value[index].soLuong = newQuantity
+      window.dispatchEvent(new Event('cart-updated'))
+    }
+  } catch (error) {
+    console.error('Lỗi cập nhật số lượng:', error)
+  }
+}
+
+const increaseQty = (index) => {
+  updateQuantity(index, cartItems.value[index].soLuong + 1);
 }
 
 const decreaseQty = (index) => {
-  if (cartItems.value[index].soLuong > 1) {
-    cartItems.value[index].soLuong--
-    saveCart()
+  updateQuantity(index, cartItems.value[index].soLuong - 1);
+}
+
+// ================= XÓA KHỎI DB =================
+const removeItem = async (index) => {
+  if (!confirm('Bạn có chắc chắn muốn xóa siêu phẩm này khỏi giỏ hàng?')) return;
+  const item = cartItems.value[index];
+
+  try {
+    const res = await fetch(`http://localhost:8080/api/gio-hang/${item.maGioHang}`, {
+      method: 'DELETE'
+    })
+
+    if (res.ok) {
+      cartItems.value.splice(index, 1)
+      window.dispatchEvent(new Event('cart-updated'))
+      // Nếu xóa hết giỏ hàng thì gỡ voucher luôn
+      if (cartItems.value.length === 0) {
+        appliedVoucher.value = null
+        voucherCode.value = ''
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi xóa sản phẩm:', error)
   }
 }
 
-const removeItem = (index) => {
-  if(confirm('Bạn có chắc chắn muốn xóa siêu phẩm này khỏi giỏ hàng?')) {
-    cartItems.value.splice(index, 1)
-    saveCart()
-  }
-}
-
+// ================= THANH TOÁN =================
 const proceedToCheckout = () => {
   const user = localStorage.getItem('user')
   if (!user) {
-    alert('Vui lòng đăng nhập để tiến hành thanh toán cho kiệt tác này!')
+    alert('Vui lòng đăng nhập để tiến hành thanh toán!')
     router.push('/dang-nhap')
     return
   }
+
+  // Mẹo: Ku em có thể lưu mã voucher vào localStorage để trang Thanh Toán biết mà gọi
+  if (appliedVoucher.value) {
+    localStorage.setItem('activeVoucher', JSON.stringify(appliedVoucher.value))
+  } else {
+    localStorage.removeItem('activeVoucher')
+  }
+
   router.push('/thanh-toan')
 }
 
-// ================= VÒNG ĐỜI VUE (ĐÃ CẬP NHẬT BẢO MẬT) =================
 onMounted(() => {
-  // 1. Kiểm tra xem có user đăng nhập chưa
   const user = localStorage.getItem('user')
-  
   if (!user) {
-    // 2. Nếu chưa đăng nhập -> Thông báo và đá văng về trang dang-nhap lập tức
-    alert('Vui lòng đăng nhập để xem giỏ hàng của bạn!')
+    alert('Vui lòng đăng nhập để xem giỏ hàng!')
     router.push('/dang-nhap')
     return
   }
-
-  // 3. Nếu đã đăng nhập hợp lệ -> Cho phép load dữ liệu giỏ hàng bình thường
   loadCart()
 })
 </script>
 
 <style scoped>
+/* =========== CSS GIỮ NGUYÊN CŨ CỦA EM (Chỉ thêm phần Voucher) =========== */
 .cart-page {
   width: 100%;
   min-height: 100vh;
@@ -250,7 +349,6 @@ onMounted(() => {
   margin: 0 15px;
 }
 
-/* ================= LAYOUT 2 CỘT ================= */
 .cart-layout {
   display: flex;
   gap: 50px;
@@ -267,7 +365,6 @@ onMounted(() => {
   top: 100px;
 }
 
-/* ================= DANH SÁCH SẢN PHẨM ================= */
 .cart-header {
   display: flex;
   padding-bottom: 15px;
@@ -278,10 +375,24 @@ onMounted(() => {
   letter-spacing: 1.5px;
 }
 
-.col-product { flex: 3; }
-.col-price { flex: 1; text-align: center; }
-.col-qty { flex: 1; text-align: center; }
-.col-total { flex: 1; text-align: right; }
+.col-product {
+  flex: 3;
+}
+
+.col-price {
+  flex: 1;
+  text-align: center;
+}
+
+.col-qty {
+  flex: 1;
+  text-align: center;
+}
+
+.col-total {
+  flex: 1;
+  text-align: right;
+}
 
 .cart-item {
   display: flex;
@@ -339,7 +450,8 @@ onMounted(() => {
   letter-spacing: 1px;
 }
 
-.item-price, .item-total {
+.item-price,
+.item-total {
   font-size: 14px;
   color: #111111;
   font-weight: 500;
@@ -382,7 +494,6 @@ onMounted(() => {
   outline: none;
 }
 
-/* ================= TỔNG KẾT ĐƠN HÀNG ================= */
 .summary-box {
   background-color: #fcfcfc;
   border: 1px solid #eeeeee;
@@ -405,6 +516,69 @@ onMounted(() => {
   font-size: 13px;
   color: #555555;
   margin-bottom: 15px;
+}
+
+/* CSS MỚI CHO VOUCHER */
+.voucher-section {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.voucher-input-group {
+  display: flex;
+  border: 1px solid #e0e0e0;
+  height: 40px;
+  overflow: hidden;
+}
+
+.voucher-input-group input {
+  flex: 1;
+  border: none;
+  padding: 0 15px;
+  font-size: 13px;
+  outline: none;
+  text-transform: uppercase;
+}
+
+.voucher-input-group button {
+  background-color: #f5f5f5;
+  border: none;
+  border-left: 1px solid #e0e0e0;
+  padding: 0 15px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #24201D;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.voucher-input-group button:hover {
+  background-color: #d1aa68;
+  color: #fff;
+}
+
+.voucher-input-group button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voucher-msg {
+  font-size: 12px;
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+.voucher-msg.error {
+  color: #ff4444;
+}
+
+.voucher-msg.success {
+  color: #2b7a0b;
+}
+
+.discount-row {
+  color: #2b7a0b;
+  font-weight: 500;
 }
 
 .summary-divider {
@@ -457,7 +631,6 @@ onMounted(() => {
   color: #d1aa68;
 }
 
-/* ================= GIỎ HÀNG TRỐNG ================= */
 .empty-cart {
   text-align: center;
   padding: 80px 0;
@@ -493,11 +666,11 @@ onMounted(() => {
   color: #ffffff;
 }
 
-/* ================= RESPONSIVE ================= */
 @media (max-width: 992px) {
   .cart-layout {
     flex-direction: column;
   }
+
   .cart-summary-section {
     width: 100%;
   }
@@ -505,17 +678,41 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .cart-header {
-    display: none; /* Ẩn header trên mobile */
+    display: none;
   }
+
   .cart-item {
     flex-wrap: wrap;
     position: relative;
     padding-top: 40px;
   }
-  .col-product { flex: 100%; margin-bottom: 15px; }
-  .col-price { flex: 50%; text-align: left; }
-  .col-qty { flex: 50%; text-align: right; }
-  .col-total { flex: 100%; text-align: right; margin-top: 15px; font-weight: bold; }
-  .btn-remove { position: absolute; top: 10px; right: 0; }
+
+  .col-product {
+    flex: 100%;
+    margin-bottom: 15px;
+  }
+
+  .col-price {
+    flex: 50%;
+    text-align: left;
+  }
+
+  .col-qty {
+    flex: 50%;
+    text-align: right;
+  }
+
+  .col-total {
+    flex: 100%;
+    text-align: right;
+    margin-top: 15px;
+    font-weight: bold;
+  }
+
+  .btn-remove {
+    position: absolute;
+    top: 10px;
+    right: 0;
+  }
 }
 </style>
