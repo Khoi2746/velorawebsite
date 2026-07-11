@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -129,6 +130,34 @@ public class NguoiDungController {
                 "Tài khoản của bạn trên Velora Clock hiện tại đã chuyển sang trạng thái: " + statusText);
         } catch (Exception e) { System.err.println("Mail lỗi: " + e.getMessage()); }
 
+        return ResponseEntity.ok(updatedUser);
+    }
+    @PutMapping("/cap-nhat/{id}")
+    public ResponseEntity<?> capNhatThongTin(@PathVariable Integer id, @RequestBody NguoiDung requestData) {
+        Optional<NguoiDung> optNguoiDung = nguoiDungRepository.findById(id);
+        
+        if (optNguoiDung.isEmpty()) {
+            return ResponseEntity.badRequest().body("Không tìm thấy người dùng!");
+        }
+
+        NguoiDung nguoiDung = optNguoiDung.get();
+        
+        // Chỉ cập nhật các thông tin được phép (Không cho đổi Email hoặc Role ở đây)
+        if (requestData.getHoTen() != null) {
+            nguoiDung.setHoTen(requestData.getHoTen());
+        }
+        if (requestData.getSoDienThoai() != null) {
+            nguoiDung.setSoDienThoai(requestData.getSoDienThoai());
+        }
+        if (requestData.getDiaChi() != null) {
+            nguoiDung.setDiaChi(requestData.getDiaChi());
+        }
+        
+        // Cập nhật ngày giờ (nếu có trường Ngày Cập Nhật)
+        // nguoiDung.setNgayCapNhat(new java.util.Date()); 
+
+        NguoiDung updatedUser = nguoiDungRepository.save(nguoiDung);
+        
         return ResponseEntity.ok(updatedUser);
     }
 }

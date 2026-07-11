@@ -5,7 +5,7 @@
     <main class="order-content">
       <div class="container">
         <div class="title-wrapper">
-          <h1 class="page-title">ĐƠN HÀNG CỦA TÔI</h1>
+          <h1 class="page-title">ĐƠN HÀNG CỦA BẠN</h1>
           <div class="title-divider">
             <span class="diamond"></span>
           </div>

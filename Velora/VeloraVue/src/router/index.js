@@ -10,6 +10,7 @@ import ChiTietSanPham from '../components/User/ChiTietSanPham.vue'
 import GioHang from '../components/User/GioHang.vue'
 import DonHang from '../components/User/DonHang.vue'
 import TuVan from '../components/User/TuVan.vue'
+import ThongTinNguoiDung from '../components/User/ThongTinNguoiDung.vue'
 
 // Các file giao diện Quản trị (Admin)
 import AdminDashboard from '../components/Admin/AdminDashboard.vue'
@@ -41,6 +42,11 @@ const router = createRouter({
       path: '/dang-ky',
       name: 'DangKy',
       component: DangKy
+    },
+    {
+      path: '/thong-tin-ca-nhan',
+      name: 'ThongTinNguoiDung',
+      component: ThongTinNguoiDung
     },
     {
       path: '/thuong-hieu',
