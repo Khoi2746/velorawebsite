@@ -1,0 +1,33 @@
+/* Đã xóa backdrop-filter: blur() để nền không bị ám sương mù trắng */
+.toast-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.toast-box {
+  background: #1a1714;
+  border: 1px solid #332d27;
+  padding: 30px 40px;
+  border-radius: 20px;
+  text-align: center;
+  width: 320px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+}
+
+canvas {
+  display: block;
+  margin: 0 auto;
+}
+
+.message {
+  font-family: 'Times New Roman', serif;
+  font-size: 17px;
+  color: #d1aa68;
+  margin-top: -10px;
+  letter-spacing: 1px;
+}

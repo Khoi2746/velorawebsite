@@ -1,0 +1,389 @@
+/* ================= TỔNG THỂ ================= */
+.velora-header {
+    width: 100%;
+    font-family: 'Arial', sans-serif;
+}
+.header-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    height: 100px;
+}
+
+/* ================= TẦNG 1 (NỀN TỐI) ================= */
+.header-top {
+    background-color: #24201D;
+    color: #ffffff;
+}
+.top-left { flex: 1; }
+.btn-menu {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+.btn-menu:hover { color: #d1aa68; }
+.btn-menu i { font-size: 16px; transition: transform 0.3s ease; }
+.btn-menu:hover i { transform: rotate(90deg); }
+.btn-menu span { font-weight: 500; }
+
+.top-center {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.logo-link { text-decoration: none; display: inline-block; }
+.logo-img {
+    height: 50px;
+    max-height: 50px;
+    width: auto;
+    max-width: 280px;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+.logo-img:hover { transform: scale(1.05); }
+
+/* PHẢI */
+.top-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 10px;
+}
+.top-right-top {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 20px;
+}
+.top-right-bottom {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* ================= USER / AUTH ================= */
+.user-greeting {
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    position: relative;
+    padding: 8px 15px;
+    border: 1px solid #e0e0e0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+.user-greeting:hover {
+    border-color: #d1aa68;
+    color: #d1aa68;
+}
+.user-greeting i { font-size: 10px; transition: transform 0.3s ease; }
+.user-greeting i.open { transform: rotate(180deg); }
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    width: 200px;
+    background-color: #ffffff;
+    border: 1px solid #eeeeee;
+    border-radius: 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0;
+}
+.dropdown-item {
+    text-decoration: none;
+    color: #111111;
+    padding: 12px 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+    text-align: left;
+    cursor: pointer;
+}
+.dropdown-item:hover {
+    background-color: #f9f9f9;
+    color: #d1aa68;
+    border-left: 3px solid #d1aa68;
+    padding-left: 25px;
+}
+.btn-logout-menu { color: #ff5555; }
+.btn-logout-menu:hover { color: #ff5555; border-left-color: #ff5555; }
+
+.fade-slide-enter-active, .fade-slide-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
+.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateY(-10px); }
+
+.auth-links { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.btn-register, .btn-login {
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 7px 16px;
+    border-radius: 6px;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+}
+.btn-register { color: #d1aa68; border: 1px solid #d1aa68; background-color: transparent; }
+.btn-register:hover { background-color: rgba(209, 170, 104, 0.1); }
+.btn-login { color: #111111; background-color: #d1aa68; border: 1px solid #d1aa68; }
+.btn-login:hover { background-color: #b8955b; border-color: #b8955b; }
+
+/* ================= TÌM KIẾM, ĐƠN HÀNG, GIỎ HÀNG ================= */
+.search-trigger {
+    background-color: transparent !important;
+    border: 1px solid #444444 !important;
+    height: 42px !important; 
+    padding: 0 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important; 
+    cursor: pointer !important;
+    border-radius: 0 !important; 
+    transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
+}
+.search-trigger .search-icon {
+    color: #ffffff !important; 
+    font-size: 14px !important;
+    margin: 0 !important; 
+    transition: color 0.6s ease !important;
+}
+.search-trigger span {
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+    white-space: nowrap !important; 
+    transition: color 0.6s ease !important;
+}
+.search-trigger:hover {
+    border-color: #d1aa68 !important;
+    background-color: rgba(209, 170, 104, 0.05) !important;
+    box-shadow: 0 5px 15px rgba(209, 170, 104, 0.08) !important;
+}
+.search-trigger:hover .search-icon, .search-trigger:hover span { color: #d1aa68 !important; }
+.search-trigger:active {
+    transform: scale(0.96) !important;
+    background-color: rgba(209, 170, 104, 0.15) !important;
+    transition: all 0.1s ease !important; 
+}
+
+.action-icons { display: flex; align-items: center; gap: 15px; }
+.action-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px;
+    padding: 0 18px;
+    gap: 10px;
+    border: 1px solid #444444;
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+.action-box i { font-size: 14px; }
+.action-box:hover {
+    border-color: #d1aa68;
+    color: #d1aa68;
+    background-color: rgba(209, 170, 104, 0.05);
+}
+
+.cart-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #d1aa68;
+    color: #111111;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    border: 2px solid #24201D;
+    transition: transform 0.3s ease;
+}
+.action-box:hover .cart-badge { transform: scale(1.1); }
+
+/* ================= TẦNG 2 (NỀN TRẮNG) ================= */
+.header-bottom {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+}
+.nav-menu {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    height: 50px;
+}
+.nav-item {
+    text-decoration: none;
+    color: #111111;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 50px;
+    text-transform: uppercase;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+.nav-item:hover, .nav-item.active { color: #d1aa68; border-bottom: 3px solid #d1aa68; }
+
+/* ================= MENU OVERLAY (MENU TRƯỢT) ================= */
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: -300px;
+    width: 300px;
+    height: 100%;
+    background: #1a1714;
+    transition: 0.5s cubic-bezier(0.77, 0, 0.175, 1);
+    z-index: 9999;
+    padding: 40px;
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
+}
+.menu-overlay.active { left: 0; }
+.close-menu {
+    background: none;
+    border: none;
+    color: #d1aa68;
+    font-size: 24px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+.overlay-nav { display: flex; flex-direction: column; gap: 20px; }
+.overlay-nav a {
+    color: #fff;
+    text-decoration: none !important;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    display: inline-block;
+    transform-origin: left center;
+}
+.overlay-nav a:hover { color: #d1aa68; transform: translateX(10px) scale(0.9); }
+
+/* ================= POPUP TÌM KIẾM (FADE LUXURY) ================= */
+.nike-search-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 10000;
+}
+.nike-search-panel {
+    background-color: #ffffff;
+    width: 100%;
+    padding: 30px 40px 50px 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+.search-header-layout {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto;
+    gap: 40px;
+}
+.search-logo-area { flex: 1; padding-top: 5px; }
+.logo-img-dark { height: 35px; filter: brightness(0); }
+
+.search-center-area { flex: 3; max-width: 700px; }
+.search-input-wrapper {
+    position: relative;
+    background-color: #f5f5f5;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    padding: 12px 25px;
+    transition: background-color 0.3s ease;
+}
+.search-input-wrapper:hover { background-color: #eeeeee; }
+.search-icon-inside { font-size: 16px; color: #111111; margin-right: 15px; }
+.search-input-wrapper input {
+    border: none;
+    background: transparent;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 500;
+    color: #111111;
+    outline: none;
+}
+
+.popular-searches { margin-top: 35px; }
+.popular-searches h4 { font-size: 13px; color: #777777; font-weight: 500; margin-bottom: 15px; }
+.search-tags { display: flex; flex-wrap: wrap; gap: 12px; }
+.tag {
+    background-color: #f5f5f5;
+    color: #111111;
+    padding: 10px 22px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.tag:hover { background-color: #e5e5e5; }
+
+.search-cancel-area { flex: 1; text-align: right; padding-top: 15px; }
+.btn-cancel {
+    background: none;
+    border: none;
+    color: #111111;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-cancel:hover { color: #777777; }
+
+/* Hiệu ứng Fade Mượt Mà */
+.fade-luxury-enter-active, .fade-luxury-leave-active { transition: opacity 0.7s ease, backdrop-filter 0.7s ease; }
+.fade-luxury-enter-active .nike-search-panel, .fade-luxury-leave-active .nike-search-panel { transition: all 0.7s cubic-bezier(0.25, 1, 0.2, 1); }
+.fade-luxury-enter-from, .fade-luxury-leave-to { opacity: 0; }
+.fade-luxury-enter-from .nike-search-panel, .fade-luxury-leave-to .nike-search-panel {
+    transform: translateY(-20px) scale(0.97);
+    opacity: 0;
+}
