@@ -26,20 +26,18 @@
                   <i class="fas fa-times"></i>
                 </button>
                 <router-link :to="`/san-pham/${item.maSanPham}`" class="item-img-link">
-                  <img
-                    :src="item.anhDaiDien && item.anhDaiDien.startsWith('http') ? item.anhDaiDien : '/img/' + item.anhDaiDien"
-                    :alt="item.tenSanPham" class="item-img" />
+                  <img :src="item.anhDaiDien && item.anhDaiDien.startsWith('http') ? item.anhDaiDien : '/img/' + item.anhDaiDien" :alt="item.tenSanPham" class="item-img" />
                 </router-link>
                 <div class="item-details">
                   <router-link :to="`/san-pham/${item.maSanPham}`" class="item-name">
                     {{ item.tenSanPham }}
                   </router-link>
-                  <p class="item-brand">{{ item.thuongHieu ? item.thuongHieu.tenThuongHieu : 'Velora' }}</p>
+                  <p class="item-brand">{{ item.thuongHieu ? item.thuongHieu.tenThuongHieu : 'VELORA' }}</p>
                 </div>
               </div>
 
               <div class="col-price item-price">{{ formatPrice(item.giaBan) }}</div>
-
+              
               <div class="col-qty item-qty">
                 <div class="qty-control">
                   <button @click="decreaseQty(index)">-</button>
@@ -52,11 +50,10 @@
             </div>
           </div>
 
-          <!-- BẢNG TỔNG KẾT BÊN PHẢI -->
           <div class="cart-summary-section">
             <div class="summary-box">
               <h2 class="summary-title">TỔNG ĐƠN HÀNG</h2>
-
+              
               <div class="summary-row">
                 <span>Tạm tính</span>
                 <span>{{ formatPrice(subTotal) }}</span>
@@ -66,39 +63,34 @@
                 <span>Miễn phí (VIP)</span>
               </div>
 
-              <!-- PHẦN NHẬP VOUCHER MỚI -->
+              <!-- PHẦN NHẬP VOUCHER -->
               <div class="voucher-section">
                 <div class="voucher-input-group">
-                  <input type="text" v-model="voucherCode" placeholder="Nhập mã giảm giá..."
-                    @input="clearVoucherMessages" />
+                  <input type="text" v-model="voucherCode" placeholder="Nhập mã giảm giá..." @input="clearVoucherMessages" />
                   <button @click="applyVoucher" :disabled="isCheckingVoucher">
                     {{ isCheckingVoucher ? 'ĐANG XÉT...' : 'ÁP DỤNG' }}
                   </button>
                 </div>
-                <p v-if="voucherError" class="voucher-msg error"><i class="fas fa-exclamation-circle"></i> {{
-                  voucherError }}</p>
-                <p v-if="voucherSuccess" class="voucher-msg success"><i class="fas fa-check-circle"></i> {{
-                  voucherSuccess }}</p>
+                <p v-if="voucherError" class="voucher-msg error"><i class="fas fa-exclamation-circle"></i> {{ voucherError }}</p>
+                <p v-if="voucherSuccess" class="voucher-msg success"><i class="fas fa-check-circle"></i> {{ voucherSuccess }}</p>
               </div>
 
-              <!-- HIỂN THỊ SỐ TIỀN ĐƯỢC GIẢM -->
               <div class="summary-row discount-row" v-if="discountAmount > 0">
                 <span>Giảm giá ({{ appliedVoucher.phanTramGiam }}%)</span>
                 <span>- {{ formatPrice(discountAmount) }}</span>
               </div>
-
+              
               <div class="summary-divider"></div>
-
+              
               <div class="summary-row total-row">
                 <span>TỔNG CỘNG</span>
-                <!-- Tính toán lại TỔNG CỘNG sau khi trừ Voucher -->
                 <span class="total-price">{{ formatPrice(finalTotal) }}</span>
               </div>
 
               <button class="btn-checkout" @click="proceedToCheckout">
                 TIẾN HÀNH THANH TOÁN
               </button>
-
+              
               <router-link to="/dong-ho-co-san" class="continue-shopping">
                 <i class="fas fa-arrow-left"></i> Tiếp tục mua sắm
               </router-link>
@@ -118,6 +110,12 @@
     </main>
 
     <Footer />
+
+    <!-- ĐÂY LÀ THẺ HTML HIỂN THỊ POPUP MÀ EM BỊ THIẾU -->
+    <div class="stock-toast" :class="{ 'show': showToast }">
+      <i class="fas fa-exclamation-triangle"></i> {{ toastMessage }}
+    </div>
+
   </div>
 </template>
 
@@ -130,7 +128,7 @@ import Footer from '../Footer.vue'
 const router = useRouter()
 const cartItems = ref([])
 
-// Biến quản lý Voucher
+// ================= BIẾN QUẢN LÝ VOUCHER =================
 const voucherCode = ref('')
 const appliedVoucher = ref(null)
 const voucherError = ref('')
@@ -142,50 +140,42 @@ const formatPrice = (value) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 }
 
-// 1. Tính tổng tiền gốc
+// ================= TÍNH TOÁN TIỀN BẠC =================
 const subTotal = computed(() => {
   return cartItems.value.reduce((total, item) => total + (item.giaBan * item.soLuong), 0)
 })
 
-// 2. Tính số tiền được giảm
 const discountAmount = computed(() => {
   if (!appliedVoucher.value) return 0
   return subTotal.value * (appliedVoucher.value.phanTramGiam / 100)
 })
 
-// 3. Tính tiền khách phải trả cuối cùng
 const finalTotal = computed(() => {
   return subTotal.value - discountAmount.value
 })
 
-// Xóa thông báo khi người dùng gõ phím khác
 const clearVoucherMessages = () => {
   voucherError.value = ''
   voucherSuccess.value = ''
 }
 
-// ================= GỌI API KIỂM TRA VOUCHER =================
 const applyVoucher = async () => {
   if (!voucherCode.value.trim()) {
     voucherError.value = 'Vui lòng nhập mã giảm giá!'
     return
   }
-
   isCheckingVoucher.value = true
   clearVoucherMessages()
-
   try {
     const res = await fetch(`http://localhost:8080/api/admin/ma-giam-gia/kiem-tra?code=${voucherCode.value}`)
-
     if (res.ok) {
       const data = await res.json()
-      appliedVoucher.value = data // Lưu lại thông tin voucher
+      appliedVoucher.value = data 
       voucherSuccess.value = `Áp dụng mã thành công! Bạn được giảm ${data.phanTramGiam}%`
     } else {
-      // Backend từ chối (hết hạn, hết lượt, sai mã)
       const errorMsg = await res.text()
       voucherError.value = errorMsg
-      appliedVoucher.value = null // Xóa trạng thái giảm giá
+      appliedVoucher.value = null 
     }
   } catch (error) {
     voucherError.value = 'Lỗi kết nối đến máy chủ!'
@@ -195,12 +185,26 @@ const applyVoucher = async () => {
   }
 }
 
+// ================= LOGIC POPUP THÔNG BÁO TỒN KHO =================
+const showToast = ref(false)
+const toastMessage = ref('')
+let toastTimer = null
+
+const triggerToast = (msg) => {
+  toastMessage.value = msg
+  showToast.value = true
+  if (toastTimer) clearTimeout(toastTimer)
+  
+  toastTimer = setTimeout(() => {
+    showToast.value = false
+  }, 1500)
+}
+
 // ================= TẢI GIỎ HÀNG TỪ DATABASE =================
 const loadCart = async () => {
   const userStr = localStorage.getItem('user')
   if (!userStr) return
   const user = JSON.parse(userStr)
-
   try {
     const res = await fetch(`http://localhost:8080/api/gio-hang/${user.maNguoiDung}`)
     if (res.ok) {
@@ -212,16 +216,26 @@ const loadCart = async () => {
   }
 }
 
-// ================= CẬP NHẬT SỐ LƯỢNG (+ / -) =================
+// ================= CẬP NHẬT SỐ LƯỢNG (+ / -) CÓ CHECK TỒN KHO =================
 const updateQuantity = async (index, newQuantity) => {
-  if (newQuantity < 1 || newQuantity > 5) return;
   const item = cartItems.value[index];
+  
+  // Đảm bảo maxStock không bị undefined, nếu API Java chưa trả về thì tạm set là 100
+  const maxStock = item.soLuongTonKho !== undefined ? item.soLuongTonKho : 100; 
+  
+  if (newQuantity < 1) return;
 
+  // CHẶN NẾU VƯỢT QUÁ TỒN KHO VÀ HIỆN POPUP HTML
+  if (newQuantity > maxStock) {
+    triggerToast(`Số lượng sản phẩm đã đạt giới hạn tối đa trong kho!`);
+    return;
+  }
+  
   try {
     const res = await fetch(`http://localhost:8080/api/gio-hang/${item.maGioHang}/so-luong?soLuong=${newQuantity}`, {
       method: 'PATCH'
     })
-
+    
     if (res.ok) {
       cartItems.value[index].soLuong = newQuantity
       window.dispatchEvent(new Event('cart-updated'))
@@ -243,16 +257,13 @@ const decreaseQty = (index) => {
 const removeItem = async (index) => {
   if (!confirm('Bạn có chắc chắn muốn xóa siêu phẩm này khỏi giỏ hàng?')) return;
   const item = cartItems.value[index];
-
   try {
     const res = await fetch(`http://localhost:8080/api/gio-hang/${item.maGioHang}`, {
       method: 'DELETE'
     })
-
     if (res.ok) {
       cartItems.value.splice(index, 1)
       window.dispatchEvent(new Event('cart-updated'))
-      // Nếu xóa hết giỏ hàng thì gỡ voucher luôn
       if (cartItems.value.length === 0) {
         appliedVoucher.value = null
         voucherCode.value = ''
@@ -271,14 +282,11 @@ const proceedToCheckout = () => {
     router.push('/dang-nhap')
     return
   }
-
-  // Mẹo: Ku em có thể lưu mã voucher vào localStorage để trang Thanh Toán biết mà gọi
   if (appliedVoucher.value) {
     localStorage.setItem('activeVoucher', JSON.stringify(appliedVoucher.value))
   } else {
     localStorage.removeItem('activeVoucher')
   }
-
   router.push('/thanh-toan')
 }
 

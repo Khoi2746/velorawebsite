@@ -1,4 +1,3 @@
-/* =========== CSS GIỮ NGUYÊN CŨ CỦA EM (Chỉ thêm phần Voucher) =========== */
 .cart-page {
   width: 100%;
   min-height: 100vh;
@@ -222,7 +221,6 @@
   margin-bottom: 15px;
 }
 
-/* CSS MỚI CHO VOUCHER */
 .voucher-section {
   margin-top: 20px;
   margin-bottom: 20px;
@@ -368,6 +366,39 @@
 .btn-continue:hover {
   background-color: #24201D;
   color: #ffffff;
+}
+
+/* ================= CSS POPUP TỒN KHO ĐÃ NÂNG CẤP ================= */
+.stock-toast {
+  position: fixed;
+  top: 90px;
+  right: 20px;
+  /* Vị trí chốt khi hiển thị */
+  transform: translateX(150%);
+  /* Bắt buộc đẩy lút cán ra ngoài mép phải 150% */
+  background-color: #24201D;
+  color: #ffffff;
+  padding: 15px 25px;
+  font-size: 13px;
+  font-weight: 500;
+  border-left: 4px solid #d1aa68;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Chuyển hiệu ứng từ right sang transform để mượt hơn */
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.stock-toast i {
+  color: #d1aa68;
+  font-size: 16px;
+}
+
+.stock-toast.show {
+  transform: translateX(0);
+  /* Kéo tuột nó trở lại màn hình */
 }
 
 @media (max-width: 992px) {

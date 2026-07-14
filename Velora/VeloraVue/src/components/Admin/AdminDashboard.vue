@@ -30,7 +30,7 @@
                 </router-link>
             </section>
 
-            <div class="activity-box">
+            <div class="activity-box">                        
                 <h3>Recent Activity</h3>
                 <ul v-if="activities.length > 0">
                     <li v-for="(msg, i) in activities" :key="i">

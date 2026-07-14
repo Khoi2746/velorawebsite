@@ -16,7 +16,7 @@ public interface GioHangRepository extends JpaRepository<GioHang, Integer> {
     // Lấy toàn bộ giỏ hàng của 1 user
     List<GioHang> findByMaNguoiDung(Integer maNguoiDung);
 
-    @Query("SELECT new map(g.maGioHang as maGioHang, g.soLuong as soLuong, s.maSanPham as maSanPham, s.tenSanPham as tenSanPham, s.giaBan as giaBan, s.anhDaiDien as anhDaiDien) " +
+    @Query("SELECT new map(g.maGioHang as maGioHang, g.soLuong as soLuong, s.maSanPham as maSanPham, s.tenSanPham as tenSanPham, s.giaBan as giaBan, s.anhDaiDien as anhDaiDien, s.soLuongTonKho as soLuongTonKho) " +
            "FROM GioHang g, SanPham s " +
            "WHERE g.maSanPham = s.maSanPham AND g.maNguoiDung = :maNguoiDung")
     List<Map<String, Object>> layChiTietGioHang(@Param("maNguoiDung") Integer maNguoiDung);
