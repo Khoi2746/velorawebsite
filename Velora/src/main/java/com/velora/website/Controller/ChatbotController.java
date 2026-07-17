@@ -36,7 +36,7 @@ public class ChatbotController {
     // 2. CÔNG TẮC: Ghi nhớ xem phòng chat nào đang được Người Thật (Chuyên viên) tiếp quản
     private final Map<String, Boolean> humanModeMap = new HashMap<>();
 
-    // API KEY CỦA KU EM
+    // API KEY
     private final String GEMINI_API_KEY = "AQ.Ab8RN6IG7DBXCmEAymGsocuMJJJNwDqZdhVGn5vHRDQhBJolDg"; 
     private final String GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + GEMINI_API_KEY;
 
