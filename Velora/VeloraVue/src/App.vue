@@ -2,10 +2,11 @@
   <div id="app">
     <router-view />
   </div>
+  <ChatbotAI />
 </template>
 
 <script setup>
-// Không import Header hay TrangChu gì ở đây hết! Để trống trơn luôn.
+import ChatbotAI from './components/AI/ChatBotAI.vue'
 </script>
 
 <style>

@@ -80,7 +80,7 @@
               </router-link>
 
               <div class="product-price">
-                {{ product.giaBan > 400000000 ? 'Giá chờ hàng' : formatPrice(product.giaBan) }}
+                {{ product.giaBan > 100000000 ? 'Liên hệ để biết thêm chi tiết' : formatPrice(product.giaBan) }}
               </div>
             </div>
 

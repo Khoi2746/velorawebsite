@@ -46,7 +46,7 @@
             <h1 class="product-title">{{ product.tenSanPham }}</h1>
 
             <div class="product-price">
-              {{ product.giaBan > 400000000 ? 'Giá chờ hàng' : formatPrice(product.giaBan) }}
+              {{ product.giaBan > 100000000 ? 'Liên hệ để biết thêm chi tiết' : formatPrice(product.giaBan) }}
             </div>
 
             <div class="title-divider"></div>
@@ -79,7 +79,7 @@
             </ul>
 
             <div class="action-buttons">
-              <button v-if="product.giaBan && product.giaBan <= 400000000" class="btn-primary" @click="addToCart">
+              <button v-if="product.giaBan && product.giaBan <= 100000000" class="btn-primary" @click="addToCart">
                 THÊM VÀO GIỎ HÀNG
               </button>
 

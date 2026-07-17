@@ -5,7 +5,7 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   server: {
-    port: 5174, // Giữ nguyên port hiện tại của bạn
+    port: 5174, 
     proxy: {
       '/api': {
         target: 'http://localhost:8080', // Trỏ tới Backend Spring Boot
@@ -13,5 +13,9 @@ export default defineConfig({
         secure: false,
       }
     }
-  }
+  },
+  // Đây là đoạn fix lỗi WebSocket cho ku em
+  define: {
+    global: 'window', 
+  },
 })

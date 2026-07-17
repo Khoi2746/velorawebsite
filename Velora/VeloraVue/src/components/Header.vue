@@ -66,6 +66,7 @@
                 <router-link to="/" class="nav-item" active-class="active" exact>TRANG CHỦ</router-link>
                 <router-link to="/thuong-hieu" class="nav-item" active-class="active">THƯƠNG HIỆU</router-link>
                 <router-link to="/dong-ho-co-san" class="nav-item" active-class="active">ĐỒNG HỒ CÓ SẴN</router-link>
+                <router-link to="/bao-hanh" class="nav-item" active-class="active">BẢO HÀNH</router-link>
             </nav>
         </div>
 
@@ -79,28 +80,28 @@
                 <router-link to="/thuong-hieu" @click="isMenuOpen = false">THƯƠNG HIỆU</router-link>
                 <router-link to="/dong-ho-co-san" @click="isMenuOpen = false">SẢN PHẨM</router-link>
 
-                <router-link v-if="isAdmin" to="/admin/dashboard" @click="isMenuOpen = false"
+                <!-- Đã cập nhật: hiển thị Staff hoặc Admin tùy role -->
+                <router-link v-if="isAdmin || isStaff" to="/admin/dashboard" @click="isMenuOpen = false"
                     style="color: #d1aa68; font-weight: bold; border-top: 1px solid #333; padding-top: 20px; margin-top: 10px;">
-                    ADMIN DASHBOARD
+                    {{ isStaff ? 'STAFF DASHBOARD' : 'ADMIN DASHBOARD' }}
                 </router-link>
             </nav>
         </div>
     </header>
 
     <transition name="fade-luxury">
+        <!-- Phần này giữ nguyên -->
         <div v-if="isSearchOpen" class="nike-search-overlay" @click.self="closeSearch">
             <div class="nike-search-panel">
                 <div class="search-header-layout">
                     <div class="search-logo-area">
                         <img src="../img/VeloraIcon.png" alt="Logo" class="logo-img-dark" />
                     </div>
-
                     <div class="search-center-area">
                         <div class="search-input-wrapper">
                             <i class="fas fa-search search-icon-inside"></i>
                             <input type="text" placeholder="Search" ref="searchInputRef" @keyup.enter="handleSearch" />
                         </div>
-
                         <div class="popular-searches">
                             <h4>Đề Xuất Sản Phẩm</h4>
                             <div class="search-tags">
@@ -111,7 +112,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="search-cancel-area">
                         <button class="btn-cancel" @click="closeSearch">Cancel</button>
                     </div>
@@ -126,11 +126,11 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import ThemeToggle from './ThemeToggle.vue'
 
-// ================= KHAI BÁO BIẾN =================
 const router = useRouter()
 const isLoggedIn = ref(false)
 const userName = ref('')
 const isAdmin = ref(false)
+const isStaff = ref(false) // Thêm biến isStaff
 
 const isMenuOpen = ref(false)
 const showDropdown = ref(false)
@@ -141,20 +141,17 @@ const searchInputRef = ref(null)
 
 const cartCount = ref(0)
 
-// ================= LOGIC GIỎ HÀNG (GỌI API REAL-TIME) =================
 const fetchCartCount = async () => {
     const userStr = localStorage.getItem('user');
     if (!userStr) {
         cartCount.value = 0;
         return;
     }
-
     try {
         const user = JSON.parse(userStr);
         const res = await fetch(`http://localhost:8080/api/gio-hang/${user.maNguoiDung}`);
         if (res.ok) {
             const cartItems = await res.json();
-            // Đếm số dòng dữ liệu trả về từ Database
             cartCount.value = cartItems.length;
         }
     } catch (error) {
@@ -162,7 +159,6 @@ const fetchCartCount = async () => {
     }
 }
 
-// ================= LOGIC TÀI KHOẢN (AUTH) =================
 const checkAuth = () => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -170,9 +166,12 @@ const checkAuth = () => {
             const user = JSON.parse(userStr);
             isLoggedIn.value = true;
             userName.value = user.hoTen;
-            isAdmin.value = (user.vaiTro && user.vaiTro.toUpperCase() === 'ROLE_ADMIN');
             
-            // Lấy số lượng giỏ hàng thực tế từ Database ngay khi checkAuth thành công
+            // Cập nhật logic check Role
+            const role = user.vaiTro ? user.vaiTro.toUpperCase() : '';
+            isAdmin.value = (role === 'ROLE_ADMIN');
+            isStaff.value = (role === 'ROLE_CHUYEN_VIEN_TU_VAN');
+            
             fetchCartCount(); 
         } catch (e) {
             console.error("Lỗi parse JSON:", e);
@@ -180,6 +179,7 @@ const checkAuth = () => {
     } else {
         isLoggedIn.value = false;
         isAdmin.value = false;
+        isStaff.value = false;
         cartCount.value = 0; 
     }
 }
@@ -188,80 +188,32 @@ const logout = () => {
     localStorage.removeItem('user')
     isLoggedIn.value = false
     isAdmin.value = false
-    cartCount.value = 0 // Xóa số chấm vàng ngay lập tức khi đăng xuất
+    isStaff.value = false // Reset isStaff
+    cartCount.value = 0 
     alert('Đã đăng xuất!')
     window.location.href = '/'
 }
 
-const toggleDropdown = () => {
-    showDropdown.value = !showDropdown.value
-}
+// ... các hàm còn lại (toggleDropdown, handleClickOutside, toggleMenu, ...) giữ nguyên không thay đổi
+const toggleDropdown = () => { showDropdown.value = !showDropdown.value }
+const handleClickOutside = (event) => { if (userMenuRef.value && !userMenuRef.value.contains(event.target)) showDropdown.value = false }
+const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; document.body.style.overflow = isMenuOpen.value ? 'hidden' : 'auto' }
+const openSearch = () => { isSearchOpen.value = true; document.body.style.overflow = 'hidden'; nextTick(() => { if (searchInputRef.value) searchInputRef.value.focus() }) }
+const closeSearch = () => { isSearchOpen.value = false; document.body.style.overflow = 'auto' }
+const handleSearch = (e) => { const keyword = e.target.value.trim(); if (keyword) { router.push({ path: '/dong-ho-co-san', query: { search: keyword } }); e.target.value = '' }; closeSearch() }
+const quickSearch = (keyword) => { router.push({ path: '/dong-ho-co-san', query: { search: keyword } }); closeSearch() }
+const handleEsc = (e) => { if (e.key === 'Escape') { if (isMenuOpen.value) toggleMenu(); if (isSearchOpen.value) closeSearch() } }
 
-const handleClickOutside = (event) => {
-    if (userMenuRef.value && !userMenuRef.value.contains(event.target)) {
-        showDropdown.value = false
-    }
-}
-
-// ================= LOGIC MENU & TÌM KIẾM =================
-const toggleMenu = () => {
-    isMenuOpen.value = !isMenuOpen.value
-    document.body.style.overflow = isMenuOpen.value ? 'hidden' : 'auto'
-}
-
-const openSearch = () => {
-    isSearchOpen.value = true
-    document.body.style.overflow = 'hidden'
-    nextTick(() => {
-        if (searchInputRef.value) searchInputRef.value.focus()
-    })
-}
-
-const closeSearch = () => {
-    isSearchOpen.value = false
-    document.body.style.overflow = 'auto'
-}
-
-const handleSearch = (e) => {
-    const keyword = e.target.value.trim() 
-    
-    if (keyword) {
-        console.log("Đang tìm kiếm:", keyword)
-        router.push({ path: '/dong-ho-co-san', query: { search: keyword } })
-        e.target.value = '' 
-    }
-    closeSearch() 
-}
-
-const quickSearch = (keyword) => {
-    if (searchInputRef.value) {
-        router.push({ path: '/dong-ho-co-san', query: { search: keyword } })
-        closeSearch()
-    }
-}
-
-const handleEsc = (e) => {
-    if (e.key === 'Escape') {
-        if (isMenuOpen.value) toggleMenu()
-        if (isSearchOpen.value) closeSearch()
-    }
-}
-
-// ================= VÒNG ĐỜI VUE =================
 onMounted(() => {
     checkAuth()
     window.addEventListener('keydown', handleEsc)
     document.addEventListener('click', handleClickOutside)
-    
-    // Bật "lỗ tai" lắng nghe sự kiện thêm hàng để gọi lại API đếm số
     window.addEventListener('cart-updated', fetchCartCount) 
 })
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleEsc)
-    document.removeEventListener('click', handleClickOutside)
-    
-    // Tắt lắng nghe khi rời trang
+    window.removeEventListener('click', handleClickOutside)
     window.removeEventListener('cart-updated', fetchCartCount) 
 })
 </script>
