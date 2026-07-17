@@ -24,6 +24,9 @@ import PhieuNhap from '../components/Admin/PhieuNhapKho.vue'
 import LoaiSanPham from '../components/Admin/LoaiSanPham.vue'
 import QuanLyMaGiamGia from '../components/Admin/QuanLyMaGiamGia.vue'
 import QuanLyThongKe from '../components/Admin/QuanLyThongKe.vue'
+// IMPORT THÊM TRANG QUẢN LÝ LỊCH HẸN Ở ĐÂY
+import AdminLichHen from '../components/Admin/AdminLichHen.vue' 
+
 //Các file giao diện Tư Vấn Viên
 import TuVanDashboard from '../components/ChuyenVienTuVan/TuVanDashboard.vue'
 
@@ -53,6 +56,10 @@ const router = createRouter({
     { path: '/admin/manufacturers', name: 'QuanLyThuongHieu', component: QuanLyThuongHieu, meta: { requiresAdmin: true } },
     { path: '/admin/ma-giam-gia', name: 'QuanLyMaGiamGia', component: QuanLyMaGiamGia, meta: { requiresAdmin: true } },
     { path: '/admin/statistics', name: 'QuanLyThongKe', component: QuanLyThongKe, meta: { requiresAdmin: true } },
+    
+    // ĐĂNG KÝ THÊM ĐƯỜNG DẪN ADMIN LỊCH HẸN Ở ĐÂY
+    { path: '/admin/lich-hen', name: 'QuanLyLichHen', component: AdminLichHen, meta: { requiresAdmin: true } },
+
     //=================Tư vấn Viên++++++++++++++++++++++++++++++
     {
       path: '/admin/tu-van-khach-hang',

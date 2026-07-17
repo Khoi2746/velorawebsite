@@ -507,3 +507,90 @@
     max-width: 100%;
   }
 }
+/* CSS BỔ SUNG CHO NÚT VÀ MODAL ĐẶT LỊCH */
+.btn-booking {
+  width: 100%;
+  padding: 14px;
+  background-color: transparent;
+  color: #c4a163; /* Màu gold đặc trưng của Velora */
+  border: 1px solid #c4a163;
+  font-family: 'Cinzel', serif;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+.btn-booking:hover {
+  background-color: #c4a163;
+  color: #fff;
+}
+
+/* Modal Styling */
+.booking-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.booking-modal-content {
+  background: #fff;
+  width: 100%;
+  max-width: 500px;
+  padding: 30px;
+  border-radius: 4px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.modal-header h3 {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 1.2rem;
+  color: #333;
+}
+.close-btn {
+  background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888;
+}
+.close-btn:hover { color: #000; }
+.modal-product-name {
+  font-size: 0.9rem; color: #666; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee;
+}
+
+.booking-form .form-group {
+  margin-bottom: 15px;
+}
+.booking-form .form-group-row {
+  display: flex; gap: 15px;
+}
+.booking-form .form-group-row .form-group { flex: 1; }
+
+.booking-form label {
+  display: block; margin-bottom: 5px; font-size: 0.85rem; font-weight: 600; color: #444; text-transform: uppercase;
+}
+.booking-form input, .booking-form select, .booking-form textarea {
+  width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.95rem; font-family: inherit;
+}
+.booking-form input:focus, .booking-form select:focus, .booking-form textarea:focus {
+  outline: none; border-color: #c4a163;
+}
+
+.modal-actions {
+  display: flex; justify-content: flex-end; gap: 15px; margin-top: 25px;
+}
+.btn-cancel {
+  background: none; border: none; color: #666; cursor: pointer; font-weight: 600; padding: 10px 20px;
+}
+.btn-cancel:hover { text-decoration: underline; }
+.btn-confirm {
+  background: #000; color: #fff; border: none; padding: 10px 25px; cursor: pointer; font-family: 'Cinzel', serif; letter-spacing: 1px; transition: 0.3s;
+}
+.btn-confirm:hover { background: #c4a163; }

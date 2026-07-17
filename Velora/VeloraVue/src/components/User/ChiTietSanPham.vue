@@ -55,9 +55,7 @@
               {{ product.moTaChiTiet }}
             </p>
             <p class="short-description" v-else>
-              Một tuyệt tác cơ học mang đậm dấu ấn nghệ thuật chế tác đồng hồ cao cấp. Sự kết hợp hoàn hảo giữa vật liệu
-              thượng
-              hạng và độ chính xác tuyệt đối.
+              Một tuyệt tác cơ học mang đậm dấu ấn nghệ thuật chế tác đồng hồ cao cấp. Sự kết hợp hoàn hảo giữa vật liệu thượng hạng và độ chính xác tuyệt đối.
             </p>
 
             <ul class="specs-list">
@@ -72,8 +70,7 @@
               <li>
                 <span class="spec-label">Trạng thái:</span>
                 <span class="spec-value status-in-stock"
-                  v-if="product.trangThai === 'CON_HANG' || product.trangThai === 1">Còn
-                  hàng tại Boutique</span>
+                  v-if="product.trangThai === 'CON_HANG' || product.trangThai === 1">Còn hàng tại Boutique</span>
                 <span class="spec-value status-out-stock" v-else>Liên hệ đặt trước</span>
               </li>
             </ul>
@@ -86,6 +83,11 @@
               <button class="btn-secondary" @click="contactVVIP">
                 LIÊN HỆ TƯ VẤN VVIP
               </button>
+
+              <!-- MỚI: NÚT ĐẶT LỊCH HẸN XEM SẢN PHẨM -->
+              <button class="btn-booking" @click="openBookingModal">
+                📅 ĐẶT LỊCH XEM THỰC TẾ
+              </button>
             </div>
 
             <div class="accordion-group">
@@ -94,9 +96,7 @@
                   CHÍNH SÁCH BẢO HÀNH <span class="icon">+</span>
                 </div>
                 <div class="accordion-content">
-                  Bảo hành toàn cầu 5 năm chính hãng. Miễn phí bảo dưỡng lau dầu định kỳ trong 3 năm đầu tiên tại các
-                  trung tâm
-                  dịch vụ của Velora.
+                  Bảo hành toàn cầu 5 năm chính hãng. Miễn phí bảo dưỡng lau dầu định kỳ trong 3 năm đầu tiên tại các trung tâm dịch vụ của Velora.
                 </div>
               </div>
               <div class="accordion-item">
@@ -104,9 +104,7 @@
                   VẬN CHUYỂN & THANH TOÁN <span class="icon">+</span>
                 </div>
                 <div class="accordion-content">
-                  Giao hàng bằng xe chuyên dụng hoặc chuyên viên mang đến tận nhà. Thanh toán linh hoạt, hỗ trợ bảo mật
-                  thông
-                  tin tuyệt đối.
+                  Giao hàng bằng xe chuyên dụng hoặc chuyên viên mang đến tận nhà. Thanh toán linh hoạt, hỗ trợ bảo mật thông tin tuyệt đối.
                 </div>
               </div>
             </div>
@@ -179,6 +177,62 @@
       </div>
     </main>
 
+    <!-- MỚI: MODAL ĐẶT LỊCH HẸN -->
+    <div v-if="showBookingModal" class="booking-modal-overlay">
+      <div class="booking-modal-content">
+        <div class="modal-header">
+          <h3>ĐẶT LỊCH HẸN XEM SẢN PHẨM</h3>
+          <button class="close-btn" @click="showBookingModal = false">&times;</button>
+        </div>
+        <div class="modal-product-name">{{ product.tenSanPham }}</div>
+        
+        <form @submit.prevent="submitBooking" class="booking-form">
+          <div class="form-group">
+            <label>Họ và tên (*)</label>
+            <input v-model="bookingData.tenKhachHang" type="text" placeholder="Nhập họ tên của bạn" required />
+          </div>
+          
+          <div class="form-group">
+            <label>Số điện thoại (*)</label>
+            <input v-model="bookingData.soDienThoai" type="tel" placeholder="Nhập số điện thoại" required />
+          </div>
+          
+          <div class="form-group">
+            <label>Email</label>
+            <input v-model="bookingData.email" type="email" placeholder="Nhập email (tùy chọn)" />
+          </div>
+          
+          <div class="form-group-row">
+            <div class="form-group">
+              <label>Ngày hẹn (*)</label>
+              <input v-model="bookingData.ngayHen" type="date" required :min="minDate" />
+            </div>
+            
+            <div class="form-group">
+              <label>Khung giờ (*)</label>
+              <select v-model="bookingData.thoiGian" required>
+                <option value="" disabled>Chọn khung giờ</option>
+                <option value="09:00 - 11:00">09:00 - 11:00</option>
+                <option value="13:00 - 15:00">13:00 - 15:00</option>
+                <option value="15:00 - 17:00">15:00 - 17:00</option>
+                <option value="17:00 - 19:00">17:00 - 19:00</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Ghi chú (Tùy chọn)</label>
+            <textarea v-model="bookingData.ghiChu" placeholder="Ví dụ: Tôi muốn xem trực tiếp màu xanh của mặt số..." rows="3"></textarea>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" @click="showBookingModal = false">Hủy</button>
+            <button type="submit" class="btn-confirm">Xác Nhận Đặt Lịch</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <Info />
     <Footer />
   </div>
@@ -198,7 +252,6 @@ const loading = ref(true)
 const relatedProducts = ref([])
 const carouselRef = ref(null)
 
-// Biến lưu số lượng
 const quantity = ref(1)
 
 const formatPrice = (value) => {
@@ -206,7 +259,7 @@ const formatPrice = (value) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 }
 
-// ================= HÀM LẤY KHÓA GIỎ HÀNG (MỚI) =================
+// Lấy khóa giỏ hàng
 const getCartKey = () => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -220,10 +273,8 @@ const getCartKey = () => {
     return 'cart_guest';
 }
 
-// LOGIC THÊM VÀO GIỎ HÀNG
-// Thay thế hoàn toàn hàm addToCart cũ bằng hàm này
+// Logic giỏ hàng
 const addToCart = async () => {
-  // 1. Kiểm tra đăng nhập (Bắt buộc vì bảng GioHang cần MaNguoiDung để lưu DB)
   const userStr = localStorage.getItem('user');
   if (!userStr) {
     alert('Vui lòng đăng nhập để thêm kiệt tác này vào giỏ hàng!');
@@ -232,43 +283,33 @@ const addToCart = async () => {
   }
   
   const user = JSON.parse(userStr);
-
-  // 2. Gom dữ liệu để gửi xuống Backend Java
   const payload = {
     maNguoiDung: user.maNguoiDung,
     maSanPham: product.value.maSanPham,
-    soLuong: quantity.value // Lấy từ biến số lượng khách chọn trên giao diện
+    soLuong: quantity.value
   };
 
   try {
-    // 3. Gọi API thật đẩy dữ liệu vào SQL Server
     const response = await fetch('http://localhost:8080/api/gio-hang/them', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
     if (response.ok) {
-      // 4. Bắn sự kiện để Header nhảy số lượng chấm vàng ngay lập tức
       window.dispatchEvent(new Event('cart-updated'));
-      
-      // 5. Báo thành công bằng alert (Không dùng biến showAddedModal để tránh crash web)
       alert('Tuyệt vời! Đã thêm ' + product.value.tenSanPham + ' vào giỏ hàng thành công!');
     } else {
-      // Bắt lỗi nếu Backend từ chối
       alert('Có lỗi xảy ra khi thêm vào giỏ. Vui lòng thử lại!');
     }
   } catch (error) {
-    // In ra lỗi thật trong F12 để dễ soi nếu rớt mạng
     console.error('Lỗi gọi API:', error); 
     alert('Không thể kết nối đến máy chủ. Hãy chắc chắn Server Java đang chạy!');
   }
 }
-// LOGIC LIÊN HỆ TƯ VẤN
+
+// Logic liên hệ
 const contactVVIP = () => {
-  // Chuyển trang và đính kèm tên sản phẩm lên URL
   router.push({
     path: '/tu-van',
     query: {
@@ -278,7 +319,61 @@ const contactVVIP = () => {
   })
 }
 
-// Hàm cuộn ngang carousel
+// ================= HÀM ĐẶT LỊCH (MỚI) =================
+const showBookingModal = ref(false)
+const minDate = ref(new Date().toISOString().split('T')[0]) // Chặn chọn ngày trong quá khứ
+
+const bookingData = ref({
+  tenKhachHang: '',
+  soDienThoai: '',
+  email: '',
+  ngayHen: '',
+  thoiGian: '',
+  ghiChu: '',
+  sanPham: { maSanPham: null }
+})
+
+const openBookingModal = () => {
+  // Lấy thông tin user nếu đã đăng nhập để tự điền form
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      bookingData.value.tenKhachHang = user.hoTen || '';
+      bookingData.value.soDienThoai = user.soDienThoai || '';
+      bookingData.value.email = user.email || '';
+    } catch(e) { console.error(e) }
+  }
+  
+  bookingData.value.sanPham.maSanPham = product.value.maSanPham;
+  showBookingModal.value = true;
+}
+
+const submitBooking = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/lich-hen/dat-lich', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bookingData.value)
+    });
+
+    if (response.ok) {
+      alert('Đăng ký lịch hẹn thành công! Velora sẽ liên hệ với bạn trong thời gian sớm nhất.');
+      showBookingModal.value = false;
+      // Reset form (giữ lại thông tin cá nhân cơ bản)
+      bookingData.value.ngayHen = '';
+      bookingData.value.thoiGian = '';
+      bookingData.value.ghiChu = '';
+    } else {
+      alert('Có lỗi xảy ra, vui lòng thử lại.');
+    }
+  } catch (error) {
+    console.error('Lỗi khi đặt lịch:', error);
+    alert('Không thể kết nối đến máy chủ. Vui lòng thử lại sau!');
+  }
+}
+// ======================================================
+
 const scrollCarousel = (direction) => {
   if (carouselRef.value) {
     carouselRef.value.scrollBy({ left: direction * 350, behavior: 'smooth' })
@@ -319,4 +414,6 @@ onMounted(() => {
 
 <style scoped>
 @import "../CSS/User/ChiTietSanPham.css";
+
+
 </style>

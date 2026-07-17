@@ -2,6 +2,8 @@
   "dependencies": {
     "chart.js": "^4.5.1",
     "router": "^2.2.0",
+    "sockjs-client": "^1.6.1",
+    "stompjs": "^2.3.3",
     "vue-chartjs": "^5.3.3"
   }
 }
