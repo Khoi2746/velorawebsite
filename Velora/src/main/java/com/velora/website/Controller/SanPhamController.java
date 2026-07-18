@@ -93,7 +93,7 @@ public class SanPhamController {
                         .replaceAll("\\s+", "-");        // Thay khoảng trắng bằng dấu -
                 sanPham.setDuongDanSlug(slug);
             }
-
+                sanPham.setGioiTinh(sanPham.getGioiTinh());
             // PHÒNG NGỪA CÁC TRƯỜNG TEXT KHÁC BỊ NULL
             if (sanPham.getLoaiMay() == null) sanPham.setLoaiMay("Automatic");
             if (sanPham.getChatLieuDay() == null) sanPham.setChatLieuDay("Thép không gỉ");
@@ -143,7 +143,7 @@ public class SanPhamController {
             if (productDetails.getDanhMuc() != null && productDetails.getDanhMuc().getMaDanhMuc() != null) {
                 sanPham.setDanhMuc(productDetails.getDanhMuc());
             }
-
+            sanPham.setGioiTinh(productDetails.getGioiTinh());
             // Cập nhật Loại sản phẩm (Đặc tính cơ khí) từ dữ liệu Vue gửi lên
             if (productDetails.getLoaiSanPham() != null) {
                 sanPham.setLoaiSanPham(productDetails.getLoaiSanPham());

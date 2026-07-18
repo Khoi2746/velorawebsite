@@ -164,9 +164,9 @@ const applyFilters = () => {
     result = result.filter(p => p.loaiSanPham && p.loaiSanPham.maLoai === parseInt(filters.value.category))
   }
   // 5. Lọc theo Giới tính
-  if (filters.value.gender) {
-    result = result.filter(p => p.moTaChiTiet && p.moTaChiTiet.toLowerCase().includes(filters.value.gender.toLowerCase()))
-  }
+if (filters.value.gender) {
+  result = result.filter(p => p.gioiTinh && p.gioiTinh.toLowerCase() === filters.value.gender.toLowerCase())
+}
 
   filteredProducts.value = result
 }

@@ -33,7 +33,8 @@
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <!-- Cập nhật placeholder tại đây -->
-                    <input type="text" :value="searchQuery" @input="searchQuery = $event.target.value" placeholder="Tìm kiếm theo mã ID hoặc tên sản phẩm..." />
+                    <input type="text" :value="searchQuery" @input="searchQuery = $event.target.value"
+                        placeholder="Tìm kiếm theo mã ID hoặc tên sản phẩm..." />
                 </div>
                 <div class="filter-boxes">
                     <select v-model="filterDanhMuc">
@@ -42,7 +43,12 @@
                             {{ dm.tenDanhMuc }}
                         </option>
                     </select>
-
+                    <select v-model="filterGioiTinh">
+                        <option value="">-- Tất cả giới tính --</option>
+                        <option value="Nam">Nam</option>
+                        <option value="Nữ">Nữ</option>
+                        <option value="Unisex">Unisex</option>
+                    </select>
                     <select v-model="filterTrangThai">
                         <option value="">-- Tất cả trạng thái --</option>
                         <option value="CON_HANG">Còn Hàng</option>
@@ -62,12 +68,13 @@
                             <th>Loại Sản Phẩm</th>
                             <th>Giá Bán</th>
                             <th>Tồn Kho</th>
+                            <th>Giới tính</th>
                             <th>Trạng Thái</th>
                             <th>Hành Động</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="product in filteredProducts" :key="product.maSanPham">
+                        <tr v-for="product in paginatedProducts" :key="product.maSanPham">
                             <td>#{{ product.maSanPham }}</td>
                             <td>
                                 <div class="img-wrapper">
@@ -89,6 +96,7 @@
                             <td style="font-weight: bold; color: #3e332e;">
                                 {{ product.soLuongTonKho != null ? product.soLuongTonKho : 0 }}
                             </td>
+                            <td>{{ product.gioiTinh }}</td>
 
                             <td>
                                 <span class="status-badge"
@@ -112,6 +120,16 @@
                     </tbody>
                 </table>
             </section>
+            <div class="pagination-controls"
+                style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;">
+                <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
+                    class="btn-page">Trước</button>
+
+                <span style="font-weight: bold;">Trang {{ currentPage }} / {{ totalPages }}</span>
+
+                <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
+                    class="btn-page">Sau</button>
+            </div>
         </main>
 
         <div v-if="showModal" class="modal-overlay">
@@ -145,7 +163,15 @@
                             </option>
                         </select>
                     </div>
-
+                    <div class="form-group">
+                        <label>Giới tính *</label>
+                        <select v-model="form.gioiTinh" required>
+                            <option value="">-- Chọn giới tính --</option>
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                            <option value="Unisex">Unisex</option>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label>Giá bán (VNĐ) *</label>
                         <input type="number" v-model.number="form.giaBan" required min="0" />
@@ -181,7 +207,32 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+// Thêm các biến này vào đầu file
+const currentPage = ref(1);
+const itemsPerPage = 10; // Số sản phẩm mỗi trang
 
+// Tạo danh sách đã phân trang từ filteredProducts
+const paginatedProducts = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredProducts.value.slice(start, end);
+});
+
+// Tính tổng số trang
+const totalPages = computed(() => {
+    return Math.ceil(filteredProducts.value.length / itemsPerPage);
+});
+
+// Hàm chuyển trang
+const changePage = (page) => {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+    }
+};
+
+// RESET TRANG KHI BỘ LỌC THAY ĐỔI
+// Trong hàm applyFilters(), hãy thêm dòng này vào cuối:
+// currentPage.value = 1;
 const API_URL = 'http://localhost:8080/api/san-pham';
 const CAT_API_URL = 'http://localhost:8080/api/loai-san-pham';
 
@@ -196,7 +247,7 @@ const menuItems = [
     { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
     { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
     { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
-    { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check' }, 
+    { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check' },
     { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', requiresAdmin: true }
 ];
 
@@ -208,7 +259,7 @@ const mainCategories = ref([]);
 const searchQuery = ref('');
 const filterDanhMuc = ref('');
 const filterTrangThai = ref('');
-
+const filterGioiTinh = ref('');
 const showModal = ref(false);
 const isEditMode = ref(false);
 const currentProductId = ref(null);
@@ -220,35 +271,30 @@ const defaultForm = {
     anhDaiDien: '',
     trangThai: 'CON_HANG', // Thêm mới mặc định vẫn gửi CON_HANG lên DB
     maDanhMucSelected: '',
-    maLoaiSelected: ''
+    maLoaiSelected: '',
+    gioiTinh: ''
 };
 const form = ref({ ...defaultForm });
 const filteredProducts = computed(() => {
-    const query = searchQuery.value.toLowerCase();
+    const query = searchQuery.value.toLowerCase().trim();
 
     return products.value.filter(product => {
-        // Nếu không gõ gì thì bỏ qua, hiện hết
-        if (!query.trim()) {
-            const matchDanhMuc = !filterDanhMuc.value || (product.danhMuc && product.danhMuc.maDanhMuc === Number(filterDanhMuc.value));
-            const matchTrangThai = !filterTrangThai.value || product.trangThai === filterTrangThai.value;
-            return matchDanhMuc && matchTrangThai;
-        }
+        // 1. Kiểm tra tìm kiếm theo tên hoặc ID (Nếu query trống thì mặc định là true)
+        const matchName = product.tenSanPham ? product.tenSanPham.toLowerCase().includes(query) : false;
+        const matchId = product.maSanPham ? String(product.maSanPham).includes(query) : false;
+        const matchSearch = !query || (matchName || matchId);
 
-        // 1. Kiểm tra khớp Tên sản phẩm (dùng .trim() khi so sánh thực tế)
-        const matchName = product.tenSanPham ? product.tenSanPham.toLowerCase().includes(query.trim()) : false;
-        
-        // 2. Kiểm tra khớp Mã ID (maSanPham)
-        const matchId = product.maSanPham ? String(product.maSanPham).includes(query.trim()) : false;
-
-        // Các bộ lọc danh mục và trạng thái
+        // 2. Các bộ lọc
         const matchDanhMuc = !filterDanhMuc.value || (product.danhMuc && product.danhMuc.maDanhMuc === Number(filterDanhMuc.value));
         const matchTrangThai = !filterTrangThai.value || product.trangThai === filterTrangThai.value;
 
-        // Thỏa mãn (Tên hoặc ID) và bộ lọc đi kèm
-        return (matchName || matchId) && matchDanhMuc && matchTrangThai;
+        // --- THÊM DÒNG NÀY ---
+        const matchGioiTinh = !filterGioiTinh.value || product.gioiTinh === filterGioiTinh.value;
+
+        // 3. Kết quả cuối cùng: Phải thỏa mãn TẤT CẢ các điều kiện
+        return matchSearch && matchDanhMuc && matchTrangThai && matchGioiTinh;
     });
 });
-
 // Xử lý sự kiện khi người dùng chọn file hình ảnh từ máy tính
 const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -315,14 +361,14 @@ const openEditModal = (product) => {
         anhDaiDien: product.anhDaiDien,
         trangThai: product.trangThai,
         maDanhMucSelected: product.danhMuc ? product.danhMuc.maDanhMuc : '',
-        maLoaiSelected: product.loaiSanPham ? product.loaiSanPham.maLoai : ''
+        maLoaiSelected: product.loaiSanPham ? product.loaiSanPham.maLoai : '',
+        // --- PHẢI THÊM DÒNG NÀY ---
+        gioiTinh: product.gioiTinh
     };
 
-    // Nếu sản phẩm đã có tên ảnh cũ, thực hiện hiển thị preview
     imagePreview.value = product.anhDaiDien ? getImageUrl(product.anhDaiDien) : '';
     showModal.value = true;
 };
-
 const closeModal = () => {
     showModal.value = false;
 };
@@ -334,6 +380,7 @@ const saveProduct = async () => {
 
         const dataToSend = {
             tenSanPham: form.value.tenSanPham,
+            gioiTinh: form.value.gioiTinh,
             giaBan: form.value.giaBan,
             anhDaiDien: form.value.anhDaiDien,
             trangThai: form.value.trangThai,

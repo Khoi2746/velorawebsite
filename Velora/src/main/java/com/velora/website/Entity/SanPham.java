@@ -24,6 +24,15 @@ public class SanPham {
     private String doChongNuoc;
     private String moTaChiTiet;
     private String trangThai;
+    private String gioiTinh;
+
+    public String getGioiTinh() {
+    return gioiTinh;
+}
+
+public void setGioiTinh(String gioiTinh) {
+    this.gioiTinh = gioiTinh;
+}
 
     @ManyToOne
     @JoinColumn(name = "maThuongHieu")
