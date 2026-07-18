@@ -16,8 +16,12 @@ import java.util.List;
 @CrossOrigin(originPatterns = "*")
 public class LichHenController {
 
-    @Autowired
-    private LichHenRepository lichHenRepository;
+    private final LichHenRepository lichHenRepository;
+
+
+    LichHenController(LichHenRepository lichHenRepository) {
+        this.lichHenRepository = lichHenRepository;
+    }
 
   
    // 1. API cho Khách hàng: Tạo lịch hẹn mới từ trang chi tiết sản phẩm
