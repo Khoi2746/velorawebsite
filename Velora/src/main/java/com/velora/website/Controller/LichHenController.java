@@ -1,15 +1,14 @@
-package com.velora.website.Controller; // Đảm bảo bạn đã có dòng package này ở dòng 1
+package com.velora.website.Controller;
 
-// 1. Import Entity và Repository của project
 import com.velora.website.Entity.LichHen;
 import com.velora.website.Repository.LichHenRepository;
-
-// 2. Import các thư viện của Spring Boot
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/lich-hen")
@@ -18,21 +17,40 @@ public class LichHenController {
 
     private final LichHenRepository lichHenRepository;
 
-
-    LichHenController(LichHenRepository lichHenRepository) {
+    public LichHenController(LichHenRepository lichHenRepository) {
         this.lichHenRepository = lichHenRepository;
     }
 
-  
-   // 1. API cho Khách hàng: Tạo lịch hẹn mới từ trang chi tiết sản phẩm
- @PostMapping("/dat-lich")
-    public ResponseEntity<?> createLichHen(@RequestBody LichHen lichHen) {
+    // API Đặt lịch hẹn - Trả về bản đồ dữ liệu chứa ID tường minh
+    @PostMapping("/dat-lich")
+    public ResponseEntity<?> createLichHen(@RequestBody Map<String, Object> payload) {
         try {
-            lichHen.setTrangThai(0); // Mặc định là Chờ xác nhận
-            lichHenRepository.save(lichHen); // Lưu vào Database
+            LichHen lichHen = new LichHen();
             
-            // SỬA DÒNG NÀY: Trả về một chuỗi JSON báo thành công thay vì object
-            return ResponseEntity.ok().body("{\"message\": \"Đặt lịch thành công\"}");
+            lichHen.setTenKhachHang((String) payload.get("tenKhachHang"));
+            lichHen.setSoDienThoai((String) payload.get("soDienThoai"));
+            lichHen.setEmail((String) payload.get("email"));
+            lichHen.setThoiGian((String) payload.get("thoiGian"));
+            lichHen.setGhiChu((String) payload.get("ghiChu"));
+            lichHen.setTrangThai(0); 
+
+            if (payload.get("idSanPham") != null) {
+                lichHen.setIdSanPham(Integer.parseInt(payload.get("idSanPham").toString()));
+            }
+
+            if (payload.get("ngayHen") != null) {
+                lichHen.setNgayHen(LocalDate.parse((String) payload.get("ngayHen")));
+            }
+
+            // Thực hiện lưu trữ dữ liệu
+            LichHen ketQua = lichHenRepository.save(lichHen);
+            
+            // Đóng gói JSON phản hồi chứa thuộc tính id
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Đặt lịch thành công");
+            response.put("id", ketQua.getId()); 
+            
+            return ResponseEntity.ok().body(response);
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -40,13 +58,11 @@ public class LichHenController {
         }
     }
 
-    // 2. API cho Admin: Lấy danh sách tất cả lịch hẹn
     @GetMapping("/admin/danh-sach")
     public ResponseEntity<List<LichHen>> getAllLichHen() {
         return ResponseEntity.ok(lichHenRepository.findAll());
     }
 
-    // 3. API cho Admin: Cập nhật trạng thái lịch hẹn
     @PutMapping("/admin/cap-nhat-trang-thai/{id}")
     public ResponseEntity<?> updateTrangThai(@PathVariable Integer id, @RequestParam Integer trangThai) {
         LichHen lichHen = lichHenRepository.findById(id).orElse(null);
