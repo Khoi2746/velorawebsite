@@ -11,6 +11,7 @@ import GioHang from '../components/User/GioHang.vue'
 import DonHang from '../components/User/DonHang.vue'
 import TuVan from '../components/User/TuVan.vue'
 import ThongTinNguoiDung from '../components/User/ThongTinNguoiDung.vue'
+import LienHeTuVan from '../components/User/LienHeTuVan.vue'
 
 // Các file giao diện Quản trị (Admin)
 import AdminDashboard from '../components/Admin/AdminDashboard.vue'
@@ -43,6 +44,7 @@ const router = createRouter({
     { path: '/don-hang', name: 'DonHang', component: DonHang },
     { path: '/tu-van', name: 'TuVan', component: TuVan },
     { path: '/san-pham/:id', name: 'ChiTietSanPham', component: ChiTietSanPham },
+    { path: '/lien-he-tu-van', name: 'LienHeTuVan', component: LienHeTuVan },
 
     // ================== VÙNG ROUTE BẢO MẬT CỦA ADMIN ==================
     { path: '/admin/dashboard', name: 'AdminDashboard', component: AdminDashboard, meta: { requiresAdmin: true } },

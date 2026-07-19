@@ -67,6 +67,7 @@
                 <router-link to="/thuong-hieu" class="nav-item" active-class="active">THƯƠNG HIỆU</router-link>
                 <router-link to="/dong-ho-co-san" class="nav-item" active-class="active">ĐỒNG HỒ CÓ SẴN</router-link>
                 <router-link to="/bao-hanh" class="nav-item" active-class="active">BẢO HÀNH</router-link>
+                <router-link to="/lien-he-tu-van" class="nav-item" active-class="active">LIÊN HỆ</router-link>
             </nav>
         </div>
 
