@@ -9,6 +9,7 @@ import SanPham from '../components/User/SanPham.vue'
 import ChiTietSanPham from '../components/User/ChiTietSanPham.vue'
 import GioHang from '../components/User/GioHang.vue'
 import DonHang from '../components/User/DonHang.vue'
+import BaoHanh from '../components/User/BaoHanh.vue'
 import TuVan from '../components/User/TuVan.vue'
 import ThongTinNguoiDung from '../components/User/ThongTinNguoiDung.vue'
 import LienHeTuVan from '../components/User/LienHeTuVan.vue'
@@ -21,6 +22,7 @@ import QuanLyDonHang from '../components/Admin/QuanLyDonHang.vue'
 import QuanLyKho from '../components/Admin/QuanLyKho.vue'
 import XuatHoaDon from '../components/Admin/XuatHoaDon.vue'
 import QuanLyThuongHieu from '../components/Admin/QuanLyThuongHieu.vue'
+import QuanLyBaoHanh from '../components/Admin/QuanlyBaoHanh.vue'
 import PhieuNhap from '../components/Admin/PhieuNhapKho.vue'
 import LoaiSanPham from '../components/Admin/LoaiSanPham.vue'
 import QuanLyMaGiamGia from '../components/Admin/QuanLyMaGiamGia.vue'
@@ -42,6 +44,7 @@ const router = createRouter({
     { path: '/dong-ho-co-san', name: 'SanPham', component: SanPham },
     { path: '/gio-hang', name: 'GioHang', component: GioHang },
     { path: '/don-hang', name: 'DonHang', component: DonHang },
+    { path: '/bao-hanh', name: 'BaoHanh', component: BaoHanh },
     { path: '/tu-van', name: 'TuVan', component: TuVan },
     { path: '/san-pham/:id', name: 'ChiTietSanPham', component: ChiTietSanPham },
     { path: '/lien-he-tu-van', name: 'LienHeTuVan', component: LienHeTuVan },
@@ -58,6 +61,7 @@ const router = createRouter({
     { path: '/admin/manufacturers', name: 'QuanLyThuongHieu', component: QuanLyThuongHieu, meta: { requiresAdmin: true } },
     { path: '/admin/ma-giam-gia', name: 'QuanLyMaGiamGia', component: QuanLyMaGiamGia, meta: { requiresAdmin: true } },
     { path: '/admin/statistics', name: 'QuanLyThongKe', component: QuanLyThongKe, meta: { requiresAdmin: true } },
+    { path: '/admin/quan-ly-bao-hanh', name: 'QuanLyBaoHanh', component: QuanLyBaoHanh, meta: { requiresAdmin: true } },
     
     // ĐĂNG KÝ THÊM ĐƯỜNG DẪN ADMIN LỊCH HẸN Ở ĐÂY
     { path: '/admin/lich-hen', name: 'QuanLyLichHen', component: AdminLichHen, meta: { requiresAdmin: true } },
