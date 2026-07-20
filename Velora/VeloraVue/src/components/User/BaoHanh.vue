@@ -125,9 +125,25 @@
                 <div class="request-history-top">
                   <strong>{{ item.hoTen }}</strong>
 
-                  <span :class="item.trangThai">
-  {{ getStatusText(item.trangThai) }}
-</span>
+                  <span class="status" :class="{
+
+waiting:item.trangThai === 'CHO_XU_LY',
+
+accepted:item.trangThai === 'DA_TIEP_NHAN',
+
+processing:item.trangThai === 'DANG_XU_LY',
+
+completed:item.trangThai === 'HOAN_TAT',
+
+rejected:item.trangThai === 'TU_CHOI',
+
+cancelled:item.trangThai === 'DA_HUY'
+
+}">
+
+                    {{ getStatusText(item.trangThai) }}
+
+                  </span>
                 </div>
 
                 <p>
@@ -140,8 +156,17 @@
                 <p>{{ item.moTaLoi }}</p>
 
                 <small>
-                  {{ new Date(item.ngayGui).toLocaleString('vi-VN') }}
-                </small>
+{{ new Date(item.ngayGui).toLocaleString('vi-VN') }}
+</small>
+
+
+<button
+v-if="item.trangThai === 'CHO_XU_LY'"
+class="btn-cancel"
+@click="cancelWarranty(item.maBaoHanh)"
+>
+Hủy yêu cầu
+</button>
 
               </div>
             </div>
@@ -184,17 +209,17 @@ const fetchWarrantyRequests = async () => {
 
     const user = JSON.parse(
 
-localStorage.getItem("user")
+      localStorage.getItem("user")
 
-)
+    )
 
-const res = await axios.get(
+    const res = await axios.get(
 
-`http://localhost:8080/api/bao-hanh/my-history/${user.maNguoiDung}`
+      `http://localhost:8080/api/bao-hanh/my-history/${user.maNguoiDung}`
 
-)
+    )
 
-requestList.value = res.data
+    requestList.value = res.data
 
   } catch (err) {
 
@@ -211,17 +236,17 @@ const submitForm = async () => {
 
   try {
 
-const res = await axios.post(
-    "http://localhost:8080/api/bao-hanh/send",
-    {
+    const res = await axios.post(
+      "http://localhost:8080/api/bao-hanh/send",
+      {
         maNguoiDung: user.maNguoiDung,
         hoTen: form.hoTen,
         sdt: form.sdt,
         maDonHangCode: form.maDonHang,
         loaiSanPham: form.loaiSanPham,
         moTaLoi: form.moTa
-    }
-)
+      }
+    )
 
     message.value = {
       type: "success",
@@ -250,6 +275,47 @@ const res = await axios.post(
   }
 
 }
+const cancelWarranty = async (id) => {
+
+
+  if (!confirm("Bạn có chắc muốn hủy yêu cầu này?")) {
+    return
+  }
+
+
+  try {
+
+
+    await axios.put(
+      `${API}/${id}/cancel`
+    )
+
+
+    message.value = {
+      type: "success",
+      text: "Đã hủy yêu cầu bảo hành."
+    }
+
+
+    await fetchWarrantyRequests()
+
+
+
+  } catch (err) {
+
+
+    message.value = {
+      type: "error",
+      text:
+        err.response?.data?.message
+        ||
+        "Không thể hủy yêu cầu."
+    }
+
+  }
+
+
+}
 
 // ===========================
 // Hiển thị trạng thái
@@ -261,20 +327,26 @@ const getStatusText = (status) => {
     case "CHO_XU_LY":
       return "🟡 Chờ xử lý"
 
+
     case "DA_TIEP_NHAN":
       return "🔵 Đã tiếp nhận"
+
 
     case "DANG_XU_LY":
       return "🟠 Đang xử lý"
 
+
     case "HOAN_TAT":
       return "🟢 Hoàn tất"
 
+
     case "TU_CHOI":
       return "🔴 Từ chối"
+    case "DA_HUY":
+      return "⚫ Đã hủy"
 
     default:
-      return status
+      return "Không xác định"
 
   }
 

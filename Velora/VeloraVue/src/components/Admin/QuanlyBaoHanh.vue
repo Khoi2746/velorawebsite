@@ -65,16 +65,15 @@ rejected:item.trangThai==='TU_CHOI'
 
 }">
 
-{{ item.trangThai }}
+{{ getStatusText(item.trangThai) }}
 
 </span>
 
 </td>
               <td>
-                <select
+<select
 v-model="item.trangThai"
-class="status-select"
-:disabled="item.trangThai==='HOAN_TAT'">
+class="status-select">
 
 <option value="CHO_XU_LY">Chờ xử lý</option>
 
@@ -88,10 +87,9 @@ class="status-select"
 
 </select>
                 <button
-    class="btn-confirm"
-    @click="updateStatus(item)"
-    :disabled="item.trangThai==='HOAN_TAT' || item.trangThai==='TU_CHOI'">
-    Cập nhật
+class="btn-confirm"
+@click="updateStatus(item)">
+Cập nhật
 </button>
                 </td>
             </tr>
@@ -193,59 +191,80 @@ const fetchWarrantyRequests = async () => {
 // =============================
 // Cập nhật trạng thái
 // =============================
-const updateStatus = async (item) => {
+const updateStatus = async(item)=>{
 
-  try {
+    try{
 
-    const response = await fetch(
+        const status = item.trangThai.trim()
 
-      `${API}/${item.maBaoHanh}/status`,
 
-      {
-        method: "PUT",
+        const response = await fetch(
 
-        headers: {
-          "Content-Type": "application/json"
-        },
+            `${API}/${item.maBaoHanh}/status`,
 
-        body: JSON.stringify({
+            {
+                method:"PUT",
 
-          trangThai: item.trangThai
+                headers:{
+                    "Content-Type":"application/json"
+                },
 
-        })
+                body:JSON.stringify({
+                    trangThai:status
+                })
+            }
 
-      }
+        )
 
-    )
 
-    if (!response.ok)
-      throw new Error()
+        if(!response.ok)
+            throw new Error()
 
-    message.value = {
 
-      type: "success",
+        message.value={
+            type:"success",
+            text:"Cập nhật trạng thái thành công."
+        }
 
-      text: "Cập nhật thành công."
 
-    }
+        await fetchWarrantyRequests()
 
-    await fetchWarrantyRequests()
 
-  }
+    }catch(e){
 
-  catch (e) {
+        console.log(e)
 
-    console.log(e)
-
-    message.value = {
-
-      type: "error",
-
-      text: "Không cập nhật được."
+        message.value={
+            type:"error",
+            text:"Không cập nhật được."
+        }
 
     }
 
-  }
+}
+const getStatusText=(status)=>{
+
+switch(status){
+
+case "CHO_XU_LY":
+return "Chờ xử lý"
+
+case "DA_TIEP_NHAN":
+return "Đã tiếp nhận"
+
+case "DANG_XU_LY":
+return "Đang xử lý"
+
+case "HOAN_TAT":
+return "Hoàn tất"
+
+case "TU_CHOI":
+return "Từ chối"
+
+default:
+return status
+
+}
 
 }
 

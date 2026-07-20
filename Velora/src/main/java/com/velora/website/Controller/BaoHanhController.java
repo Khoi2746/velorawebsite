@@ -175,5 +175,40 @@ return baoHanhService.findByMaNguoiDung(userId);
                 )
         );
     }
+// ==========================
+// USER HỦY YÊU CẦU
+// ==========================
+@PutMapping("/{id}/cancel")
+public ResponseEntity<?> cancelRequest(
+        @PathVariable Integer id){
 
+    try{
+
+        BaoHanh bh =
+                baoHanhService.cancelRequest(id);
+
+
+        return ResponseEntity.ok(
+                Map.of(
+                    "message",
+                    "Đã hủy yêu cầu bảo hành.",
+                    "data",
+                    bh
+                )
+        );
+
+
+    }catch(Exception e){
+
+        return ResponseEntity.badRequest()
+                .body(
+                    Map.of(
+                        "message",
+                        e.getMessage()
+                    )
+                );
+
+    }
+
+}
 }

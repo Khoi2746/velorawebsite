@@ -69,7 +69,7 @@ public class BaoHanhService {
             case "DANG_XU_LY":
             case "HOAN_TAT":
             case "TU_CHOI":
-                bh.setTrangThai(trangThai);
+                bh.setTrangThai(trangThai.trim().toUpperCase());
                 break;
 
             default:
@@ -80,5 +80,24 @@ public class BaoHanhService {
         return repo.save(bh);
 
     }
+public BaoHanh cancelRequest(Integer id){
 
+    BaoHanh bh = repo.findById(id)
+            .orElseThrow(() ->
+                    new RuntimeException("Không tìm thấy yêu cầu"));
+
+    // chỉ được hủy khi chờ xử lý
+    if(!bh.getTrangThai().equals("CHO_XU_LY")){
+        throw new RuntimeException(
+                "Không thể hủy yêu cầu này."
+        );
+    }
+
+
+    bh.setTrangThai("DA_HUY");
+
+
+    return repo.save(bh);
+
+}
 }
