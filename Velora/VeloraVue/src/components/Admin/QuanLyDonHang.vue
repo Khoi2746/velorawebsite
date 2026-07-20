@@ -23,7 +23,6 @@
         </div>
       </header>
 
-      <!-- KHU VỰC THANH TÌM KIẾM & BỘ LỌC ĐA NĂNG -->
       <section class="filter-wrapper">
         <div class="search-box">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
@@ -85,13 +84,13 @@
                       }}
                     </option>
                   </select>
-                  <button class="btn-add-payment-method" title="Tạo thêm hình thức thanh toán mới" @click="openAddPaymentModal">+</button>
+                  <button class="btn-add-payment-method" title="Tạo thêm hình thức mới" @click="openAddPaymentModal">+</button>
                 </div>
                 
                 <div style="margin-top: 6px;">
-                  <span class="payment-status" :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'paid' : 'unpaid'">
-                    <i :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'fa-solid fa-check-circle' : 'fa-solid fa-clock'"></i>
-                    {{ order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'Đã Thanh Toán' : 'Chưa Thanh Toán' }}
+                  <span class="payment-status" :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' || order.trangThaiThanhToan === 'Đã thanh toán' ? 'paid' : 'unpaid'">
+                    <i :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' || order.trangThaiThanhToan === 'Đã thanh toán' ? 'fa-solid fa-check-circle' : 'fa-solid fa-clock'"></i>
+                    {{ order.trangThaiThanhToan === 'DA_THANH_TOAN' || order.trangThaiThanhToan === 'Đã thanh toán' ? 'Đã Thanh Toán' : 'Chưa Thanh Toán' }}
                   </span>
                 </div>
               </td>
@@ -141,7 +140,7 @@
       </section>
     </main>
 
-    <!-- MODAL XEM CHI TIẾT ĐƠN HÀNG -->
+    <!-- MODAL XEM CHI TIẾT -->
     <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
       <div class="modal-box modal-lg">
         <div class="modal-header">
@@ -160,12 +159,11 @@
               <h4><i class="fa-solid fa-credit-card"></i> Thông Tin Thanh Toán</h4>
               <p><strong>Hình thức:</strong> {{ selectedOrder?.phuongThucThanhToan }}</p>
               <p><strong>Tình trạng:</strong>
-                <span :class="selectedOrder?.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'text-success' : 'text-danger'">
-                  {{ selectedOrder?.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'Đã thanh toán' : 'Chưa thanh toán' }}
+                <span :class="selectedOrder?.trangThaiThanhToan === 'DA_THANH_TOAN' || selectedOrder?.trangThaiThanhToan === 'Đã thanh toán' ? 'text-success' : 'text-danger'">
+                  {{ selectedOrder?.trangThaiThanhToan === 'DA_THANH_TOAN' || selectedOrder?.trangThaiThanhToan === 'Đã thanh toán' ? 'Đã thanh toán' : 'Chưa thanh toán' }}
                 </span>
               </p>
-              <p><strong>Tổng cộng:</strong> <span class="price-large">{{ formatPrice(selectedOrder?.tongTien) }}</span>
-              </p>
+              <p><strong>Tổng cộng:</strong> <span class="price-large">{{ formatPrice(selectedOrder?.tongTien) }}</span></p>
             </div>
           </div>
           <h4 class="table-title"><i class="fa-solid fa-box-open"></i> Danh Sách Sản Phẩm (Chi Tiết)</h4>
@@ -183,40 +181,13 @@
                 <td><strong>SP #{{ item.maSanPham }}</strong></td>
                 <td>{{ formatPrice(item.giaLucMua) }}</td>
                 <td style="text-align: center;"><span class="qty-badge">{{ item.soLuong }}</span></td>
-                <td style="text-align: right; font-weight: bold; color: #d1aa68;">{{ formatPrice(item.giaLucMua *
-                  item.soLuong) }}</td>
+                <td style="text-align: right; font-weight: bold; color: #d1aa68;">{{ formatPrice(item.giaLucMua * item.soLuong) }}</td>
               </tr>
             </tbody>
           </table>
         </div>
         <div class="modal-footer">
           <button class="btn-cancel" @click="closeDetailModal">Đóng</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL POPUP THÊM HÌNH THỨC THANH TOÁN MỚI -->
-    <div class="modal-overlay" v-if="showAddPaymentModal" @click.self="closeAddPaymentModal">
-      <div class="modal-box modal-sm">
-        <div class="modal-header">
-          <h2>Thêm <span class="gold">Hình Thức Mới</span></h2>
-          <button class="btn-close" @click="closeAddPaymentModal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group-payment">
-            <label for="newPaymentMethod" class="label-payment">Tên hình thức thanh toán:</label>
-            <input 
-              type="text" 
-              id="newPaymentMethod" 
-              v-model="newMethodName" 
-              placeholder="Ví dụ: MoMo, Trả Góp 0%,..."
-              class="input-payment"
-            />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-submit-payment" @click="addNewPaymentMethod">Xác Nhận Thêm</button>
-          <button class="btn-cancel" @click="closeAddPaymentModal">Hủy</button>
         </div>
       </div>
     </div>
@@ -234,12 +205,13 @@ const menuItems = [
     { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
     { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
     { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
-    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-gem fa-solid' },
+    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
     { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
     { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
     { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check' }, 
     { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', requiresAdmin: true }
 ];
+
 const orders = ref([]);
 const showDetailModal = ref(false);
 const selectedOrder = ref(null);
@@ -247,10 +219,7 @@ const orderDetails = ref([]);
 
 const searchQuery = ref('');
 const filterDate = ref('');
-
 const paymentMethods = ref(['COD', 'CHUYEN_KHOAN_QR', 'VNPAY', 'THE_TIN_DUNG']);
-const showAddPaymentModal = ref(false);
-const newMethodName = ref('');
 
 const filteredOrders = computed(() => {
   return orders.value.filter(order => {
@@ -274,6 +243,7 @@ const formatPrice = (value) => {
   if (!value) return '0 ₫';
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
+
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
@@ -311,23 +281,6 @@ const loadOrders = async () => {
   }
 };
 
-const changePaymentMethod = async (id, hinhThucMoi) => {
-  try {
-    const res = await fetch(`http://localhost:8080/api/don-hang/${id}/cap-nhat-thanh-toan?phuongThucMoi=${hinhThucMoi}`, {
-      method: 'PATCH'
-    });
-
-    if (res.ok) {
-      alert("Cập nhật phương thức thanh toán của đơn hàng thành công!");
-      loadOrders();
-    } else {
-      alert("Lỗi cập nhật backend: " + await res.text());
-    }
-  } catch (error) {
-    alert("Không thể đồng bộ hình thức thanh toán mới lên máy chủ.");
-  }
-};
-
 const handleActionSelect = (order, event) => {
   const selectedAction = event.target.value;
   if (!selectedAction) return;
@@ -345,32 +298,23 @@ const handleActionSelect = (order, event) => {
   event.target.value = "";
 };
 
-// ĐÃ SỬA: ÉP TRUYỀN THAM SỐ THANH TOÁN TRỰC TIẾP TỪ FRONTEND ĐỂ KHÔNG SỢ LỆCH LOGIC
 const changeOrderStatus = async (id, statusMoi) => {
   let thongBao = "Bạn có chắc muốn thực hiện hành động này?";
   let url = `http://localhost:8080/api/don-hang/${id}/trang-thai?trangThaiMoi=${statusMoi}`;
 
-  if (statusMoi === 'DANG_GIAO') {
-    thongBao = "Xác nhận chuyển đơn hàng sang trạng thái [ĐANG GIAO]?";
-  }
+  if (statusMoi === 'DANG_GIAO') thongBao = "Xác nhận chuyển đơn hàng sang [ĐANG GIAO]?";
   if (statusMoi === 'DA_GIAO') {
-    thongBao = "Xác nhận đã giao hàng thành công?\nHệ thống sẽ tự động chuyển trạng thái thanh toán thành [ĐÃ THANH TOÁN].";
-    // Ép thêm param trực tiếp lên URL để Backend nhận lệnh xử lý luôn
+    thongBao = "Xác nhận đã giao hàng thành công?\nHệ thống sẽ tự động cập nhật thanh toán thành [ĐÃ THANH TOÁN].";
     url += `&trangThaiThanhToanMoi=DA_THANH_TOAN`;
   }
-  if (statusMoi === 'DA_HUY') {
-    thongBao = "CẢNH BÁO: Bạn có chắc chắn muốn [HỦY] đơn hàng này?";
-  }
+  if (statusMoi === 'DA_HUY') thongBao = "CẢNH BÁO: Bạn có chắc chắn muốn [HỦY] đơn hàng này?";
 
   if (!confirm(thongBao)) return;
 
   try {
-    const res = await fetch(url, {
-      method: 'PATCH'
-    });
-
+    const res = await fetch(url, { method: 'PATCH' });
     if (res.ok) {
-      alert("Cập nhật trạng thái đơn đặt hàng thành công!");
+      alert("Cập nhật trạng thái đơn hàng thành công!");
       loadOrders(); 
     } else {
       alert("Lỗi: " + await res.text());
@@ -388,47 +332,16 @@ const viewOrderDetails = async (order) => {
     if (res.ok) {
       orderDetails.value = await res.json();
     } else {
-      orderDetails.value = [{ maChiTietDonHang: 1, maSanPham: 99, soLuong: 1, giaLucMua: order.tongTien }];
+      orderDetails.value = [{ maChiTietDonHang: 1, maSanPham: 2, soLuong: 1, giaLucMua: order.tongTien }];
     }
   } catch (error) {
-    orderDetails.value = [{ maChiTietDonHang: 1, maSanPham: 99, soLuong: 1, giaLucMua: order.tongTien }];
+    orderDetails.value = [{ maChiTietDonHang: 1, maSanPham: 2, soLuong: 1, giaLucMua: order.tongTien }];
   }
 };
 
 const closeDetailModal = () => {
   showDetailModal.value = false;
   selectedOrder.value = null;
-};
-
-const openAddPaymentModal = () => {
-  newMethodName.value = '';
-  showAddPaymentModal.value = true;
-};
-const closeAddPaymentModal = () => {
-  showAddPaymentModal.value = false;
-};
-const addNewPaymentMethod = () => {
-  let valueTrimmed = newMethodName.value.trim().toUpperCase();
-  valueTrimmed = valueTrimmed.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
-  valueTrimmed = valueTrimmed.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
-  valueTrimmed = valueTrimmed.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
-  valueTrimmed = valueTrimmed.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
-  valueTrimmed = valueTrimmed.replace(/Ù|Ú|Ụ|Ủ|U|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
-  valueTrimmed = valueTrimmed.replace(/Ỳ|Ý|Y|Ỷ|Ỹ/g, "Y");
-  valueTrimmed = valueTrimmed.replace(/Đ/g, "D");
-  valueTrimmed = valueTrimmed.replace(/[^A-Z0-9\s]/g, '').replace(/\s+/g, '_');
-
-  if (!valueTrimmed) {
-    alert("Vui lòng điền tên hình thức thanh toán mới!");
-    return;
-  }
-  if (paymentMethods.value.includes(valueTrimmed)) {
-    alert("Hình thức thanh toán này đã tồn tại trong danh sách!");
-    return;
-  }
-  paymentMethods.value.push(valueTrimmed);
-  showAddPaymentModal.value = false;
-  alert(`Đã thêm thành công [${valueTrimmed}] vào danh sách lựa chọn!`);
 };
 
 const handleLogout = () => {

@@ -45,9 +45,23 @@ public class DonHang {
     @Column(name = "TrangThaiThanhToan")
     private String trangThaiThanhToan;
 
-    @Column(name = "NgayTao", insertable = false, updatable = false)
+    @Column(name = "GhiChuDonHang")
+    private String ghiChuDonHang;
+
+    @Column(name = "NgayTao")
     private LocalDateTime ngayTao;
 
-    @Column(name = "NgayCapNhat", insertable = false, updatable = false)
+    @Column(name = "NgayCapNhat")
     private LocalDateTime ngayCapNhat;
+
+    @PrePersist
+    protected void onCreate() {
+        this.ngayTao = LocalDateTime.now();
+        this.ngayCapNhat = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.ngayCapNhat = LocalDateTime.now();
+    }
 }

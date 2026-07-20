@@ -46,7 +46,7 @@
             <h1 class="product-title">{{ product.tenSanPham }}</h1>
 
             <div class="product-price">
-              {{ product.giaBan > 100000000 ? 'Liên hệ để biết thêm chi tiết' : formatPrice(product.giaBan) }}
+              {{ product.giaBan > 400000000 ? 'Giá chờ hàng' : formatPrice(product.giaBan) }}
             </div>
 
             <div class="title-divider"></div>
@@ -75,19 +75,26 @@
               </li>
             </ul>
 
-            <div class="action-buttons">
-              <button v-if="product.giaBan && product.giaBan <= 100000000" class="btn-primary" @click="addToCart">
-                THÊM VÀO GIỎ HÀNG
-              </button>
+            <div class="action-buttons-group" style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
+              <div class="primary-actions-row" style="display: flex; gap: 15px; width: 100%;">
+                <div style="flex: 1;">
+                  <ThanhToan :maSanPham="product.maSanPham" :soLuong="quantity" />
+                </div>
+                <div style="flex: 1;" v-if="product.giaBan && product.giaBan <= 400000000">
+                  <button class="btn-primary" @click="addToCart" style="width: 100%; margin: 0; height: 100%;">
+                    THÊM VÀO GIỎ HÀNG
+                  </button>
+                </div>
+              </div>
 
-              <button class="btn-secondary" @click="contactVVIP">
-                LIÊN HỆ TƯ VẤN VVIP
-              </button>
-
-              <!-- MỚI: NÚT ĐẶT LỊCH HẸN XEM SẢN PHẨM -->
-              <button class="btn-booking" @click="openBookingModal">
-                📅 ĐẶT LỊCH XEM THỰC TẾ
-              </button>
+              <div class="secondary-action-row" style="display: flex; gap: 15px; width: 100%;">
+                <button class="btn-secondary" @click="contactVVIP" style="flex: 1; margin: 0;">
+                  LIÊN HỆ TƯ VẤN VVIP
+                </button>
+                <button class="btn-booking" @click="openBookingModal" style="flex: 1; margin: 0;">
+                  📅 ĐẶT LỊCH XEM THỰC TẾ
+                </button>
+              </div>
             </div>
 
             <div class="accordion-group">
@@ -177,7 +184,7 @@
       </div>
     </main>
 
-    <!-- MỚI: MODAL ĐẶT LỊCH HẸN -->
+    <!-- MODAL ĐẶT LỊCH HẸN -->
     <div v-if="showBookingModal" class="booking-modal-overlay">
       <div class="booking-modal-content">
         <div class="modal-header">
@@ -244,6 +251,7 @@ import { useRoute, useRouter } from 'vue-router'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
 import Info from '../info.vue'
+import ThanhToan from './ThanhToan.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -259,21 +267,6 @@ const formatPrice = (value) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 }
 
-// Lấy khóa giỏ hàng
-const getCartKey = () => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-        try {
-            const user = JSON.parse(userStr);
-            return user.maNguoiDung ? `cart_${user.maNguoiDung}` : 'cart_guest';
-        } catch (e) {
-            return 'cart_guest';
-        }
-    }
-    return 'cart_guest';
-}
-
-// Logic giỏ hàng
 const addToCart = async () => {
   const userStr = localStorage.getItem('user');
   if (!userStr) {
@@ -308,7 +301,6 @@ const addToCart = async () => {
   }
 }
 
-// Logic liên hệ
 const contactVVIP = () => {
   router.push({
     path: '/tu-van',
@@ -319,9 +311,8 @@ const contactVVIP = () => {
   })
 }
 
-// ================= HÀM ĐẶT LỊCH (MỚI) =================
 const showBookingModal = ref(false)
-const minDate = ref(new Date().toISOString().split('T')[0]) // Chặn chọn ngày trong quá khứ
+const minDate = ref(new Date().toISOString().split('T')[0])
 
 const bookingData = ref({
   tenKhachHang: '',
@@ -330,11 +321,10 @@ const bookingData = ref({
   ngayHen: '',
   thoiGian: '',
   ghiChu: '',
-  idSanPham: null // <--- Đã sửa ở đây
+  idSanPham: null
 })
 
 const openBookingModal = () => {
-  // Lấy thông tin user nếu đã đăng nhập để tự điền form
   const userStr = localStorage.getItem('user');
   if (userStr) {
     try {
@@ -360,7 +350,6 @@ const submitBooking = async () => {
     if (response.ok) {
       alert('Đăng ký lịch hẹn thành công! Velora sẽ liên hệ với bạn trong thời gian sớm nhất.');
       showBookingModal.value = false;
-      // Reset form (giữ lại thông tin cá nhân cơ bản)
       bookingData.value.ngayHen = '';
       bookingData.value.thoiGian = '';
       bookingData.value.ghiChu = '';
@@ -372,7 +361,6 @@ const submitBooking = async () => {
     alert('Không thể kết nối đến máy chủ. Vui lòng thử lại sau!');
   }
 }
-// ======================================================
 
 const scrollCarousel = (direction) => {
   if (carouselRef.value) {
@@ -414,6 +402,4 @@ onMounted(() => {
 
 <style scoped>
 @import "../CSS/User/ChiTietSanPham.css";
-
-
 </style>

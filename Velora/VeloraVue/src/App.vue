@@ -1,8 +1,8 @@
 <template>
   <div id="app">
     <router-view />
+    <ChatbotAI />
   </div>
-  <ChatbotAI />
 </template>
 
 <script setup>
@@ -12,7 +12,8 @@ import ChatbotAI from './components/AI/ChatBotAI.vue'
 <style>
 body {
   margin: 0;
-  background-color: #0d0d0d;
+  background-color: #f4f1ea;
   font-family: sans-serif;
+  color: #333;
 }
 </style>
