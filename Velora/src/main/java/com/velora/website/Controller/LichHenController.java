@@ -1,7 +1,9 @@
 package com.velora.website.Controller;
 
 import com.velora.website.Entity.LichHen;
+import com.velora.website.Entity.SanPham; // Bổ sung import Entity SanPham
 import com.velora.website.Repository.LichHenRepository;
+import com.velora.website.Repository.SanPhamRepository; // Bổ sung import Repository SanPham
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,9 +18,12 @@ import java.util.HashMap;
 public class LichHenController {
 
     private final LichHenRepository lichHenRepository;
+    private final SanPhamRepository sanPhamRepository; // Khai báo thêm SanPhamRepository
 
-    public LichHenController(LichHenRepository lichHenRepository) {
+    // Cập nhật constructor để inject SanPhamRepository
+    public LichHenController(LichHenRepository lichHenRepository, SanPhamRepository sanPhamRepository) {
         this.lichHenRepository = lichHenRepository;
+        this.sanPhamRepository = sanPhamRepository;
     }
 
     // API Đặt lịch hẹn - Trả về bản đồ dữ liệu chứa ID tường minh
@@ -34,8 +39,11 @@ public class LichHenController {
             lichHen.setGhiChu((String) payload.get("ghiChu"));
             lichHen.setTrangThai(0); 
 
+            // ĐÃ SỬA: Tìm Sản phẩm từ DB và gán vào Lịch Hẹn
             if (payload.get("idSanPham") != null) {
-                lichHen.setIdSanPham(Integer.parseInt(payload.get("idSanPham").toString()));
+                Integer sanPhamId = Integer.parseInt(payload.get("idSanPham").toString());
+                SanPham sanPham = sanPhamRepository.findById(sanPhamId).orElse(null);
+                lichHen.setSanPham(sanPham); // Truyền Object SanPham vào thay vì số Integer
             }
 
             if (payload.get("ngayHen") != null) {

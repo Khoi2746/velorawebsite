@@ -330,7 +330,7 @@ const bookingData = ref({
   ngayHen: '',
   thoiGian: '',
   ghiChu: '',
-  sanPham: { maSanPham: null }
+  idSanPham: null // <--- Đã sửa ở đây
 })
 
 const openBookingModal = () => {
@@ -345,7 +345,7 @@ const openBookingModal = () => {
     } catch(e) { console.error(e) }
   }
   
-  bookingData.value.sanPham.maSanPham = product.value.maSanPham;
+  bookingData.value.idSanPham = product.value.maSanPham; 
   showBookingModal.value = true;
 }
 

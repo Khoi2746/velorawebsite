@@ -26,12 +26,34 @@
             </header>
 
             <!-- BỘ LỌC & TÌM KIẾM -->
-            <div class="filter-wrapper">
-                <div class="search-box">
+            <div class="filter-wrapper custom-filter-layout">
+                <!-- Tìm kiếm Text -->
+                <div class="search-box custom-search">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" v-model="searchQuery" placeholder="Tìm kiếm theo tên khách hàng hoặc SĐT..." />
+                    <input type="text" v-model="searchQuery" placeholder="Tìm khách hàng, SĐT..." />
                 </div>
-                <button style="margin-left: auto;" class="btn-add" @click="fetchLichHen">
+
+                <!-- Lọc theo Trạng thái -->
+                <select v-model="filterStatus" class="filter-input">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="0">Chờ xác nhận</option>
+                    <option value="1">Đã xác nhận</option>
+                    <option value="2">Hoàn thành</option>
+                    <option value="3">Đã hủy</option>
+                </select>
+
+                <!-- Lọc theo Ngày -->
+                <input type="date" v-model="filterDate" class="filter-input" title="Lọc theo ngày" />
+
+                <!-- Lọc theo Giờ -->
+                <select v-model="filterTime" class="filter-input" title="Lọc theo khung giờ">
+                    <option value="">Tất cả khung giờ</option>
+                    <option value="09:00 - 11:00">09:00 - 11:00</option>
+                    <option value="13:00 - 15:00">13:00 - 15:00</option>
+                    <option value="15:00 - 17:00">15:00 - 17:00</option>
+                </select>
+
+                <button class="btn-add custom-btn" @click="resetFilters">
                     <i class="fa-solid fa-rotate-right"></i> Làm mới
                 </button>
             </div>
@@ -55,9 +77,34 @@
                             <td>#{{ item.id }}</td>
                             <td class="category-title">{{ item.tenKhachHang || 'N/A' }}</td>
                             <td>{{ item.soDienThoai || 'N/A' }}</td>
-                            <td class="category-desc">
-                                {{ item.sanPham ? item.sanPham.tenSanPham : 'Sản phẩm không xác định' }}
+                            
+                            <!-- CỘT HIỂN THỊ SẢN PHẨM -->
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <!-- Ảnh sản phẩm -->
+                                    <img 
+                                        v-if="item.sanPham?.hinhAnh || item.hinhAnhSanPham" 
+                                        :src="item.sanPham?.hinhAnh || item.hinhAnhSanPham" 
+                                        alt="Product" 
+                                        style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;"
+                                    />
+                                    <!-- Hiển thị icon hộp quà nếu sản phẩm không có ảnh -->
+                                    <div v-else style="width: 45px; height: 45px; background: #f3f4f6; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
+                                        <i class="fa-solid fa-box"></i>
+                                    </div>
+                                    
+                                    <!-- Tên sản phẩm & Giá -->
+                                    <div style="display: flex; flex-direction: column; text-align: left;">
+                                        <span style="font-weight: 600; color: #374151; font-size: 14px;">
+                                            {{ item.sanPham?.tenSanPham || item.tenSanPham || 'Không xác định' }}
+                                        </span>
+                                        <small v-if="item.sanPham?.gia || item.giaSanPham" style="color: #d4af37; font-weight: 500;">
+                                            {{ (item.sanPham?.gia || item.giaSanPham).toLocaleString('vi-VN') }} đ
+                                        </small>
+                                    </div>
+                                </div>
                             </td>
+
                             <td>
                                 <strong>{{ formatDate(item.ngayHen) }}</strong><br />
                                 <small style="color: #888">{{ item.thoiGian || '' }}</small>
@@ -68,15 +115,46 @@
                                 </span>
                             </td>
                             <td>
-                                <div class="actions">
-                                    <button class="btn-action edit" title="Cập nhật trạng thái" @click="openEditModal(item)">
+                                <div class="actions" style="display: flex; gap: 8px; justify-content: center;">
+                                    <!-- Nút Xác nhận -->
+                                    <button 
+                                        v-if="item.trangThai === 0" 
+                                        class="btn-action confirm-btn" 
+                                        title="Xác nhận lịch hẹn" 
+                                        @click="quickUpdateStatus(item.id, 1)"
+                                    >
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+
+                                    <!-- Nút Hoàn thành -->
+                                    <button 
+                                        v-if="item.trangThai === 1" 
+                                        class="btn-action complete-btn" 
+                                        title="Đã hoàn thành" 
+                                        @click="quickUpdateStatus(item.id, 2)"
+                                    >
+                                        <i class="fa-solid fa-check-double"></i>
+                                    </button>
+
+                                    <!-- Nút Từ chối/Hủy -->
+                                    <button 
+                                        v-if="item.trangThai === 0 || item.trangThai === 1" 
+                                        class="btn-action reject-btn" 
+                                        title="Từ chối lịch hẹn" 
+                                        @click="quickUpdateStatus(item.id, 3)"
+                                    >
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+
+                                    <!-- Nút Chỉnh sửa -->
+                                    <button class="btn-action edit" title="Chi tiết / Cập nhật" @click="openEditModal(item)">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
                                 </div>
                             </td>
                         </tr>
                         <tr v-if="filteredLichHen.length === 0">
-                            <td colspan="7" class="empty-state">Không tìm thấy dữ liệu lịch hẹn nào.</td>
+                            <td colspan="7" class="empty-state">Không tìm thấy dữ liệu phù hợp với bộ lọc.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -157,7 +235,6 @@ const allMenuItems = [
 
 const filteredMenuItems = computed(() => {
     if (!userRole.value) return [];
-    
     return allMenuItems.filter(item => item.roles.includes(userRole.value));
 });
 
@@ -166,16 +243,22 @@ const handleLogout = () => {
     window.location.href = '/dang-nhap';
 };
 
-// ================= LOGIC DỮ LIỆU LỊCH HẸN =================
+// ================= LOGIC DỮ LIỆU LỊCH HẸN & BỘ LỌC =================
 const danhSachLichHen = ref([]);
 const searchQuery = ref('');
+const filterStatus = ref('');
+const filterDate = ref('');
+const filterTime = ref('');
 
 const fetchLichHen = async () => {
     try {
         const response = await fetch('http://localhost:8080/api/lich-hen/admin/danh-sach');
         if (response.ok) {
             const data = await response.json();
-            // An toàn: Kiểm tra nếu data là mảng mới gọi hàm sort
+            
+            // THÊM DÒNG NÀY VÀO ĐỂ XEM DATA BACKEND TRẢ VỀ LÀ GÌ
+            console.log("Dữ liệu Lịch Hẹn từ API:", data[0]); 
+            
             if (Array.isArray(data)) {
                 danhSachLichHen.value = data.sort((a, b) => b.id - a.id);
             } else {
@@ -191,19 +274,74 @@ onMounted(() => {
     fetchLichHen();
 });
 
+const resetFilters = () => {
+    searchQuery.value = '';
+    filterStatus.value = '';
+    filterDate.value = '';
+    filterTime.value = '';
+    fetchLichHen();
+};
+
 const filteredLichHen = computed(() => {
     if (!Array.isArray(danhSachLichHen.value)) return [];
-    if (!searchQuery.value) return danhSachLichHen.value;
     
-    const lowerQuery = searchQuery.value.toLowerCase();
     return danhSachLichHen.value.filter(item => {
+        // 1. Lọc theo Từ khóa
+        const lowerQuery = searchQuery.value.toLowerCase();
         const ten = item.tenKhachHang ? item.tenKhachHang.toLowerCase() : '';
         const sdt = item.soDienThoai ? item.soDienThoai : '';
-        return ten.includes(lowerQuery) || sdt.includes(lowerQuery);
+        const matchSearch = !searchQuery.value || ten.includes(lowerQuery) || sdt.includes(lowerQuery);
+
+        // 2. Lọc theo Trạng thái
+        const matchStatus = filterStatus.value === '' || item.trangThai === parseInt(filterStatus.value);
+
+        // 3. Lọc theo Ngày
+        let matchDate = true;
+        if (filterDate.value) {
+            let itemDateStr = '';
+            if (Array.isArray(item.ngayHen) && item.ngayHen.length >= 3) {
+                const year = item.ngayHen[0];
+                const month = String(item.ngayHen[1]).padStart(2, '0');
+                const day = String(item.ngayHen[2]).padStart(2, '0');
+                itemDateStr = `${year}-${month}-${day}`;
+            } else if (typeof item.ngayHen === 'string') {
+                itemDateStr = item.ngayHen.split('T')[0];
+            }
+            matchDate = (itemDateStr === filterDate.value);
+        }
+
+        // 4. Lọc theo Khung giờ
+        let matchTime = true;
+        if (filterTime.value) {
+            matchTime = item.thoiGian === filterTime.value;
+        }
+
+        return matchSearch && matchStatus && matchDate && matchTime;
     });
 });
 
-// ================= LOGIC MODAL & TRẠNG THÁI =================
+// ================= LOGIC CẬP NHẬT NHANH =================
+const quickUpdateStatus = async (id, newTrangThai) => {
+    const confirmMessage = newTrangThai === 3 ? "Bạn có chắc chắn muốn TỪ CHỐI lịch hẹn này?" : "Bạn có chắc chắn muốn cập nhật trạng thái?";
+    if (!confirm(confirmMessage)) return;
+
+    try {
+        const response = await fetch(`http://localhost:8080/api/lich-hen/admin/cap-nhat-trang-thai/${id}?trangThai=${newTrangThai}`, {
+            method: 'PUT'
+        });
+        
+        if (response.ok) {
+            fetchLichHen();
+        } else {
+            alert('Cập nhật trạng thái thất bại từ Server.');
+        }
+    } catch (error) {
+        console.error("Lỗi cập nhật nhanh:", error);
+        alert('Không thể kết nối đến server.');
+    }
+};
+
+// ================= LOGIC MODAL =================
 const showModal = ref(false);
 const selectedLichHen = ref({});
 
@@ -231,7 +369,7 @@ const submitUpdateStatus = async () => {
     }
 };
 
-// ================= TIỆN ÍCH HIỂN THỊ =================
+// ================= TIỆN ÍCH =================
 const formatDate = (dateData) => {
     if (!dateData) return 'Chưa xác định';
     if (Array.isArray(dateData) && dateData.length >= 3) {
@@ -270,4 +408,5 @@ const getStatusClass = (status) => {
 
 <style scoped>
 @import "../CSS/Admin/AdminLichHen.css";
+
 </style>

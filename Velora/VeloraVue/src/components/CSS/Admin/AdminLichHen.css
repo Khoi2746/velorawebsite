@@ -191,3 +191,161 @@ input:focus, textarea:focus, .status-select:focus { border-color: #d1aa68; outli
 .status-info { background-color: #e3f2fd; color: #1976d2; }    
 .status-success { background-color: #e8f5e9; color: #388e3c; } 
 .status-danger { background-color: #ffebee; color: #c62828; }  
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Nút Xác nhận (Màu xanh dương) */
+.confirm-btn {
+    background-color: #e0f2fe;
+    color: #0284c7;
+}
+.confirm-btn:hover {
+    background-color: #bae6fd;
+    color: #0369a1;
+}
+
+/* Nút Hoàn thành (Màu xanh lá) */
+.complete-btn {
+    background-color: #dcfce7;
+    color: #059669;
+}
+.complete-btn:hover {
+    background-color: #bbf7d0;
+    color: #047857;
+}
+
+/* Nút Từ chối / Hủy (Màu đỏ) */
+.reject-btn {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+.reject-btn:hover {
+    background-color: #fecaca;
+    color: #b91c1c;
+}
+
+/* Nút Edit (Màu xám nhạt) - Đã tồn tại nhưng bổ sung để đồng bộ */
+.btn-action.edit {
+    background-color: #f3f4f6;
+    color: #4b5563;
+}
+.btn-action.edit:hover {
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
+/* === CSS BỔ SUNG ĐỂ SẮP XẾP BỘ LỌC NẰM NGANG === */
+.custom-filter-layout {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 15px !important;
+    margin-bottom: 20px;
+}
+
+.custom-search {
+    flex: 1;
+    min-width: 250px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0 15px;
+}
+
+.custom-search input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    margin-left: 10px;
+}
+
+.filter-input {
+    padding: 0 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    color: #374151;
+    background-color: #fff;
+    height: 42px;
+    width: auto !important;
+    min-width: 160px;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.filter-input:focus {
+    border-color: #d4af37;
+}
+
+.custom-btn {
+    height: 42px;
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* === CSS BỔ SUNG CHO CÁC NÚT THAO TÁC === */
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease-in-out;
+}
+
+.confirm-btn {
+    background-color: #e0f2fe;
+    color: #0284c7;
+}
+.confirm-btn:hover {
+    background-color: #bae6fd;
+    color: #0369a1;
+}
+
+.complete-btn {
+    background-color: #dcfce7;
+    color: #059669;
+}
+.complete-btn:hover {
+    background-color: #bbf7d0;
+    color: #047857;
+}
+
+.reject-btn {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+.reject-btn:hover {
+    background-color: #fecaca;
+    color: #b91c1c;
+}
+
+.btn-action.edit {
+    background-color: #f3f4f6;
+    color: #4b5563;
+}
+.btn-action.edit:hover {
+    background-color: #e5e7eb;
+    color: #374151;
+}

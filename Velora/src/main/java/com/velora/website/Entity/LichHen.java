@@ -14,7 +14,7 @@ import java.time.LocalDate;
 public class LichHen {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Bắt buộc để lấy ID tự tăng
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "ten_khach_hang", nullable = false)
@@ -35,8 +35,10 @@ public class LichHen {
     @Column(name = "ghi_chu")
     private String ghiChu;
 
-    @Column(name = "id_san_pham")
-    private Integer idSanPham; 
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_san_pham")
+    private SanPham sanPham; 
 
     @Column(name = "trang_thai")
     private Integer trangThai = 0;
