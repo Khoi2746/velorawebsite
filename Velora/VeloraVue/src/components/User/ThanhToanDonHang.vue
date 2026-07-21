@@ -2,7 +2,7 @@
   <div class="checkout-page-wrapper">
     <Header />
 
-    <main class="checkout-main-content" v-if="!loading && product">
+    <main class="checkout-main-content" v-if="!loading && (product || cartList.length > 0)">
       <div class="section-header">
         <h2>THỦ TỤC <span class="gold">THANH TOÁN</span></h2>
         <div class="header-divider"><span class="diamond"></span></div>
@@ -11,8 +11,44 @@
       <div class="container checkout-container">
         <div class="checkout-grid">
           
+          <!-- BÊN TRÁI: HIỂN THỊ DANH SÁCH SẢN PHẨM CẦN THANH TOÁN -->
           <div class="checkout-left-section">
-            <div class="product-preview-card">
+            
+            <!-- TH1: THANH TOÁN TỪ GIỎ HÀNG -->
+            <div v-if="isFromCart" class="cart-summary-list">
+              <h3 class="section-title-sub">SẢN PHẨM TRONG ĐƠN HÀNG ({{ cartList.length }})</h3>
+              <div class="cart-checkout-item" v-for="item in cartList" :key="item.maGioHang">
+                <img 
+                  :src="item.anhDaiDien && item.anhDaiDien.startsWith('http') ? item.anhDaiDien : '/img/' + (item.anhDaiDien || '')" 
+                  :alt="item.tenSanPham" 
+                  class="cart-item-thumb"
+                />
+                <div class="cart-item-info">
+                  <h4 class="cart-item-name">{{ item.tenSanPham }}</h4>
+                  <p class="cart-item-meta">Số lượng: <strong>x{{ item.soLuong }}</strong></p>
+                  <p class="cart-item-price">{{ formatPrice(item.giaBan * item.soLuong) }}</p>
+                </div>
+              </div>
+
+              <!-- HIỂN THỊ TÍNH TIỀN CHO GIỎ HÀNG -->
+              <div class="total-calculation-box">
+                <div class="calc-row">
+                  <span>Tạm tính giỏ hàng:</span>
+                  <span>{{ formatPrice(subTotalCart) }}</span>
+                </div>
+                <div class="calc-row discount-text" v-if="appliedVoucher">
+                  <span>Voucher giảm giá ({{ appliedVoucher.phanTramGiam }}%):</span>
+                  <span>- {{ formatPrice(discountAmount) }}</span>
+                </div>
+                <div class="calc-row total-final-row">
+                  <span>Tổng thanh toán:</span>
+                  <span class="gold">{{ formatPrice(finalTotalAmount) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- TH2: THANH TOÁN MUA NGAY 1 SẢN PHẨM -->
+            <div v-else-if="product" class="product-preview-card">
               <div class="image-box">
                 <img 
                   :src="product.anhDaiDien && product.anhDaiDien.startsWith('http') ? product.anhDaiDien : '/img/' + (product.anhDaiDien || '')" 
@@ -26,8 +62,10 @@
                 <p class="product-total-price">Tổng thanh toán: <span class="gold">{{ formatPrice(product.giaBan * quantity) }}</span></p>
               </div>
             </div>
+
           </div>
 
+          <!-- BÊN PHẢI: FORM ĐIỀN THÔNG TIN VÀ PHƯƠNG THỨC THANH TOÁN -->
           <div class="checkout-right-section">
             <div class="payment-methods-group">
               <label class="section-label">CHỌN PHƯƠNG THỨC THANH TOÁN</label>
@@ -122,13 +160,13 @@
 
     <main class="checkout-main-content loading-state" v-else-if="loading">
       <div class="loader"></div>
-      <p>Đang lập cấu trúc đơn hàng bảo mật...</p>
+      <p>Đang thiết lập cấu trúc đơn hàng bảo mật...</p>
     </main>
 
     <main class="checkout-main-content error-state" v-else>
       <div class="container text-center" style="padding: 60px 0; text-align: center;">
-        <h3 style="color: #3e332e; margin-bottom: 15px;">Không tìm thấy thông tin sản phẩm</h3>
-        <p style="color: #666; margin-bottom: 20px;">Vui lòng quay lại danh sách sản phẩm để chọn món đồ bạn yêu thích.</p>
+        <h3 style="color: #3e332e; margin-bottom: 15px;">Không tìm thấy thông tin đơn hàng</h3>
+        <p style="color: #666; margin-bottom: 20px;">Vui lòng kiểm tra lại giỏ hàng hoặc danh sách sản phẩm.</p>
         <button class="btn-submit-order" style="max-width: 250px; margin: 0 auto;" @click="router.push('/dong-ho-co-san')">QUAY LẠI CỬA HÀNG</button>
       </div>
     </main>
@@ -138,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Header from '../../components/Header.vue';
 import Footer from '../../components/Footer.vue';
@@ -147,9 +185,13 @@ const route = useRoute();
 const router = useRouter();
 
 const product = ref(null);
+const cartList = ref([]);
+const isFromCart = ref(false);
 const quantity = ref(1);
 const loading = ref(true);
 const hinhThucThanhToan = ref('CHUYEN_KHOAN_QR'); 
+
+const appliedVoucher = ref(null);
 
 const provinces = ref([]);
 const districts = ref([]);
@@ -172,6 +214,24 @@ const formatPrice = (value) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
+// ================= TÍNH TIỀN CHO GIỎ HÀNG =================
+const subTotalCart = computed(() => {
+  return cartList.value.reduce((sum, item) => sum + (item.giaBan * item.soLuong), 0);
+});
+
+const discountAmount = computed(() => {
+  if (!appliedVoucher.value) return 0;
+  return subTotalCart.value * (appliedVoucher.value.phanTramGiam / 100);
+});
+
+const finalTotalAmount = computed(() => {
+  if (isFromCart.value) {
+    return subTotalCart.value - discountAmount.value;
+  }
+  return product.value ? product.value.giaBan * quantity.value : 0;
+});
+
+// API Tỉnh Thành Việt Nam
 const fetchProvinces = async () => {
   try {
     const res = await fetch('https://provinces.open-api.vn/api/p/');
@@ -209,43 +269,69 @@ const onDistrictChange = async () => {
   }
 };
 
+// ================= KHỞI TẠO DỮ LIỆU ĐƠN HÀNG =================
 const khoiTaoDonHang = async () => {
   loading.value = true;
-  const productId = route.query.buyNowId;
-  const qtyParam = route.query.qty;
-
-  if (!productId) {
-    alert('Không tìm thấy thông tin kiệt tác cần thanh toán!');
-    router.push('/dong-ho-co-san');
-    return;
+  
+  const voucherStr = localStorage.getItem('activeVoucher');
+  if (voucherStr) {
+    try { appliedVoucher.value = JSON.parse(voucherStr); } catch (e) {}
   }
 
-  quantity.value = qtyParam ? parseInt(qtyParam) : 1;
+  const userStr = localStorage.getItem('user');
+  let user = null;
+  if (userStr) {
+    try {
+      user = JSON.parse(userStr);
+      formOrder.value.hoTen = user.hoTen || user.tenNguoiDung || '';
+      formOrder.value.email = user.email || '';
+      formOrder.value.soDienThoai = user.soDienThoai || '';
+    } catch(e) { console.error(e); }
+  }
 
-  try {
-    const res = await fetch(`http://localhost:8080/api/san-pham/${productId}`);
-    if (res.ok) {
-      product.value = await res.json();
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          formOrder.value.hoTen = user.hoTen || '';
-          formOrder.value.email = user.email || '';
-          formOrder.value.soDienThoai = user.soDienThoai || '';
-        } catch(e) { console.error(e); }
+  if (route.query.from === 'cart') {
+    isFromCart.value = true;
+    const userId = user ? user.maNguoiDung : 3;
+    try {
+      const res = await fetch(`http://localhost:8080/api/gio-hang/${userId}`);
+      if (res.ok) {
+        cartList.value = await res.json();
       }
+    } catch (error) {
+      console.error("Lỗi lấy danh sách giỏ hàng:", error);
+    } finally {
+      loading.value = false;
     }
-  } catch (error) {
-    console.error("Lỗi lấy sản phẩm:", error);
-  } finally {
-    loading.value = false;
+  } else {
+    isFromCart.value = false;
+    const productId = route.query.buyNowId;
+    const qtyParam = route.query.qty;
+
+    if (!productId) {
+      alert('Không tìm thấy thông tin sản phẩm thanh toán!');
+      router.push('/dong-ho-co-san');
+      return;
+    }
+
+    quantity.value = qtyParam ? parseInt(qtyParam) : 1;
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/san-pham/${productId}`);
+      if (res.ok) {
+        product.value = await res.json();
+      }
+    } catch (error) {
+      console.error("Lỗi lấy sản phẩm:", error);
+    } finally {
+      loading.value = false;
+    }
   }
 };
 
+// ================= XÁC NHẬN ĐẶT HÀNG =================
 const xacNhanDatHang = async () => {
   if (!selectedProvince.value || !selectedDistrict.value || !selectedWard.value) {
-    alert('Vui lòng chọn đầy đủ thông tin địa chỉ!');
+    alert('Vui lòng chọn đầy đủ thông tin địa chỉ giao hàng!');
     return;
   }
 
@@ -253,49 +339,71 @@ const xacNhanDatHang = async () => {
   const user = userStr ? JSON.parse(userStr) : { maNguoiDung: 3 };
 
   const diaChiHoanChinh = `${specificAddress.value.trim()}, ${selectedWard.value.name}, ${selectedDistrict.value.name}, ${selectedProvince.value.name}`;
-  const tongTienDonHang = product.value.giaBan * quantity.value;
   const maCodeNgauNhien = 'VELORA-' + Date.now();
 
-  const payload = {
-    maNguoiDung: user.maNguoiDung || 3,
-    maDonHangCode: maCodeNgauNhien, 
-    tenNguoiNhan: formOrder.value.hoTen,
-    soDienThoaiGiaoHang: formOrder.value.soDienThoai,
-    diaChiGiaoHang: diaChiHoanChinh,
-    phuongThucThanhToan: hinhThucThanhToan.value,
-    maSanPham: product.value.maSanPham,
-    soLuong: quantity.value,
-    tongTien: tongTienDonHang, 
-    ghiChuDonHang: orderNote.value.trim() 
-  };
+  let payload = {};
+  let endpoint = '';
+
+  if (isFromCart.value) {
+    // Đã chỉnh sửa full URL tới Backend port 8080
+    endpoint = 'http://localhost:8080/api/don-hang/dat-gio-hang';
+    payload = {
+      maNguoiDung: user.maNguoiDung || 3,
+      maDonHangCode: maCodeNgauNhien,
+      tenNguoiNhan: formOrder.value.hoTen,
+      soDienThoaiGiaoHang: formOrder.value.soDienThoai,
+      diaChiGiaoHang: diaChiHoanChinh,
+      phuongThucThanhToan: hinhThucThanhToan.value,
+      tongTien: finalTotalAmount.value,
+      ghiChuDonHang: orderNote.value.trim(),
+      maGiamGia: appliedVoucher.value ? appliedVoucher.value.maGiamGia : null
+    };
+  } else {
+    // Đã chỉnh sửa full URL tới Backend port 8080
+    endpoint = 'http://localhost:8080/api/don-hang/dat-ngay';
+    payload = {
+      maNguoiDung: user.maNguoiDung || 3,
+      maDonHangCode: maCodeNgauNhien, 
+      tenNguoiNhan: formOrder.value.hoTen,
+      soDienThoaiGiaoHang: formOrder.value.soDienThoai,
+      diaChiGiaoHang: diaChiHoanChinh,
+      phuongThucThanhToan: hinhThucThanhToan.value,
+      maSanPham: product.value.maSanPham,
+      soLuong: quantity.value,
+      tongTien: finalTotalAmount.value, 
+      ghiChuDonHang: orderNote.value.trim() 
+    };
+  }
 
   try {
-    const res = await fetch('http://localhost:8080/api/don-hang/dat-ngay', {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
     if (res.ok) {
+      localStorage.removeItem('activeVoucher');
+
       if (hinhThucThanhToan.value === 'CHUYEN_KHOAN_QR') {
         router.push({
           path: '/scan-qr',
           query: {
             code: maCodeNgauNhien,
-            amount: tongTienDonHang,
+            amount: finalTotalAmount.value,
             buyer: formOrder.value.hoTen,
             phone: formOrder.value.soDienThoai
           }
         });
       } else {
-        alert('Đặt hàng thành công! Hệ thống Velora đang xử lý đơn COD.');
+        alert('Đặt hàng thành công! Hệ thống Velora đang xử lý đơn hàng COD của bạn.');
         router.push('/don-hang'); 
       }
     } else {
       alert('Đặt hàng thất bại: ' + await res.text());
     }
   } catch (error) {
-    alert('Không thể kết nối đến máy chủ.');
+    alert('Không thể kết nối đến máy chủ Backend.');
   }
 };
 
@@ -318,6 +426,20 @@ onMounted(() => {
 .checkout-grid { display: flex; gap: 40px; align-items: flex-start; }
 .checkout-left-section { flex: 1; background: #fff; border: 1px solid #e0dcd5; padding: 30px; border-radius: 8px; }
 .checkout-right-section { flex: 1; background: #fff; border: 1px solid #e0dcd5; padding: 30px; border-radius: 8px; }
+
+.section-title-sub { font-size: 14px; font-weight: bold; color: #3e332e; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e0dcd5; letter-spacing: 1px; }
+.cart-checkout-item { display: flex; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #eee; align-items: center; }
+.cart-item-thumb { width: 65px; height: 65px; object-fit: cover; border-radius: 4px; border: 1px solid #eee; }
+.cart-item-info { flex: 1; }
+.cart-item-name { font-size: 14px; color: #3e332e; margin-bottom: 4px; }
+.cart-item-meta { font-size: 12px; color: #777; margin-bottom: 2px; }
+.cart-item-price { font-size: 14px; font-weight: bold; color: #d1aa68; }
+
+.total-calculation-box { background: #faf9f6; padding: 20px; border-radius: 6px; margin-top: 20px; border: 1px solid #f0efeb; }
+.calc-row { display: flex; justify-content: space-between; font-size: 14px; color: #555; margin-bottom: 10px; }
+.discount-text { color: #2e7d32; font-weight: 500; }
+.total-final-row { border-top: 1px solid #e0dcd5; padding-top: 12px; margin-top: 10px; font-size: 18px; font-weight: bold; color: #3e332e; }
+
 .preview-img { width: 100%; height: auto; display: block; object-fit: cover; }
 .product-summary { margin-top: 20px; border-top: 1px solid #f0efeb; padding-top: 15px; }
 .product-title { font-size: 20px; color: #3e332e; margin-bottom: 10px; }

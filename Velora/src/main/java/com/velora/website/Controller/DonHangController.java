@@ -22,7 +22,8 @@ import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/don-hang")
-@CrossOrigin(originPatterns = "*", allowCredentials = "true", allowedHeaders = "*") 
+// ĐÃ FIX: Dùng originPatterns = "*" thay cho origins = "*" để không bị đụng allowCredentials
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*", allowCredentials = "true") 
 @RequiredArgsConstructor 
 public class DonHangController {
 
@@ -38,9 +39,6 @@ public class DonHangController {
         return ResponseEntity.ok(donHangRepository.findByMaNguoiDungOrderByMaDonHangDesc(maNguoiDung));
     }
 
-    /**
-     * API Tra soát ngầm (Polling) từ Frontend Vue.js
-     */
     @GetMapping("/check-status")
     public ResponseEntity<?> checkDonHangPaidStatus(@RequestParam String code) {
         String codeClean = code.toUpperCase().replaceAll("[^A-Z0-9]", "");
@@ -72,9 +70,6 @@ public class DonHangController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
-    /**
-     * API WEBHOOK SEPAY - TỰ ĐỘNG DUYỆT TIỀN KHI QUÉT QR
-     */
     @PostMapping("/webhook-sepay")
     @Transactional
     public ResponseEntity<SepayResponse> receiveBankWebhook(@RequestBody SePayWebhookDto webhookData) {
@@ -88,11 +83,6 @@ public class DonHangController {
 
             if (moneyReceived > 0) {
                 String noiDung = webhookData.getContent();
-                System.out.println("==================================================");
-                System.out.println("--- [NHẬN TÍN HIỆU SEPAY REALTIME] ---");
-                System.out.println("Nội dung CK: " + noiDung);
-                System.out.println("Số tiền vào: " + moneyReceived);
-
                 if (noiDung != null) {
                     Pattern pattern = Pattern.compile("VELORA-?\\d+", Pattern.CASE_INSENSITIVE);
                     Matcher matcher = pattern.matcher(noiDung);
@@ -117,26 +107,18 @@ public class DonHangController {
                         }
 
                         if (donHangKhop != null) {
-                            // 1. Cập nhật trạng thái ĐÃ THANH TOÁN
                             donHangKhop.setTrangThaiThanhToan("DA_THANH_TOAN");
                             donHangKhop.setTrangThaiDonHang("CHO_XU_LY");
                             donHangRepository.save(donHangKhop);
 
-                            // 2. Trừ tồn kho sản phẩm
                             try {
                                 donHangRepository.truSoLuongTonKhoTheoMaDon(donHangKhop.getMaDonHang());
-                                System.out.println("📦 [KHO HÀNG] Đã tự động trừ số lượng tồn kho!");
                             } catch (Exception ex) {
                                 System.out.println("⚠️ Lỗi trừ kho: " + ex.getMessage());
                             }
-
-                            System.out.println("🎉 [SUCCESS] DUYỆT TIỀN THÀNH CÔNG CHO ĐƠN: " + donHangKhop.getMaDonHangCode());
-                        } else {
-                            System.out.println("❌ Không tìm thấy đơn hàng tương ứng trong SQL Server!");
                         }
                     }
                 }
-                System.out.println("==================================================");
             }
             return ResponseEntity.ok(new SepayResponse(true));
         } catch (Exception e) {
@@ -169,6 +151,9 @@ public class DonHangController {
         return ResponseEntity.ok("Cập nhật trạng thái đơn hàng thành công!");
     }
 
+    /**
+     * API 1: ĐẶT MUA NGAY 1 SẢN PHẨM
+     */
     @PostMapping("/dat-ngay")
     @Transactional
     public ResponseEntity<?> datHangNhanh(@RequestBody DatNgayRequest payload) {
@@ -209,7 +194,48 @@ public class DonHangController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi: " + e.getMessage());
         }
     }
+
+    /**
+     * API 2: ĐẶT HÀNG CHO TOÀN BỘ GIỎ HÀNG
+     */
+    @PostMapping("/dat-gio-hang")
+    @Transactional
+    public ResponseEntity<?> datHangTuGioHang(@RequestBody DatGioHangRequest payload) {
+        try {
+            if (payload.getMaNguoiDung() == null || payload.getMaNguoiDung() <= 0) payload.setMaNguoiDung(3);
+
+            DonHang donHang = new DonHang();
+            donHang.setMaNguoiDung(payload.getMaNguoiDung());
+            donHang.setMaDonHangCode(payload.getMaDonHangCode());
+            donHang.setTongTien(BigDecimal.valueOf(payload.getTongTien()));
+            donHang.setTenNguoiNhan(payload.getTenNguoiNhan());
+            donHang.setSoDienThoaiGiaoHang(payload.getSoDienThoaiGiaoHang());
+            donHang.setDiaChiGiaoHang(payload.getDiaChiGiaoHang());
+            donHang.setPhuongThucThanhToan(payload.getPhuongThucThanhToan());
+            donHang.setTrangThaiDonHang("CHO_XU_LY");
+            donHang.setTrangThaiThanhToan("CHUA_THANH_TOAN");
+
+            if (payload.getGhiChuDonHang() != null && !payload.getGhiChuDonHang().trim().isEmpty()) {
+                donHang.setGhiChuDonHang(payload.getGhiChuDonHang().trim());
+            }
+
+            DonHang donHangDaLuu = donHangRepository.save(donHang);
+
+            // Chuyển chi tiết từ giỏ hàng sang chi tiết đơn hàng
+            donHangRepository.chuyenGioHangSangChiTietDonHang(donHangDaLuu.getMaDonHang(), payload.getMaNguoiDung());
+
+            // Xóa sạch giỏ hàng của người dùng trong SQL Server
+            donHangRepository.xoaToanBoGioHangCuaUser(payload.getMaNguoiDung());
+
+            return ResponseEntity.ok("Đặt hàng giỏ hàng thành công!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi xử lý giỏ hàng: " + e.getMessage());
+        }
+    }
 }
+
+// ================= DTO CLASSES =================
 
 @Data
 class DatNgayRequest {
@@ -223,4 +249,17 @@ class DatNgayRequest {
     private Integer maSanPham;
     private Integer soLuong;
     private String ghiChuDonHang;
+}
+
+@Data
+class DatGioHangRequest {
+    private Integer maNguoiDung;
+    private String maDonHangCode;
+    private Double tongTien;
+    private String tenNguoiNhan;
+    private String soDienThoaiGiaoHang;
+    private String diaChiGiaoHang;
+    private String phuongThucThanhToan;
+    private String ghiChuDonHang;
+    private String maGiamGia;
 }

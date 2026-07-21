@@ -111,7 +111,6 @@
 
     <Footer />
 
-    <!-- ĐÂY LÀ THẺ HTML HIỂN THỊ POPUP MÀ EM BỊ THIẾU -->
     <div class="stock-toast" :class="{ 'show': showToast }">
       <i class="fas fa-exclamation-triangle"></i> {{ toastMessage }}
     </div>
@@ -219,13 +218,10 @@ const loadCart = async () => {
 // ================= CẬP NHẬT SỐ LƯỢNG (+ / -) CÓ CHECK TỒN KHO =================
 const updateQuantity = async (index, newQuantity) => {
   const item = cartItems.value[index];
-  
-  // Đảm bảo maxStock không bị undefined, nếu API Java chưa trả về thì tạm set là 100
   const maxStock = item.soLuongTonKho !== undefined ? item.soLuongTonKho : 100; 
   
   if (newQuantity < 1) return;
 
-  // CHẶN NẾU VƯỢT QUÁ TỒN KHO VÀ HIỆN POPUP HTML
   if (newQuantity > maxStock) {
     triggerToast(`Số lượng sản phẩm đã đạt giới hạn tối đa trong kho!`);
     return;
@@ -255,7 +251,7 @@ const decreaseQty = (index) => {
 
 // ================= XÓA KHỎI DB =================
 const removeItem = async (index) => {
-  if (!confirm('Bạn có chắc chắn muốn xóa siêu phẩm này khỏi giỏ hàng?')) return;
+  if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?')) return;
   const item = cartItems.value[index];
   try {
     const res = await fetch(`http://localhost:8080/api/gio-hang/${item.maGioHang}`, {
@@ -282,12 +278,21 @@ const proceedToCheckout = () => {
     router.push('/dang-nhap')
     return
   }
+
+  if (cartItems.value.length === 0) {
+    alert('Giỏ hàng của bạn đang trống!')
+    return
+  }
+
+  // Lưu voucher vào localStorage để trang checkout đọc được
   if (appliedVoucher.value) {
     localStorage.setItem('activeVoucher', JSON.stringify(appliedVoucher.value))
   } else {
     localStorage.removeItem('activeVoucher')
   }
-  router.push('/thanh-toan')
+
+  // Chuyển hướng sang route /checkout đúng đường dẫn kèm tham số from=cart
+  router.push('/checkout?from=cart')
 }
 
 onMounted(() => {
