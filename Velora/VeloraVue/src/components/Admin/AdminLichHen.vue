@@ -73,7 +73,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="item in filteredLichHen" :key="item.id">
+                        <!-- Thay filteredLichHen bằng paginatedLichHen -->
+                        <tr v-for="item in paginatedLichHen" :key="item.id">
                             <td>#{{ item.id }}</td>
                             <td class="category-title">{{ item.tenKhachHang || 'N/A' }}</td>
                             <td>{{ item.soDienThoai || 'N/A' }}</td>
@@ -81,19 +82,16 @@
                             <!-- CỘT HIỂN THỊ SẢN PHẨM -->
                             <td>
                                 <div style="display: flex; align-items: center; gap: 12px;">
-                                    <!-- Ảnh sản phẩm -->
                                     <img 
                                         v-if="item.sanPham?.hinhAnh || item.hinhAnhSanPham" 
                                         :src="item.sanPham?.hinhAnh || item.hinhAnhSanPham" 
                                         alt="Product" 
                                         style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;"
                                     />
-                                    <!-- Hiển thị icon hộp quà nếu sản phẩm không có ảnh -->
                                     <div v-else style="width: 45px; height: 45px; background: #f3f4f6; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
                                         <i class="fa-solid fa-box"></i>
                                     </div>
                                     
-                                    <!-- Tên sản phẩm & Giá -->
                                     <div style="display: flex; flex-direction: column; text-align: left;">
                                         <span style="font-weight: 600; color: #374151; font-size: 14px;">
                                             {{ item.sanPham?.tenSanPham || item.tenSanPham || 'Không xác định' }}
@@ -116,7 +114,6 @@
                             </td>
                             <td>
                                 <div class="actions" style="display: flex; gap: 8px; justify-content: center;">
-                                    <!-- Nút Xác nhận -->
                                     <button 
                                         v-if="item.trangThai === 0" 
                                         class="btn-action confirm-btn" 
@@ -126,7 +123,6 @@
                                         <i class="fa-solid fa-check"></i>
                                     </button>
 
-                                    <!-- Nút Hoàn thành -->
                                     <button 
                                         v-if="item.trangThai === 1" 
                                         class="btn-action complete-btn" 
@@ -136,7 +132,6 @@
                                         <i class="fa-solid fa-check-double"></i>
                                     </button>
 
-                                    <!-- Nút Từ chối/Hủy -->
                                     <button 
                                         v-if="item.trangThai === 0 || item.trangThai === 1" 
                                         class="btn-action reject-btn" 
@@ -146,7 +141,6 @@
                                         <i class="fa-solid fa-xmark"></i>
                                     </button>
 
-                                    <!-- Nút Chỉnh sửa -->
                                     <button class="btn-action edit" title="Chi tiết / Cập nhật" @click="openEditModal(item)">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
@@ -158,6 +152,41 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- THANH PHÂN TRANG (PAGINATION) -->
+            <div v-if="totalPages > 1" class="pagination-wrapper">
+                <div class="pagination-info">
+                    Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} - 
+                    {{ Math.min(currentPage * itemsPerPage, filteredLichHen.length) }} 
+                    trên tổng số {{ filteredLichHen.length }} kết quả
+                </div>
+                <div class="pagination-buttons">
+                    <button 
+                        :disabled="currentPage === 1" 
+                        @click="changePage(currentPage - 1)"
+                        class="page-btn"
+                    >
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    
+                    <button 
+                        v-for="page in totalPages" 
+                        :key="page" 
+                        :class="['page-btn', { active: currentPage === page }]"
+                        @click="changePage(page)"
+                    >
+                        {{ page }}
+                    </button>
+
+                    <button 
+                        :disabled="currentPage === totalPages" 
+                        @click="changePage(currentPage + 1)"
+                        class="page-btn"
+                    >
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
             </div>
         </main>
 
@@ -201,7 +230,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 
 // ================= LOGIC SIDEBAR & QUYỀN =================
 const userRole = computed(() => {
@@ -251,17 +280,19 @@ const filterStatus = ref('');
 const filterDate = ref('');
 const filterTime = ref('');
 
+// ================= LOGIC PHÂN TRANG =================
+const currentPage = ref(1);
+const itemsPerPage = ref(10); // Hiển thị 10 dòng mỗi trang (có thể thay đổi)
+
 const fetchLichHen = async () => {
     try {
         const response = await fetch('http://localhost:8080/api/lich-hen/admin/danh-sach');
         if (response.ok) {
             const data = await response.json();
             
-            // THÊM DÒNG NÀY VÀO ĐỂ XEM DATA BACKEND TRẢ VỀ LÀ GÌ
-            console.log("Dữ liệu Lịch Hẹn từ API:", data[0]); 
-            
             if (Array.isArray(data)) {
-                danhSachLichHen.value = data.sort((a, b) => b.id - a.id);
+                // SẮP XẾP ID TỪ THẤP TỚI CAO (a.id - b.id)
+                danhSachLichHen.value = data.sort((a, b) => a.id - b.id);
             } else {
                 danhSachLichHen.value = [];
             }
@@ -280,6 +311,7 @@ const resetFilters = () => {
     filterStatus.value = '';
     filterDate.value = '';
     filterTime.value = '';
+    currentPage.value = 1;
     fetchLichHen();
 };
 
@@ -287,16 +319,13 @@ const filteredLichHen = computed(() => {
     if (!Array.isArray(danhSachLichHen.value)) return [];
     
     return danhSachLichHen.value.filter(item => {
-        // 1. Lọc theo Từ khóa
         const lowerQuery = searchQuery.value.toLowerCase();
         const ten = item.tenKhachHang ? item.tenKhachHang.toLowerCase() : '';
         const sdt = item.soDienThoai ? item.soDienThoai : '';
         const matchSearch = !searchQuery.value || ten.includes(lowerQuery) || sdt.includes(lowerQuery);
 
-        // 2. Lọc theo Trạng thái
         const matchStatus = filterStatus.value === '' || item.trangThai === parseInt(filterStatus.value);
 
-        // 3. Lọc theo Ngày
         let matchDate = true;
         if (filterDate.value) {
             let itemDateStr = '';
@@ -311,7 +340,6 @@ const filteredLichHen = computed(() => {
             matchDate = (itemDateStr === filterDate.value);
         }
 
-        // 4. Lọc theo Khung giờ
         let matchTime = true;
         if (filterTime.value) {
             matchTime = item.thoiGian === filterTime.value;
@@ -320,6 +348,29 @@ const filteredLichHen = computed(() => {
         return matchSearch && matchStatus && matchDate && matchTime;
     });
 });
+
+// Reset về trang 1 mỗi khi người dùng thay đổi bộ lọc hoặc từ khóa tìm kiếm
+watch([searchQuery, filterStatus, filterDate, filterTime], () => {
+    currentPage.value = 1;
+});
+
+// Tính tổng số trang
+const totalPages = computed(() => {
+    return Math.ceil(filteredLichHen.value.length / itemsPerPage.value) || 1;
+});
+
+// Lấy danh sách lịch hẹn thuộc trang hiện tại
+const paginatedLichHen = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value;
+    const end = start + itemsPerPage.value;
+    return filteredLichHen.value.slice(start, end);
+});
+
+const changePage = (page) => {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+    }
+};
 
 // ================= LOGIC CẬP NHẬT NHANH =================
 const quickUpdateStatus = async (id, newTrangThai) => {
@@ -410,4 +461,53 @@ const getStatusClass = (status) => {
 <style scoped>
 @import "../CSS/Admin/AdminLichHen.css";
 
+/* CSS Bổ Sung Cho Phần Phân Trang */
+.pagination-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 12px 16px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.page-btn {
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    background-color: #fff;
+    color: #374151;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.page-btn.active {
+    background-color: #d4af37;
+    color: #fff;
+    border-color: #d4af37;
+    font-weight: 600;
+}
+
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 </style>
