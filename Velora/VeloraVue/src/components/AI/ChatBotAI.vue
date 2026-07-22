@@ -395,7 +395,7 @@ onUnmounted(() => {
     background-color: #24201D;
     color: #d1aa68;
     border: none;
-    cursor: pointer;
+    cursor: pointer; 
     transition: 0.2s;
 }
 .chat-footer button:disabled {
