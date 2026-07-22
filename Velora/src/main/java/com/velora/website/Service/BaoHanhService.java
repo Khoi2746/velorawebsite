@@ -2,7 +2,6 @@ package com.velora.website.Service;
 
 import com.velora.website.Entity.BaoHanh;
 import com.velora.website.Repository.BaoHanhRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,8 +9,11 @@ import java.util.List;
 @Service
 public class BaoHanhService {
 
-    @Autowired
-    private BaoHanhRepository repo;
+    private final BaoHanhRepository repo;
+
+    BaoHanhService(BaoHanhRepository repo) {
+        this.repo = repo;
+    }
 
     // ===========================
     // Lưu yêu cầu bảo hành
