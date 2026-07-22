@@ -101,7 +101,19 @@ rejected:item.trangThai==='TU_CHOI'
         </table>
         <div class="pagination-bar" v-if="totalPages > 1">
           <button class="btn-page" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Trước</button>
-          <span class="page-info">Trang <strong>{{ currentPage }}</strong> / {{ totalPages }}</span>
+
+          <template v-for="page in visiblePages" :key="page.value + page.type">
+            <span v-if="page.type === 'ellipsis'" class="page-ellipsis">...</span>
+            <button
+              v-else
+              class="btn-page-number"
+              :class="{ active: currentPage === page.value }"
+              @click="changePage(page.value)"
+            >
+              {{ page.value }}
+            </button>
+          </template>
+
           <button class="btn-page" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">Sau</button>
         </div>
       </section>
@@ -126,6 +138,45 @@ const itemsPerPage = ref(5)
 
 const totalPages = computed(() => {
   return Math.max(Math.ceil(warrantyRequests.value.length / itemsPerPage.value), 1)
+})
+
+const visiblePages = computed(() => {
+  const pages = []
+  const maxVisible = 5
+
+  if (totalPages.value <= maxVisible) {
+    for (let i = 1; i <= totalPages.value; i++) {
+      pages.push({ type: 'page', value: i })
+    }
+    return pages
+  }
+
+  if (currentPage.value <= 3) {
+    for (let i = 1; i <= 4; i++) {
+      pages.push({ type: 'page', value: i })
+    }
+    pages.push({ type: 'ellipsis', value: '...' })
+    pages.push({ type: 'page', value: totalPages.value })
+    return pages
+  }
+
+  if (currentPage.value >= totalPages.value - 2) {
+    pages.push({ type: 'page', value: 1 })
+    pages.push({ type: 'ellipsis', value: '...' })
+    for (let i = totalPages.value - 3; i <= totalPages.value; i++) {
+      pages.push({ type: 'page', value: i })
+    }
+    return pages
+  }
+
+  pages.push({ type: 'page', value: 1 })
+  pages.push({ type: 'ellipsis', value: '...' })
+  pages.push({ type: 'page', value: currentPage.value - 1 })
+  pages.push({ type: 'page', value: currentPage.value })
+  pages.push({ type: 'page', value: currentPage.value + 1 })
+  pages.push({ type: 'ellipsis', value: '...' })
+  pages.push({ type: 'page', value: totalPages.value })
+  return pages
 })
 
 const paginatedRequests = computed(() => {

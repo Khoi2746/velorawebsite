@@ -198,23 +198,35 @@
   font-size: 14px;
   color: #555;
 }
-.btn-page {
+.page-ellipsis {
+  color: #8a7f73;
+  font-weight: 700;
+  padding: 0 4px;
+}
+.btn-page,
+.btn-page-number {
   background: #fff;
   border: 1px solid #ccbfb5;
-  padding: 8px 14px;
+  padding: 8px 12px;
   font-size: 13px;
   border-radius: 6px;
   color: #3e332e;
   cursor: pointer;
   transition: 0.2s;
 }
-.btn-page:hover:not(:disabled) {
+.btn-page:hover:not(:disabled),
+.btn-page-number:hover {
   background: #f4f1ea;
   border-color: #3e332e;
 }
 .btn-page:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+.btn-page-number.active {
+  background: #3e332e;
+  color: #fff;
+  border-color: #3e332e;
 }
 .pending{
     background:#fff3cd;
