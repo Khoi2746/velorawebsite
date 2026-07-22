@@ -91,12 +91,14 @@
                 </div>
               </div>
 
-              <div class="secondary-action-row" style="display: flex; gap: 15px; width: 100%;">
-                <router-link to="/lien-he-tu-van" class="btn-secondary"
-                  style="flex: 1; margin: 0; display: inline-flex; justify-content: center; align-items: center; text-decoration: none;">
-                  LIÊN HỆ TƯ VẤN VVIP
-                </router-link>
-              </div>
+             <div class="secondary-action-row" style="display: flex; gap: 15px; width: 100%;">
+  <button 
+    @click="contactVVIP" 
+    class="btn-secondary"
+    style="flex: 1; margin: 0; display: inline-flex; justify-content: center; align-items: center; cursor: pointer;">
+    LIÊN HỆ TƯ VẤN VVIP
+  </button>
+</div>
             </div>
 
             <div class="accordion-group">
@@ -251,9 +253,8 @@ const addToCart = async () => {
 
 const contactVVIP = () => {
   router.push({
-    path: '/tu-van',
+    path: '/lien-he-tu-van', // Khớp với path trong router
     query: {
-      productName: product.value.tenSanPham,
       productId: product.value.maSanPham
     }
   })

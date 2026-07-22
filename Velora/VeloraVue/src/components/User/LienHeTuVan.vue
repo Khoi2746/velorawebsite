@@ -193,9 +193,13 @@
 
 <script setup>
 import html2pdf from 'html2pdf.js'
-import { ref, onMounted, nextTick } from 'vue' // Đã thêm nextTick
+import { ref, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router' // 1. Bổ sung useRoute
+
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
+
+const route = useRoute() // 2. Khai báo route
 
 const appointment = ref({
   tenKhachHang: '',
@@ -216,7 +220,7 @@ const successMsg = ref('')
 const errorMsg = ref('')
 const minDate = ref('')
 
-onMounted(() => {
+onMounted(async () => {
   const today = new Date()
   minDate.value = today.toISOString().split('T')[0]
 
@@ -227,7 +231,14 @@ onMounted(() => {
     appointment.value.soDienThoai = user.soDienThoai || ''
     appointment.value.email = user.email || ''
   }
-  fetchProducts()
+
+  // Tải danh sách sản phẩm trước
+  await fetchProducts()
+
+  // 3. Đọc productId từ URL và tự động gán vào ô select
+  if (route.query.productId) {
+    appointment.value.idSanPham = Number(route.query.productId)
+  }
 })
 
 const fetchProducts = async () => {
@@ -239,9 +250,10 @@ const fetchProducts = async () => {
   }
 }
 
+// Hàm so sánh dùng == để an toàn khi so sánh giữa String và Number
 const getTenSanPham = (id) => {
   if (!id) return 'Tư vấn chung (Không chọn sản phẩm cụ thể)'
-  const sp = danhSachSanPham.value.find(item => item.maSanPham === id)
+  const sp = danhSachSanPham.value.find(item => item.maSanPham == id)
   return sp ? sp.tenSanPham : 'Tư vấn chung'
 }
 
@@ -302,7 +314,6 @@ const downloadPDF = async () => {
   const element = document.getElementById('pdf-template')
   
   try {
-    // Dynamic import giúp tránh lỗi bundling với Vite
     const html2pdf = (await import('html2pdf.js')).default
 
     const opt = {
@@ -326,7 +337,6 @@ const resetForm = () => {
   appointment.value.ghiChu = ''
 }
 </script>
-
 <style scoped>
 /* Trạng thái trang chủ */
 .profile-page { width: 100%; min-height: 100vh; display: flex; flex-direction: column; background-color: #fdfdfd; }
