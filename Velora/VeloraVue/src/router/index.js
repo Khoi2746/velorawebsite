@@ -12,6 +12,7 @@ import DonHang from '../components/User/DonHang.vue'
 import BaoHanh from '../components/User/BaoHanh.vue'
 import ThongTinNguoiDung from '../components/User/ThongTinNguoiDung.vue'
 import LienHeTuVan from '../components/User/LienHeTuVan.vue'
+import QuenMatKhau from '../components/User/QuenMatKhau.vue'
 
 // Import các file Thanh toán và Quét QR
 import ThanhToanDonHang from '../components/User/ThanhToanDonHang.vue'
@@ -32,6 +33,7 @@ import QuanLyMaGiamGia from '../components/Admin/QuanLyMaGiamGia.vue'
 import QuanLyThongKe from '../components/Admin/QuanLyThongKe.vue'
 import AdminLichHen from '../components/Admin/AdminLichHen.vue' 
 
+
 // Các file giao diện Tư Vấn Viên
 import TuVanDashboard from '../components/ChuyenVienTuVan/TuVanDashboard.vue'
 
@@ -49,6 +51,7 @@ const router = createRouter({
     { path: '/bao-hanh', name: 'BaoHanh', component: BaoHanh },
     { path: '/san-pham/:id', name: 'ChiTietSanPham', component: ChiTietSanPham },
     { path: '/lien-he-tu-van', name: 'LienHeTuVan', component: LienHeTuVan },
+    { path: '/quen-mat-khau', name: 'QuenMatKhau', component: QuenMatKhau},
 
     // ROUTE THANH TOÁN & QUÉT MÃ QR
     { path: '/checkout', name: 'Checkout', component: ThanhToanDonHang },

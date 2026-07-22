@@ -36,7 +36,7 @@
                             <input type="checkbox" v-model="rememberMe" />
                             Ghi nhớ đăng nhập
                         </label>
-                        <a href="#" class="forgot-password">Quên mật khẩu?</a>
+                        <router-link to="/quen-mat-khau" class="forgot-password">Quên mật khẩu?</router-link>
                     </div>
 
                     <button type="submit" class="btn-submit">

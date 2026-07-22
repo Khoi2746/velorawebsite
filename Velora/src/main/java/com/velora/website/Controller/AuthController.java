@@ -1,8 +1,12 @@
 package com.velora.website.Controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 // Thêm các thư viện Mail của Spring
 import jakarta.mail.MessagingException;
@@ -16,7 +20,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import com.velora.website.Entity.NguoiDung;
+import com.velora.website.Entity.VaiTro;
 import com.velora.website.Repository.NguoiDungRepository;
+import com.velora.website.Repository.VaiTroRepository;
 import com.velora.website.Request.LoginRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -27,9 +33,11 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
     private final NguoiDungRepository nguoiDungRepository;
-
-    // Tiêm (Inject) JavaMailSender vào để dùng
+    private final VaiTroRepository vaiTroRepository; 
     private final JavaMailSender mailSender;
+
+    // Biến lưu trữ OTP tạm thời (Key: Email, Value: Mã OTP)
+    private final Map<String, String> otpStorage = new ConcurrentHashMap<>();
 
     /**
      * API ĐĂNG NHẬP HỆ THỐNG
@@ -38,7 +46,6 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         System.out.println("--- ĐANG DEBUG LOGIN ---");
 
-        // 1. Tìm người dùng trong Database
         Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(loginRequest.getEmail());
 
         if (!userOpt.isPresent()) {
@@ -51,7 +58,6 @@ public class AuthController {
 
         NguoiDung user = userOpt.get();
 
-        // 2. KIỂM TRA KHÓA TÀI KHOẢN TRƯỚC
         String trangThai = user.getTrangThai();
         if ("KHOA".equalsIgnoreCase(trangThai) || "BI_KHOA".equalsIgnoreCase(trangThai)) {
             System.out.println("=> CHẶN LẬP TỨC: Tài khoản dính trạng thái khóa!");
@@ -64,7 +70,6 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
 
-        // 3. So sánh mật khẩu Bcrypt
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         boolean isMatch = encoder.matches(loginRequest.getPassword(), user.getMatKhauMaHoa());
 
@@ -113,26 +118,32 @@ public class AuthController {
     }
 
     /**
-     * API ĐĂNG KÝ (Có tích hợp gửi Email tự động)
+     * API ĐĂNG KÝ
      */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody NguoiDung nguoiDung) {
-        // Kiểm tra trùng email
         if (nguoiDungRepository.findByEmail(nguoiDung.getEmail()).isPresent()) {
             return ResponseEntity.badRequest().body("Email này đã tồn tại!");
         }
 
-        // Băm mật khẩu trước khi lưu
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         nguoiDung.setMatKhauMaHoa(encoder.encode(nguoiDung.getMatKhauMaHoa()));
         nguoiDung.setTrangThai("HOAT_DONG");
         nguoiDung.setNgayTao(new java.util.Date());
 
-        // 1. Lưu User vào Database
+        // GÁN QUYỀN MẶC ĐỊNH LÀ "ROLE_USER"
+        VaiTro roleUser = vaiTroRepository.findByTenVaiTro("ROLE_USER")
+                .orElseThrow(
+                        () -> new RuntimeException("Lỗi Hệ Thống: Không tìm thấy quyền ROLE_USER trong Database!"));
+
+        List<VaiTro> danhSachQuyen = new ArrayList<>();
+        danhSachQuyen.add(roleUser);
+        nguoiDung.setVaiTros(danhSachQuyen);
+
+        // Lưu User vào Database
         nguoiDungRepository.save(nguoiDung);
 
-        // 2. Gửi Email thông báo (Chạy ngầm hoặc chạy song song để không làm chậm API)
-        // Dùng Thread để việc gửi email không block luồng phản hồi về Frontend
+        // Gửi Email thông báo (Chạy ngầm)
         new Thread(() -> {
             sendWelcomeEmail(nguoiDung.getEmail(), nguoiDung.getHoTen());
         }).start();
@@ -140,11 +151,15 @@ public class AuthController {
         return ResponseEntity.ok("Đăng ký thành công!");
     }
 
+    /* =========================================================================
+     * CÁC API QUÊN MẬT KHẨU (LUỒNG MỚI 3 BƯỚC)
+     * ========================================================================= */
+
     /**
-     * API QUÊN MẬT KHẨU
+     * BƯỚC 1: GỬI MÃ OTP VỀ EMAIL
      */
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+    @PostMapping("/forgot-password/send-otp")
+    public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(email);
 
@@ -152,16 +167,124 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy email trong hệ thống!");
         }
 
-        NguoiDung user = userOpt.get();
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        user.setMatKhauMaHoa(encoder.encode("123456"));
-        nguoiDungRepository.save(user);
+        // Random mã OTP 6 số
+        String otp = String.format("%06d", new Random().nextInt(999999));
+        otpStorage.put(email, otp); // Lưu vào RAM
 
-        return ResponseEntity.ok("Mật khẩu đã được reset về 123456!");
+        // Gửi email chạy ngầm
+        new Thread(() -> sendOtpEmail(email, userOpt.get().getHoTen(), otp)).start();
+
+        return ResponseEntity.ok("Mã xác nhận đã được gửi đến email của quý khách.");
     }
 
     /**
-     * HÀM TIỆN ÍCH: Xử lý gửi email HTML
+     * BƯỚC 2: XÁC THỰC MÃ OTP
+     */
+    @PostMapping("/forgot-password/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
+
+        String storedOtp = otpStorage.get(email);
+        if (storedOtp != null && storedOtp.equals(otp)) {
+            return ResponseEntity.ok("Mã xác nhận hợp lệ!");
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mã xác nhận không chính xác!");
+    }
+
+    /**
+     * BƯỚC 3: ĐẶT LẠI MẬT KHẨU MỚI
+     */
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
+        String newPassword = request.get("newPassword");
+
+        // Check lại OTP lần cuối
+        String storedOtp = otpStorage.get(email);
+        if (storedOtp == null || !storedOtp.equals(otp)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Phiên làm việc không hợp lệ, vui lòng thử lại!");
+        }
+
+        Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(email);
+        if (userOpt.isPresent()) {
+            NguoiDung user = userOpt.get();
+            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+            
+            user.setMatKhauMaHoa(encoder.encode(newPassword));
+            nguoiDungRepository.save(user);
+
+            otpStorage.remove(email);
+
+            new Thread(() -> sendPasswordSuccessEmail(email, user.getHoTen())).start();
+
+            return ResponseEntity.ok("Thay đổi mật khẩu thành công!");
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Lỗi hệ thống.");
+    }
+
+
+    /* =========================================================================
+     * CÁC HÀM TIỆN ÍCH GỬI EMAIL
+     * ========================================================================= */
+
+    /**
+     * Gửi email OTP
+     */
+    private void sendOtpEmail(String toEmail, String fullName, String otp) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(toEmail);
+            helper.setSubject("Velora Clock - Mã xác nhận khôi phục mật khẩu");
+
+            String htmlContent = "<div style='font-family: Arial; background-color: #26160d; color: #ffffff; max-width: 600px; margin: auto; border: 2px solid #d1aa68; padding: 30px; border-radius: 8px; text-align: center;'>"
+                    + "<img src='https://i.postimg.cc/0jRpHvWJ/Velora-Icon.png' alt='Velora Clock' style='max-width: 150px; margin-bottom: 20px;' />"
+                    + "<h2 style='color: #d1aa68;'>KHÔI PHỤC MẬT KHẨU</h2>"
+                    + "<p style='font-size: 16px;'>Kính chào <b>" + fullName + "</b>,</p>"
+                    + "<p style='font-size: 15px;'>Mã xác nhận (OTP) để thay đổi mật khẩu của quý khách là:</p>"
+                    + "<div style='background-color: #170d08; padding: 15px; margin: 20px auto; border: 1px dashed #d1aa68; display: inline-block; font-size: 24px; font-weight: bold; color: #d1aa68; letter-spacing: 5px;'>"
+                    + otp
+                    + "</div>"
+                    + "<p style='font-size: 14px; color: #aaa;'>Vui lòng không chia sẻ mã này cho bất kỳ ai. Mã có hiệu lực trong thời gian ngắn.</p>"
+                    + "</div>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Gửi email thông báo đổi mật khẩu thành công
+     */
+    private void sendPasswordSuccessEmail(String toEmail, String fullName) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(toEmail);
+            helper.setSubject("Velora Clock - Thay đổi mật khẩu thành công");
+
+            String htmlContent = "<div style='font-family: Arial; background-color: #26160d; color: #ffffff; max-width: 600px; margin: auto; border: 2px solid #d1aa68; padding: 30px; border-radius: 8px; text-align: center;'>"
+                    + "<img src='https://i.postimg.cc/0jRpHvWJ/Velora-Icon.png' alt='Velora Clock' style='max-width: 150px; margin-bottom: 20px;' />"
+                    + "<h2 style='color: #2ecc71;'>THÀNH CÔNG</h2>"
+                    + "<p style='font-size: 16px;'>Kính chào <b>" + fullName + "</b>,</p>"
+                    + "<p style='font-size: 15px;'>Mật khẩu tài khoản Velora Clock của quý khách vừa được thay đổi thành công.</p>"
+                    + "<p style='font-size: 15px;'>Nếu quý khách không thực hiện thao tác này, vui lòng liên hệ ngay với bộ phận CSKH của chúng tôi.</p>"
+                    + "<br/><p style='color: #d1aa68;'>Trân trọng, Ban Quản Trị Velora Clock.</p>"
+                    + "</div>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Gửi email chào mừng khi đăng ký
      */
     private void sendWelcomeEmail(String toEmail, String fullName) {
         try {
@@ -171,7 +294,6 @@ public class AuthController {
             helper.setTo(toEmail);
             helper.setSubject("Chào mừng gia nhập Velora Clock - Vui lòng xác minh thông tin");
 
-            // Giao diện Nâu gỗ sậm (#26160d) - Viền vàng kim (#d1aa68) - Chữ trắng
             String htmlContent = "<div style='font-family: Arial, sans-serif; background-color: #26160d; color: #ffffff; max-width: 600px; margin: auto; border: 2px solid #d1aa68; padding: 30px; border-radius: 8px;'>"
                     + "<div style='text-align: center; margin-bottom: 20px;'>"
                     + "  <img src='https://i.postimg.cc/0jRpHvWJ/Velora-Icon.png' alt='Velora Clock' style='max-width: 180px; height: auto;' />"
@@ -190,7 +312,7 @@ public class AuthController {
                     + "<p style='font-size: 15px; color: #e0e0e0;'>Trân trọng,<br/><b style='color: #d1aa68;'>Ban Quản Trị Velora Clock</b></p>"
                     + "</div>";
 
-            helper.setText(htmlContent, true); // true = HTML
+            helper.setText(htmlContent, true);
 
             System.out.println("Đang tiến hành gửi email đến: " + toEmail);
             mailSender.send(message);
