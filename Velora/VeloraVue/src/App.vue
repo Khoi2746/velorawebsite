@@ -2,11 +2,13 @@
   <div id="app">
     <router-view />
     <ChatbotAI />
+    <GlobalAlert />
   </div>
 </template>
 
 <script setup>
 import ChatbotAI from './components/AI/ChatBotAI.vue'
+import GlobalAlert from './components/GlobalAlert.vue';
 </script>
 
 <style>

@@ -9,6 +9,8 @@
 
 <script setup>
 import { useRouter } from 'vue-router';
+// Import hàm showAlert dùng chung từ thư mục composables
+import { showAlert } from '@/composables/useAlert';
 
 // Xóa import defineProps từ 'vue', dùng trực tiếp macro defineProps
 const props = defineProps({
@@ -27,8 +29,13 @@ const router = useRouter();
 const xuLyThanhToanNhanh = () => {
   const userStr = localStorage.getItem('user');
   if (!userStr) {
-    alert('Vui lòng đăng nhập để thực hiện thủ tục mua kiệt tác nhanh!');
-    router.push('/dang-nhap');
+    // Gọi popup luxury cảnh báo thay vì dùng alert mặc định
+    showAlert('Vui lòng đăng nhập để thực hiện thủ tục mua kiệt tác nhanh!', 'warning');
+    
+    // Tạm dừng 1.5 giây để khách hàng kịp đọc rồi mới chuyển hướng
+    setTimeout(() => {
+      router.push('/dang-nhap');
+    }, 1500);
     return;
   }
 

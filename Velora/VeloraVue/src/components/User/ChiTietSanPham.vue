@@ -55,9 +55,7 @@
               {{ product.moTaChiTiet }}
             </p>
             <p class="short-description" v-else>
-              Một tuyệt tác cơ học mang đậm dấu ấn nghệ thuật chế tác đồng hồ cao cấp. Sự kết hợp hoàn hảo giữa vật liệu
-              thượng
-              hạng và độ chính xác tuyệt đối.
+              Một tuyệt tác cơ học mang đậm dấu ấn nghệ thuật chế tác đồng hồ cao cấp. Sự kết hợp hoàn hảo giữa vật liệu thượng hạng và độ chính xác tuyệt đối.
             </p>
 
             <ul class="specs-list">
@@ -72,16 +70,15 @@
               <li>
                 <span class="spec-label">Trạng thái:</span>
                 <span class="spec-value status-in-stock"
-                  v-if="product.trangThai === 'CON_HANG' || product.trangThai === 1">Còn
-                  hàng tại Boutique</span>
+                  v-if="product.trangThai === 'CON_HANG' || product.trangThai === 1">Còn hàng tại Boutique</span>
                 <span class="spec-value status-out-stock" v-else>Liên hệ đặt trước</span>
               </li>
             </ul>
 
-            <div class="action-buttons-group"
-              style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
+            <div class="action-buttons-group" style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
               <div class="primary-actions-row" style="display: flex; gap: 15px; width: 100%;">
                 <div style="flex: 1;">
+                  <!-- Component Thanh Toán -->
                   <ThanhToan :maSanPham="product.maSanPham" :soLuong="quantity" />
                 </div>
                 <div style="flex: 1;" v-if="product.giaBan && product.giaBan <= 400000000">
@@ -105,9 +102,7 @@
                   CHÍNH SÁCH BẢO HÀNH <span class="icon">+</span>
                 </div>
                 <div class="accordion-content">
-                  Bảo hành toàn cầu 5 năm chính hãng. Miễn phí bảo dưỡng lau dầu định kỳ trong 3 năm đầu tiên tại các
-                  trung tâm
-                  dịch vụ của Velora.
+                  Bảo hành toàn cầu 5 năm chính hãng. Miễn phí bảo dưỡng lau dầu định kỳ trong 3 năm đầu tiên tại các trung tâm dịch vụ của Velora.
                 </div>
               </div>
               <div class="accordion-item">
@@ -115,9 +110,7 @@
                   VẬN CHUYỂN & THANH TOÁN <span class="icon">+</span>
                 </div>
                 <div class="accordion-content">
-                  Giao hàng bằng xe chuyên dụng hoặc chuyên viên mang đến tận nhà. Thanh toán linh hoạt, hỗ trợ bảo mật
-                  thông
-                  tin tuyệt đối.
+                  Giao hàng bằng xe chuyên dụng hoặc chuyên viên mang đến tận nhà. Thanh toán linh hoạt, hỗ trợ bảo mật thông tin tuyệt đối.
                 </div>
               </div>
             </div>
@@ -190,22 +183,6 @@
       </div>
     </main>
 
-    <!-- HTML KHỐI POPUP THÔNG BÁO -->
-    <div class="custom-popup-overlay" v-if="popup.show" @click="closePopup">
-      <div class="custom-popup-box" :class="popup.type" @click.stop>
-        <div class="popup-icon">
-          <i v-if="popup.type === 'success'" class="fas fa-check-circle"></i>
-          <i v-else-if="popup.type === 'warning'" class="fas fa-exclamation-triangle"></i>
-          <i v-else class="fas fa-times-circle"></i>
-        </div>
-        <div class="popup-content">
-          <h3>{{ popup.type === 'success' ? 'THÀNH CÔNG' : popup.type === 'warning' ? 'CHÚ Ý' : 'LỖI' }}</h3>
-          <p>{{ popup.message }}</p>
-        </div>
-        <button class="popup-close-btn" @click="closePopup">ĐÓNG</button>
-      </div>
-    </div>
-
     <Footer />
   </div>
 </template>
@@ -218,6 +195,9 @@ import Footer from '../Footer.vue'
 import Info from '../info.vue'
 import ThanhToan from './ThanhToan.vue'
 
+// IMPORT HÀM DÙNG CHUNG BẬT POPUP (Nhớ đảm bảo file useAlert.js đã nằm trong thư mục composables nhé)
+import { showAlert } from '@/composables/useAlert';
+
 const route = useRoute()
 const router = useRouter()
 const product = ref(null)
@@ -227,33 +207,6 @@ const carouselRef = ref(null)
 
 const quantity = ref(1)
 
-// -- STATE QUẢN LÝ POPUP THÔNG BÁO --
-const popup = ref({
-  show: false,
-  message: '',
-  type: 'success' // Các loại: 'success', 'error', 'warning'
-})
-
-let popupTimeout = null;
-
-const showNotification = (message, type = 'success') => {
-  popup.value = { show: true, message, type }
-  
-  // Xóa timeout cũ nếu có bấm liên tiếp
-  if (popupTimeout) clearTimeout(popupTimeout)
-  
-  // Tự động đóng popup sau 3 giây (3000ms)
-  popupTimeout = setTimeout(() => {
-    closePopup()
-  }, 3000)
-}
-
-const closePopup = () => {
-  popup.value.show = false
-  if (popupTimeout) clearTimeout(popupTimeout)
-}
-// ----------------------------------
-
 const formatPrice = (value) => {
   if (!value) return 'Liên hệ'
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
@@ -262,9 +215,9 @@ const formatPrice = (value) => {
 const addToCart = async () => {
   const userStr = localStorage.getItem('user');
   
-  // Kiểm tra đăng nhập
+  // Kiểm tra đăng nhập bằng Popup Luxury mới
   if (!userStr) {
-    showNotification('Vui lòng đăng nhập để thêm kiệt tác này vào giỏ hàng!', 'warning');
+    showAlert('Vui lòng đăng nhập để thêm kiệt tác này vào giỏ hàng!', 'warning');
     // Chuyển hướng sau 1.5 giây để người dùng kịp đọc thông báo
     setTimeout(() => {
       router.push('/dang-nhap');
@@ -288,13 +241,13 @@ const addToCart = async () => {
 
     if (response.ok) {
       window.dispatchEvent(new Event('cart-updated'));
-      showNotification(`Tuyệt vời! Đã thêm ${product.value.tenSanPham} vào giỏ hàng thành công!`, 'success');
+      showAlert(`Tuyệt vời! Đã thêm ${product.value.tenSanPham} vào giỏ hàng thành công!`, 'success');
     } else {
-      showNotification('Có lỗi xảy ra khi thêm vào giỏ. Vui lòng thử lại!', 'error');
+      showAlert('Có lỗi xảy ra khi thêm vào giỏ. Vui lòng thử lại!', 'error');
     }
   } catch (error) {
     console.error('Lỗi gọi API:', error);
-    showNotification('Không thể kết nối đến máy chủ. Hãy chắc chắn Server Java đang chạy!', 'error');
+    showAlert('Không thể kết nối đến máy chủ. Hãy chắc chắn Server Java đang chạy!', 'error');
   }
 }
 
@@ -350,90 +303,4 @@ onMounted(() => {
 <style scoped>
 @import "../CSS/User/ChiTietSanPham.css";
 
-/* --- CSS CHO KHỐI POPUP --- */
-.custom-popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.7); /* Nền đen mờ */
-  backdrop-filter: blur(5px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  animation: fadeIn 0.3s ease;
-}
-
-.custom-popup-box {
-  background: #1e1e1e; /* Màu nền sang trọng của Velora */
-  border: 1px solid #d1aa68; /* Viền vàng luxury */
-  border-radius: 8px;
-  padding: 30px 40px;
-  width: 90%;
-  max-width: 420px;
-  text-align: center;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-  animation: scaleUp 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-}
-
-.popup-icon i {
-  font-size: 55px;
-}
-
-/* Các màu trạng thái */
-.custom-popup-box.success .popup-icon i { color: #2ecc71; }
-.custom-popup-box.warning .popup-icon i { color: #f39c12; }
-.custom-popup-box.error .popup-icon i { color: #e74c3c; }
-
-.popup-content h3 {
-  color: #d1aa68;
-  margin: 0 0 10px 0;
-  font-size: 20px;
-  letter-spacing: 2px;
-  font-weight: bold;
-}
-
-.popup-content p {
-  color: #e0e0e0;
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.popup-close-btn {
-  margin-top: 15px;
-  background: #d1aa68;
-  color: #111;
-  border: none;
-  padding: 12px 30px;
-  font-size: 14px;
-  font-weight: bold;
-  letter-spacing: 1px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 100%;
-}
-
-.popup-close-btn:hover {
-  background: #b8955b;
-  transform: translateY(-2px);
-}
-
-/* Animation */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes scaleUp {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
 </style>
