@@ -25,8 +25,6 @@
                     <p>Đang tải danh sách thương hiệu hoặc chưa có thương hiệu nào đang hoạt động...</p>
                 </div>
 
-                <Info />
-
             </div>
         </main>
 

@@ -96,7 +96,6 @@
           <p>Không tìm thấy sản phẩm nào phù hợp hoặc đang tải dữ liệu...</p>
         </div>
       </div>
-      <Info />
     </main>
 
     <Footer />
