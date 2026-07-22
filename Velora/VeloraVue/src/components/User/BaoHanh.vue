@@ -126,48 +126,31 @@
                   <strong>{{ item.hoTen }}</strong>
 
                   <span class="status" :class="{
-
-waiting:item.trangThai === 'CHO_XU_LY',
-
-accepted:item.trangThai === 'DA_TIEP_NHAN',
-
-processing:item.trangThai === 'DANG_XU_LY',
-
-completed:item.trangThai === 'HOAN_TAT',
-
-rejected:item.trangThai === 'TU_CHOI',
-
-cancelled:item.trangThai === 'DA_HUY'
-
-}">
-
+                    waiting: item.trangThai === 'CHO_XU_LY',
+                    accepted: item.trangThai === 'DA_TIEP_NHAN',
+                    processing: item.trangThai === 'DANG_XU_LY',
+                    completed: item.trangThai === 'HOAN_TAT',
+                    rejected: item.trangThai === 'TU_CHOI',
+                    cancelled: item.trangThai === 'DA_HUY'
+                  }">
                     {{ getStatusText(item.trangThai) }}
-
                   </span>
                 </div>
 
                 <p>
-                  Mã đơn:
-                  {{ item.maDonHangCode }}
-                  •
-                  {{ item.loaiSanPham }}
+                  Mã đơn: {{ item.maDonHangCode }} • {{ item.loaiSanPham }}
                 </p>
 
                 <p>{{ item.moTaLoi }}</p>
 
                 <small>
-{{ new Date(item.ngayGui).toLocaleString('vi-VN') }}
-</small>
+                  {{ item.ngayGui ? new Date(item.ngayGui).toLocaleString('vi-VN') : '' }}
+                </small>
 
-
-<button
-v-if="item.trangThai === 'CHO_XU_LY'"
-class="btn-cancel"
-@click="cancelWarranty(item.maBaoHanh)"
->
-Hủy yêu cầu
-</button>
-
+                <button v-if="item.trangThai === 'CHO_XU_LY'" class="btn-cancel"
+                  @click="cancelWarranty(item.maBaoHanh)">
+                  Hủy yêu cầu
+                </button>
               </div>
             </div>
           </div>
@@ -197,62 +180,69 @@ const form = reactive({
 
 const message = ref(null)
 const requestList = ref([])
-
 let timer = null
+
+// Helper an toàn lấy thông tin user từ LocalStorage
+const getUser = () => {
+  try {
+    const userStr = localStorage.getItem("user")
+    return userStr ? JSON.parse(userStr) : null
+  } catch (err) {
+    console.error("Lỗi khi đọc thông tin người dùng:", err)
+    return null
+  }
+}
 
 // ===========================
 // Lấy lịch sử bảo hành
 // ===========================
 const fetchWarrantyRequests = async () => {
-
-  try {
-
-    const user = JSON.parse(
-
-      localStorage.getItem("user")
-
-    )
-
-    const res = await axios.get(
-
-      `http://localhost:8080/api/bao-hanh/my-history/${user.maNguoiDung}`
-
-    )
-
-    requestList.value = res.data
-
-  } catch (err) {
-
-    console.error(err)
-
+  const currentUser = getUser()
+  
+  // Nếu chưa đăng nhập hoặc không có maNguoiDung, dừng thực thi an toàn
+  if (!currentUser || !currentUser.maNguoiDung) {
+    requestList.value = []
+    return
   }
 
+  try {
+    const res = await axios.get(`${API}/my-history/${currentUser.maNguoiDung}`)
+    requestList.value = res.data
+  } catch (err) {
+    console.error("Lỗi khi tải lịch sử bảo hành:", err)
+  }
 }
 
 // ===========================
 // Gửi yêu cầu
 // ===========================
 const submitForm = async () => {
+  const currentUser = getUser()
+
+  if (!currentUser || !currentUser.maNguoiDung) {
+    message.value = {
+      type: "error",
+      text: "Bạn cần đăng nhập để gửi yêu cầu bảo hành!"
+    }
+    return
+  }
 
   try {
-
-    const res = await axios.post(
-      "http://localhost:8080/api/bao-hanh/send",
-      {
-        maNguoiDung: user.maNguoiDung,
-        hoTen: form.hoTen,
-        sdt: form.sdt,
-        maDonHangCode: form.maDonHang,
-        loaiSanPham: form.loaiSanPham,
-        moTaLoi: form.moTa
-      }
-    )
+    const res = await axios.post(`${API}/send`, {
+      maNguoiDung: currentUser.maNguoiDung,
+      hoTen: form.hoTen,
+      sdt: form.sdt,
+      maDonHangCode: form.maDonHang,
+      loaiSanPham: form.loaiSanPham,
+      moTaLoi: form.moTa
+    })
 
     message.value = {
       type: "success",
-      text: res.data.message
+      text: res.data.message || "Gửi yêu cầu bảo hành thành công!"
     }
 
+    // Reset form
     form.hoTen = ""
     form.sdt = ""
     form.maDonHang = ""
@@ -262,120 +252,84 @@ const submitForm = async () => {
     await fetchWarrantyRequests()
 
   } catch (err) {
-
-    console.log(err)
-
+    console.error("Lỗi gửi bảo hành:", err)
     message.value = {
       type: "error",
-      text:
-        err.response?.data?.message ||
-        "Không thể gửi yêu cầu."
+      text: err.response?.data?.message || "Không thể gửi yêu cầu."
     }
-
   }
-
 }
+
+// ===========================
+// Hủy yêu cầu bảo hành
+// ===========================
 const cancelWarranty = async (id) => {
-
-
   if (!confirm("Bạn có chắc muốn hủy yêu cầu này?")) {
     return
   }
 
-
   try {
-
-
-    await axios.put(
-      `${API}/${id}/cancel`
-    )
-
+    await axios.put(`${API}/${id}/cancel`)
 
     message.value = {
       type: "success",
       text: "Đã hủy yêu cầu bảo hành."
     }
 
-
     await fetchWarrantyRequests()
 
-
-
   } catch (err) {
-
-
     message.value = {
       type: "error",
-      text:
-        err.response?.data?.message
-        ||
-        "Không thể hủy yêu cầu."
+      text: err.response?.data?.message || "Không thể hủy yêu cầu."
     }
-
   }
-
-
 }
 
 // ===========================
 // Hiển thị trạng thái
 // ===========================
 const getStatusText = (status) => {
-
   switch (status) {
-
     case "CHO_XU_LY":
       return "🟡 Chờ xử lý"
-
-
     case "DA_TIEP_NHAN":
       return "🔵 Đã tiếp nhận"
-
-
     case "DANG_XU_LY":
       return "🟠 Đang xử lý"
-
-
     case "HOAN_TAT":
       return "🟢 Hoàn tất"
-
-
     case "TU_CHOI":
       return "🔴 Từ chối"
     case "DA_HUY":
       return "⚫ Đã hủy"
-
     default:
       return "Không xác định"
-
   }
-
 }
 
 // ===========================
-// Load khi mở trang
+// Lifecycle Hooks
 // ===========================
 onMounted(() => {
+  const currentUser = getUser()
+  
+  // Tự động điền họ tên, SĐT nếu user đã đăng nhập sẵn
+  if (currentUser) {
+    if (currentUser.hoTen) form.hoTen = currentUser.hoTen
+    if (currentUser.sdt) form.sdt = currentUser.sdt
+  }
 
   fetchWarrantyRequests()
 
-  // Tự động cập nhật mỗi 5 giây
+  // Tự động cập nhật lịch sử mỗi 5 giây
   timer = setInterval(() => {
-
     fetchWarrantyRequests()
-
   }, 5000)
-
 })
-const user = JSON.parse(localStorage.getItem("user"))
 
-// ===========================
-// Hủy timer
-// ===========================
 onUnmounted(() => {
-
-  clearInterval(timer)
-
+  if (timer) clearInterval(timer)
 })
 </script>
 

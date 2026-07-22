@@ -8,9 +8,9 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue';
 import { useRouter } from 'vue-router';
 
+// Xóa import defineProps từ 'vue', dùng trực tiếp macro defineProps
 const props = defineProps({
   maSanPham: {
     type: Number,
