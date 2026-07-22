@@ -91,14 +91,12 @@
                 </div>
               </div>
 
-             <div class="secondary-action-row" style="display: flex; gap: 15px; width: 100%;">
-  <button 
-    @click="contactVVIP" 
-    class="btn-secondary"
-    style="flex: 1; margin: 0; display: inline-flex; justify-content: center; align-items: center; cursor: pointer;">
-    LIÊN HỆ TƯ VẤN VVIP
-  </button>
-</div>
+              <div class="secondary-action-row" style="display: flex; gap: 15px; width: 100%;">
+                <button @click="contactVVIP" class="btn-secondary"
+                  style="flex: 1; margin: 0; display: inline-flex; justify-content: center; align-items: center; cursor: pointer;">
+                  LIÊN HỆ TƯ VẤN VVIP
+                </button>
+              </div>
             </div>
 
             <div class="accordion-group">
@@ -191,6 +189,23 @@
         <router-link to="/san-pham" class="btn-primary">QUAY LẠI CỬA HÀNG</router-link>
       </div>
     </main>
+
+    <!-- HTML KHỐI POPUP THÔNG BÁO -->
+    <div class="custom-popup-overlay" v-if="popup.show" @click="closePopup">
+      <div class="custom-popup-box" :class="popup.type" @click.stop>
+        <div class="popup-icon">
+          <i v-if="popup.type === 'success'" class="fas fa-check-circle"></i>
+          <i v-else-if="popup.type === 'warning'" class="fas fa-exclamation-triangle"></i>
+          <i v-else class="fas fa-times-circle"></i>
+        </div>
+        <div class="popup-content">
+          <h3>{{ popup.type === 'success' ? 'THÀNH CÔNG' : popup.type === 'warning' ? 'CHÚ Ý' : 'LỖI' }}</h3>
+          <p>{{ popup.message }}</p>
+        </div>
+        <button class="popup-close-btn" @click="closePopup">ĐÓNG</button>
+      </div>
+    </div>
+
     <Footer />
   </div>
 </template>
@@ -212,6 +227,33 @@ const carouselRef = ref(null)
 
 const quantity = ref(1)
 
+// -- STATE QUẢN LÝ POPUP THÔNG BÁO --
+const popup = ref({
+  show: false,
+  message: '',
+  type: 'success' // Các loại: 'success', 'error', 'warning'
+})
+
+let popupTimeout = null;
+
+const showNotification = (message, type = 'success') => {
+  popup.value = { show: true, message, type }
+  
+  // Xóa timeout cũ nếu có bấm liên tiếp
+  if (popupTimeout) clearTimeout(popupTimeout)
+  
+  // Tự động đóng popup sau 3 giây (3000ms)
+  popupTimeout = setTimeout(() => {
+    closePopup()
+  }, 3000)
+}
+
+const closePopup = () => {
+  popup.value.show = false
+  if (popupTimeout) clearTimeout(popupTimeout)
+}
+// ----------------------------------
+
 const formatPrice = (value) => {
   if (!value) return 'Liên hệ'
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
@@ -219,9 +261,14 @@ const formatPrice = (value) => {
 
 const addToCart = async () => {
   const userStr = localStorage.getItem('user');
+  
+  // Kiểm tra đăng nhập
   if (!userStr) {
-    alert('Vui lòng đăng nhập để thêm kiệt tác này vào giỏ hàng!');
-    router.push('/dang-nhap');
+    showNotification('Vui lòng đăng nhập để thêm kiệt tác này vào giỏ hàng!', 'warning');
+    // Chuyển hướng sau 1.5 giây để người dùng kịp đọc thông báo
+    setTimeout(() => {
+      router.push('/dang-nhap');
+    }, 1500);
     return;
   }
 
@@ -241,19 +288,19 @@ const addToCart = async () => {
 
     if (response.ok) {
       window.dispatchEvent(new Event('cart-updated'));
-      alert('Tuyệt vời! Đã thêm ' + product.value.tenSanPham + ' vào giỏ hàng thành công!');
+      showNotification(`Tuyệt vời! Đã thêm ${product.value.tenSanPham} vào giỏ hàng thành công!`, 'success');
     } else {
-      alert('Có lỗi xảy ra khi thêm vào giỏ. Vui lòng thử lại!');
+      showNotification('Có lỗi xảy ra khi thêm vào giỏ. Vui lòng thử lại!', 'error');
     }
   } catch (error) {
     console.error('Lỗi gọi API:', error);
-    alert('Không thể kết nối đến máy chủ. Hãy chắc chắn Server Java đang chạy!');
+    showNotification('Không thể kết nối đến máy chủ. Hãy chắc chắn Server Java đang chạy!', 'error');
   }
 }
 
 const contactVVIP = () => {
   router.push({
-    path: '/lien-he-tu-van', // Khớp với path trong router
+    path: '/lien-he-tu-van', 
     query: {
       productId: product.value.maSanPham
     }
@@ -261,7 +308,6 @@ const contactVVIP = () => {
 }
 
 const minDate = ref(new Date().toISOString().split('T')[0])
-
 
 const scrollCarousel = (direction) => {
   if (carouselRef.value) {
@@ -303,4 +349,91 @@ onMounted(() => {
 
 <style scoped>
 @import "../CSS/User/ChiTietSanPham.css";
+
+/* --- CSS CHO KHỐI POPUP --- */
+.custom-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7); /* Nền đen mờ */
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.custom-popup-box {
+  background: #1e1e1e; /* Màu nền sang trọng của Velora */
+  border: 1px solid #d1aa68; /* Viền vàng luxury */
+  border-radius: 8px;
+  padding: 30px 40px;
+  width: 90%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  animation: scaleUp 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.popup-icon i {
+  font-size: 55px;
+}
+
+/* Các màu trạng thái */
+.custom-popup-box.success .popup-icon i { color: #2ecc71; }
+.custom-popup-box.warning .popup-icon i { color: #f39c12; }
+.custom-popup-box.error .popup-icon i { color: #e74c3c; }
+
+.popup-content h3 {
+  color: #d1aa68;
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  letter-spacing: 2px;
+  font-weight: bold;
+}
+
+.popup-content p {
+  color: #e0e0e0;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.popup-close-btn {
+  margin-top: 15px;
+  background: #d1aa68;
+  color: #111;
+  border: none;
+  padding: 12px 30px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.popup-close-btn:hover {
+  background: #b8955b;
+  transform: translateY(-2px);
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
 </style>
