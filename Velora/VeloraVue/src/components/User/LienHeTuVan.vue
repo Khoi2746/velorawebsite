@@ -192,6 +192,7 @@
 </template>
 
 <script setup>
+import html2pdf from 'html2pdf.js'
 import { ref, onMounted, nextTick } from 'vue' // Đã thêm nextTick
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
