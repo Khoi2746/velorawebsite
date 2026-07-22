@@ -186,7 +186,11 @@ public class NguoiDungController {
     }
 
     /* =========================================================================================
-     * CÁC HÀM TIỆN ÍCH HỖ TRỢ GỬI MAIL HTML GIAO DIỆN LUXURY VELORA CLOCK
+     * CÁC HÀM TIỆN ÍCH HỖ TRỢ GỬI MAIL HTML (ĐÃ THAY CHỮ THÀNH ICON)
+     * ========================================================================================= */
+
+    /* =========================================================================================
+     * CÁC HÀM TIỆN ÍCH HỖ TRỢ GỬI MAIL HTML (DARK THEME: NÂU GỖ - VÀNG KIM)
      * ========================================================================================= */
 
     private void sendVerificationSuccessEmail(String toEmail, String fullName) {
@@ -197,17 +201,19 @@ public class NguoiDungController {
             helper.setTo(toEmail);
             helper.setSubject("Velora Clock - Xác minh tài khoản thành công");
             
-            String htmlContent = "<div style='font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #d1aa68; padding: 30px; border-radius: 8px;'>"
-                + "<h2 style='color: #d1aa68; text-align: center; letter-spacing: 2px; margin-bottom: 20px;'>VELORA CLOCK</h2>"
-                + "<p style='font-size: 16px;'>Kính chào <b>" + fullName + "</b>,</p>"
-                + "<p style='font-size: 15px; line-height: 1.6;'>Cảm ơn Quý khách đã hoàn tất việc cập nhật và xác minh thông tin cá nhân trên hệ thống Velora Clock.</p>"
-                + "<div style='background: #f8f9fa; padding: 20px; border-left: 5px solid #2ecc71; margin: 25px 0; border-radius: 4px;'>"
-                + "<b style='color: #2ecc71; font-size: 16px;'>✓ TÀI KHOẢN ĐÃ ĐƯỢC XÁC MINH</b><br/><br/>"
-                + "<span style='color: #555;'>Giờ đây, Quý khách đã có thể trải nghiệm toàn bộ các dịch vụ và đặc quyền mua sắm cao cấp từ chúng tôi.</span>"
+            String htmlContent = "<div style='font-family: Arial, sans-serif; background-color: #26160d; color: #ffffff; max-width: 600px; margin: auto; border: 2px solid #d1aa68; padding: 30px; border-radius: 8px;'>"
+                + "<div style='text-align: center; margin-bottom: 20px;'>"
+                + "  <img src='https://i.postimg.cc/0jRpHvWJ/Velora-Icon.png' alt='Velora Clock' style='max-width: 180px; height: auto;' />"
                 + "</div>"
-                + "<p style='font-size: 15px; line-height: 1.6;'>Nếu cần hỗ trợ, xin vui lòng liên hệ bộ phận CSKH VVIP.</p>"
+                + "<p style='font-size: 16px; color: #ffffff;'>Kính chào <b style='color: #d1aa68;'>" + fullName + "</b>,</p>"
+                + "<p style='font-size: 15px; line-height: 1.6; color: #e0e0e0;'>Cảm ơn Quý khách đã hoàn tất việc cập nhật và xác minh thông tin cá nhân trên hệ thống Velora Clock.</p>"
+                + "<div style='background-color: #170d08; padding: 20px; border: 1px solid #2ecc71; border-left: 5px solid #2ecc71; margin: 25px 0; border-radius: 4px;'>"
+                + "<b style='color: #2ecc71; font-size: 16px;'>✓ TÀI KHOẢN ĐÃ ĐƯỢC XÁC MINH</b><br/><br/>"
+                + "<span style='color: #e0e0e0;'>Giờ đây, Quý khách đã có thể trải nghiệm toàn bộ các dịch vụ và đặc quyền mua sắm cao cấp từ chúng tôi.</span>"
+                + "</div>"
+                + "<p style='font-size: 15px; line-height: 1.6; color: #e0e0e0;'>Nếu cần hỗ trợ, xin vui lòng liên hệ bộ phận CSKH VVIP.</p>"
                 + "<br/>"
-                + "<p style='font-size: 15px;'>Trân trọng,<br/><b style='color: #d1aa68;'>Ban Quản Trị Velora Clock</b></p>"
+                + "<p style='font-size: 15px; color: #e0e0e0;'>Trân trọng,<br/><b style='color: #d1aa68;'>Ban Quản Trị Velora Clock</b></p>"
                 + "</div>";
 
             helper.setText(htmlContent, true);
@@ -227,18 +233,20 @@ public class NguoiDungController {
             helper.setTo(toEmail);
             helper.setSubject("Velora Clock - Cảnh báo thay đổi thông tin tài khoản");
             
-            String htmlContent = "<div style='font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #d1aa68; padding: 30px; border-radius: 8px;'>"
-                + "<h2 style='color: #d1aa68; text-align: center; letter-spacing: 2px; margin-bottom: 20px;'>VELORA CLOCK</h2>"
-                + "<p style='font-size: 16px;'>Kính chào <b>" + fullName + "</b>,</p>"
-                + "<p style='font-size: 15px; line-height: 1.6;'>Hệ thống của chúng tôi vừa ghi nhận có sự <b>thay đổi về thông tin (Số điện thoại hoặc Địa chỉ giao hàng)</b> trên hồ sơ tài khoản của Quý khách.</p>"
-                + "<div style='background: #fff3cd; padding: 20px; border-left: 5px solid #f39c12; margin: 25px 0; border-radius: 4px;'>"
-                + "<b style='color: #d35400; font-size: 15px;'>⚠️ CHÚ Ý BẢO MẬT:</b><br/><br/>"
-                + "<span style='color: #555;'>Nếu Quý khách là người thực hiện thay đổi này, xin vui lòng bỏ qua email này.</span><br/><br/>"
-                + "<span style='color: #555;'>Nếu Quý khách KHÔNG thực hiện thay đổi, vui lòng liên hệ ngay với chúng tôi để bảo vệ tài khoản!</span>"
+            String htmlContent = "<div style='font-family: Arial, sans-serif; background-color: #26160d; color: #ffffff; max-width: 600px; margin: auto; border: 2px solid #d1aa68; padding: 30px; border-radius: 8px;'>"
+                + "<div style='text-align: center; margin-bottom: 20px;'>"
+                + "  <img src='https://i.postimg.cc/0jRpHvWJ/Velora-Icon.png' alt='Velora Clock' style='max-width: 180px; height: auto;' />"
                 + "</div>"
-                + "<p style='font-size: 15px; line-height: 1.6;'>Cảm ơn Quý khách đã luôn đồng hành cùng Velora Clock.</p>"
+                + "<p style='font-size: 16px; color: #ffffff;'>Kính chào <b style='color: #d1aa68;'>" + fullName + "</b>,</p>"
+                + "<p style='font-size: 15px; line-height: 1.6; color: #e0e0e0;'>Hệ thống của chúng tôi vừa ghi nhận có sự <b style='color: #ffffff;'>thay đổi về thông tin (Số điện thoại hoặc Địa chỉ giao hàng)</b> trên hồ sơ tài khoản của Quý khách.</p>"
+                + "<div style='background-color: #170d08; padding: 20px; border: 1px solid #f39c12; border-left: 5px solid #f39c12; margin: 25px 0; border-radius: 4px;'>"
+                + "<b style='color: #f39c12; font-size: 15px;'>⚠️ CHÚ Ý BẢO MẬT:</b><br/><br/>"
+                + "<span style='color: #e0e0e0;'>Nếu Quý khách là người thực hiện thay đổi này, xin vui lòng bỏ qua email này.</span><br/><br/>"
+                + "<span style='color: #e0e0e0;'>Nếu Quý khách KHÔNG thực hiện thay đổi, vui lòng liên hệ ngay với chúng tôi để bảo vệ tài khoản!</span>"
+                + "</div>"
+                + "<p style='font-size: 15px; line-height: 1.6; color: #e0e0e0;'>Cảm ơn Quý khách đã luôn đồng hành cùng Velora Clock.</p>"
                 + "<br/>"
-                + "<p style='font-size: 15px;'>Trân trọng,<br/><b style='color: #d1aa68;'>Ban Quản Trị Velora Clock</b></p>"
+                + "<p style='font-size: 15px; color: #e0e0e0;'>Trân trọng,<br/><b style='color: #d1aa68;'>Ban Quản Trị Velora Clock</b></p>"
                 + "</div>";
 
             helper.setText(htmlContent, true);
