@@ -41,7 +41,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in warrantyRequests" :key="item.maBaoHanh">
+            <tr v-for="item in paginatedRequests" :key="item.maBaoHanh">
               <td>#{{ item.maBaoHanh }}</td>
               <td>{{ item.maDonHangCode || 'Chưa có' }}</td>
               <td>{{ item.loaiSanPham || 'Chưa rõ' }}</td>
@@ -70,41 +70,47 @@ rejected:item.trangThai==='TU_CHOI'
 </span>
 
 </td>
-              <td>
-<select
-v-model="item.trangThai"
-class="status-select">
+              <!-- Cập nhật trong thẻ <td> hành động của template -->
+<td>
+  <!-- Ô chọn thời gian hẹn (chỉ hiện khi chọn Đã tiếp nhận) -->
+  <input 
+    v-if="item.trangThai === 'DA_TIEP_NHAN'" 
+    type="datetime-local" 
+    v-model="item.thoiGianHenInput" 
+    class="input-datetime" 
+    style="margin-bottom: 5px; display: block; font-size: 11px;"
+  />
 
-<option value="CHO_XU_LY">Chờ xử lý</option>
+  <select v-model="item.trangThai" class="status-select">
+    <option value="CHO_XU_LY">Chờ xử lý</option>
+    <option value="DA_TIEP_NHAN">Đã tiếp nhận</option>
+    <option value="DANG_XU_LY">Đang xử lý</option>
+    <option value="HOAN_TAT">Hoàn tất</option>
+    <option value="TU_CHOI">Từ chối</option>
+  </select>
 
-<option value="DA_TIEP_NHAN">Đã tiếp nhận</option>
-
-<option value="DANG_XU_LY">Đang xử lý</option>
-
-<option value="HOAN_TAT">Hoàn tất</option>
-
-<option value="TU_CHOI">Từ chối</option>
-
-</select>
-                <button
-class="btn-confirm"
-@click="updateStatus(item)">
-Cập nhật
-</button>
-                </td>
+  <button class="btn-confirm" @click="updateStatus(item)">
+    Cập nhật
+  </button>
+</td>
             </tr>
             <tr v-if="warrantyRequests.length === 0">
               <td colspan="7" class="empty-state">Không có yêu cầu bảo hành nào đang chờ xác nhận.</td>
             </tr>
           </tbody>
         </table>
+        <div class="pagination-bar" v-if="totalPages > 1">
+          <button class="btn-page" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Trước</button>
+          <span class="page-info">Trang <strong>{{ currentPage }}</strong> / {{ totalPages }}</span>
+          <button class="btn-page" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">Sau</button>
+        </div>
       </section>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -115,6 +121,30 @@ const warrantyRequests = ref([])
 const loading = ref(false)
 
 const message = ref(null)
+const currentPage = ref(1)
+const itemsPerPage = ref(5)
+
+const totalPages = computed(() => {
+  return Math.max(Math.ceil(warrantyRequests.value.length / itemsPerPage.value), 1)
+})
+
+const paginatedRequests = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return warrantyRequests.value.slice(start, end)
+})
+
+const changePage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+  }
+}
+
+watch([warrantyRequests, totalPages], () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value
+  }
+})
 
 // =============================
 // MENU
@@ -191,56 +221,37 @@ const fetchWarrantyRequests = async () => {
 // =============================
 // Cập nhật trạng thái
 // =============================
-const updateStatus = async(item)=>{
+const updateStatus = async (item) => {
+    try {
+        const status = item.trangThai.trim();
 
-    try{
+        const response = await fetch(`${API}/${item.maBaoHanh}/status`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                trangThai: status,
+                thoiGianHen: item.thoiGianHenInput || null // Gửi kèm thời gian hẹn nếu có
+            })
+        });
 
-        const status = item.trangThai.trim()
+        if (!response.ok) throw new Error();
 
+        message.value = {
+            type: "success",
+            text: "Cập nhật trạng thái và gửi email lịch hẹn thành công!"
+        };
 
-        const response = await fetch(
+        await fetchWarrantyRequests();
 
-            `${API}/${item.maBaoHanh}/status`,
-
-            {
-                method:"PUT",
-
-                headers:{
-                    "Content-Type":"application/json"
-                },
-
-                body:JSON.stringify({
-                    trangThai:status
-                })
-            }
-
-        )
-
-
-        if(!response.ok)
-            throw new Error()
-
-
-        message.value={
-            type:"success",
-            text:"Cập nhật trạng thái thành công."
-        }
-
-
-        await fetchWarrantyRequests()
-
-
-    }catch(e){
-
-        console.log(e)
-
-        message.value={
-            type:"error",
-            text:"Không cập nhật được."
-        }
-
+    } catch (e) {
+        console.log(e);
+        message.value = {
+            type: "error",
+            text: "Không cập nhật được."
+        };
     }
-
 }
 const getStatusText=(status)=>{
 

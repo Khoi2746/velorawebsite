@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -152,21 +153,24 @@ public class BaoHanhController {
         // ADMIN cập nhật trạng thái
         // ==========================
         @PutMapping("/{id}/status")
-        public ResponseEntity<?> updateStatus(
-                        @PathVariable Integer id,
-                        @RequestBody Map<String, String> body) {
+public ResponseEntity<?> updateStatus(
+        @PathVariable Integer id,
+        @RequestBody Map<String, Object> body) {
+    
+    String trangThai = (String) body.get("trangThai");
+    LocalDateTime thoiGianHen = null;
 
-                BaoHanh bh = baoHanhService.updateStatus(
-                                id,
-                                body.get("trangThai"));
+    if (body.get("thoiGianHen") != null && !body.get("thoiGianHen").toString().isBlank()) {
+        thoiGianHen = LocalDateTime.parse(body.get("thoiGianHen").toString());
+    }
 
-                return ResponseEntity.ok(
-                                Map.of(
-                                                "message",
-                                                "Cập nhật trạng thái thành công.",
-                                                "data",
-                                                bh));
-        }
+    BaoHanh bh = baoHanhService.updateStatus(id, trangThai, thoiGianHen);
+
+    return ResponseEntity.ok(
+            Map.of(
+                    "message", "Cập nhật trạng thái và gửi email thành công.",
+                    "data", bh));
+}
 
         // ==========================
         // USER HỦY YÊU CẦU
@@ -197,4 +201,5 @@ public class BaoHanhController {
                 }
 
         }
+        
 }
