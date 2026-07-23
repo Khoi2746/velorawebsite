@@ -47,7 +47,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="category in filteredCategories" :key="category.maLoai">
+                        <tr v-for="category in paginatedCategories" :key="category.maLoai">
                             <td>#{{ category.maLoai }}</td>
                             <td class="category-title">{{ category.tenLoai }}</td>
                             <td class="category-desc">{{ category.moTa || 'Chưa có mô tả' }}</td>
@@ -60,11 +60,18 @@
                                 </button>
                             </td>
                         </tr>
-                        <tr v-if="filteredCategories.length === 0">
+                        <tr v-if="paginatedCategories.length === 0">
                             <td colspan="4" class="empty-state">Không tìm thấy loại sản phẩm nào phù hợp.</td>
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- Khối điều hướng phân trang -->
+                <div class="pagination-wrapper" v-if="totalPages > 1">
+                    <button class="btn-page" @click="prevPage" :disabled="currentPage === 1">Trước</button>
+                    <span class="page-info">Trang <strong>{{ currentPage }}</strong> / {{ totalPages }}</span>
+                    <button class="btn-page" @click="nextPage" :disabled="currentPage === totalPages">Sau</button>
+                </div>
             </section>
         </main>
 
@@ -96,7 +103,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 
 const CAT_API_URL = 'http://localhost:8080/api/loai-san-pham'; 
 
@@ -128,12 +135,42 @@ const defaultForm = {
 };
 const form = ref({ ...defaultForm });
 
+// --- CẤU HÌNH PHÂN TRANG ---
+const currentPage = ref(1);
+const itemsPerPage = ref(5); // Số lượng bản ghi trên một trang
+
 // Tính toán tìm kiếm thời gian thực
 const filteredCategories = computed(() => {
     return categories.value.filter(cat => {
         return cat.tenLoai.toLowerCase().includes(searchQuery.value.toLowerCase());
     });
 });
+
+// Tính tổng số trang dựa trên kết quả tìm kiếm
+const totalPages = computed(() => {
+    return Math.ceil(filteredCategories.value.length / itemsPerPage.value) || 1;
+});
+
+// Lấy dữ liệu cho trang hiện tại
+const paginatedCategories = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value;
+    const end = start + itemsPerPage.value;
+    return filteredCategories.value.slice(start, end);
+});
+
+// Reset về trang 1 mỗi khi người dùng gõ tìm kiếm
+watch(searchQuery, () => {
+    currentPage.value = 1;
+});
+
+// Hàm chuyển trang
+const prevPage = () => {
+    if (currentPage.value > 1) currentPage.value--;
+};
+
+const nextPage = () => {
+    if (currentPage.value < totalPages.value) currentPage.value++;
+};
 
 const loadCategories = async () => {
     try {
@@ -155,7 +192,6 @@ const openAddModal = () => {
 
 const openEditModal = (category) => {
     isEditMode.value = true;
-    // Nhận diện mã loại (gốc tương đương Long id bên Java)
     currentCategoryId.value = category.maLoai;
     form.value = {
         tenLoai: category.tenLoai,
@@ -173,7 +209,6 @@ const saveCategory = async () => {
         let url = CAT_API_URL;
         let method = 'POST';
 
-        // Tạo cục JSON thuần khớp cấu trúc Entity LoaiSanPham trong Spring Boot
         const dataToSend = {
             tenLoai: form.value.tenLoai,
             moTa: form.value.moTa
@@ -211,6 +246,10 @@ const deleteCategory = async (id) => {
             });
             if (res.ok) {
                 alert('Xóa loại sản phẩm thành công!');
+                // Lùi về trang trước nếu xóa phần tử cuối cùng của trang hiện tại
+                if (paginatedCategories.value.length === 1 && currentPage.value > 1) {
+                    currentPage.value--;
+                }
                 loadCategories();
             } else {
                 alert('Xóa thất bại! Loại sản phẩm này có thể đang được sử dụng ở bảng Sản Phẩm.');
@@ -233,4 +272,6 @@ onMounted(() => {
 
 <style scoped>
 @import "../CSS/Admin/LoaiSanPham.css";
+
+
 </style>

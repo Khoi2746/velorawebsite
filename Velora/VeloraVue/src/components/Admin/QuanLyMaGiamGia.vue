@@ -87,7 +87,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="item in danhSachMaLoc" :key="item.id">
+                        <tr v-for="item in paginatedDanhSach" :key="item.id">
                             <td><strong>{{ item.maCode }}</strong></td>
                             <td>Giảm {{ item.phanTramGiam }}%</td>
                             <td>{{ item.soLuotDaDung }} / {{ item.gioiHanSuDung }}</td>
@@ -110,11 +110,18 @@
                                 </button>
                             </td>
                         </tr>
-                        <tr v-if="danhSachMaLoc.length === 0">
+                        <tr v-if="paginatedDanhSach.length === 0">
                             <td colspan="6" class="empty-msg">Không tìm thấy mã giảm giá nào phù hợp.</td>
                         </tr>
                     </tbody>
                 </table>
+                
+                <!-- Khối điều hướng phân trang -->
+                <div class="pagination-wrapper" v-if="totalPages > 1">
+                    <button class="btn-page" @click="prevPage" :disabled="currentPage === 1">Trước</button>
+                    <span class="page-info">Trang <strong>{{ currentPage }}</strong> / {{ totalPages }}</span>
+                    <button class="btn-page" @click="nextPage" :disabled="currentPage === totalPages">Sau</button>
+                </div>
             </div>
         </main>
 
@@ -164,7 +171,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 
 const menuItems = [
@@ -198,6 +205,10 @@ const loaiHanSuDung = ref('none');
 const filterTrangThai = ref('all');
 const filterMucGiam = ref('all');
 const filterHanSuDung = ref('all');
+
+// --- CẤU HÌNH PHÂN TRANG ---
+const currentPage = ref(1);
+const itemsPerPage = ref(7); // Số lượng bản ghi mã giảm giá trên một trang (có thể tùy chỉnh)
 
 const tinhTrangThai = (item) => {
     if (item.soLuotDaDung >= item.gioiHanSuDung) {
@@ -236,6 +247,33 @@ const danhSachMaLoc = computed(() => {
         return matchSearch && matchTrangThai && matchMucGiam && matchHanSuDung;
     });
 });
+
+// Tính tổng số trang
+const totalPages = computed(() => {
+    return Math.ceil(danhSachMaLoc.value.length / itemsPerPage.value) || 1;
+});
+
+// Dữ liệu hiển thị trên trang hiện tại
+const paginatedDanhSach = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value;
+    const end = start + itemsPerPage.value;
+    return danhSachMaLoc.value.slice(start, end);
+});
+
+// Reset về trang 1 mỗi khi người dùng tìm kiếm hoặc thay đổi bộ lọc
+watch([searchQuery, filterTrangThai, filterMucGiam, filterHanSuDung], () => {
+    currentPage.value = 1;
+});
+
+// Hàm chuyển trang
+const prevPage = () => {
+    if (currentPage.value > 1) currentPage.value--;
+};
+
+const nextPage = () => {
+    if (currentPage.value < totalPages.value) currentPage.value++;
+};
+// --- KẾT THÚC CẤU HÌNH PHÂN TRANG ---
 
 const formatDate = (dateString) => {
     if (!dateString) return 'Vĩnh viễn';
@@ -323,6 +361,10 @@ const xoaMa = async (id) => {
     if (confirm("Bạn có chắc chắn muốn xóa mã giảm giá này?")) {
         try {
             await axios.delete(`/api/admin/ma-giam-gia/${id}`);
+            // Lùi về trang trước nếu xóa phần tử cuối cùng của trang hiện tại
+            if (paginatedDanhSach.value.length === 1 && currentPage.value > 1) {
+                currentPage.value--;
+            }
             layDanhSach();
         } catch (error) {
             if (error.response && error.response.data) {
@@ -634,6 +676,42 @@ td strong {
 }
 .btn-delete:hover {
     background-color: #f5caca;
+}
+
+/* ================= PHÂN TRANG ================= */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 0;
+    margin-top: 10px;
+}
+
+.btn-page {
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    color: #333;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-page:hover:not(:disabled) {
+    background-color: #f0f0f0;
+    border-color: #bbb;
+}
+
+.btn-page:disabled {
+    background-color: #f9f9f9;
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 14px;
+    color: #555;
 }
 
 /* ================= MODAL ================= */
