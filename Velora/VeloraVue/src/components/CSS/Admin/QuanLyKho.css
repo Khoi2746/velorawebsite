@@ -94,7 +94,7 @@
     font-size: 14px;
 }
 
-/* SEARCH BOX MỚI */
+/* SEARCH BOX */
 .search-box {
     display: flex;
     align-items: center;
@@ -222,6 +222,42 @@
     text-align: center;
     padding: 40px !important;
     color: #888;
+}
+
+/* ================= PHÂN TRANG ================= */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 0;
+    margin-top: 10px;
+}
+
+.btn-page {
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    color: #333;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-page:hover:not(:disabled) {
+    background-color: #f0f0f0;
+    border-color: #bbb;
+}
+
+.btn-page:disabled {
+    background-color: #f9f9f9;
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 14px;
+    color: #555;
 }
 
 /* ================= MODAL PHIẾU NHẬP ================= */

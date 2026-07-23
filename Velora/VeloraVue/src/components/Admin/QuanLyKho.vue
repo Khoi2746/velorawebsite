@@ -44,7 +44,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="product in filteredProducts" :key="product.maSanPham">
+                        <tr v-for="product in paginatedProducts" :key="product.maSanPham">
                             <td>#{{ product.maSanPham }}</td>
 
                             <td>
@@ -73,13 +73,20 @@
                             </td>
                         </tr>
 
-                        <tr v-if="filteredProducts.length === 0">
+                        <tr v-if="paginatedProducts.length === 0">
                             <td colspan="6" class="empty-state">
                                 {{ products.length === 0 ? 'Đang tải dữ liệu...' : 'Không tìm thấy mã sản phẩm này!' }}
                             </td>
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- Khối điều hướng phân trang -->
+                <div class="pagination-wrapper" v-if="totalPages > 1">
+                    <button class="btn-page" @click="prevPage" :disabled="currentPage === 1">Trước</button>
+                    <span class="page-info">Trang <strong>{{ currentPage }}</strong> / {{ totalPages }}</span>
+                    <button class="btn-page" @click="nextPage" :disabled="currentPage === totalPages">Sau</button>
+                </div>
             </section>
         </main>
 
@@ -130,7 +137,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 
 const menuItems = [
     { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
@@ -158,6 +165,45 @@ const phieuNhap = ref({
     soLuongNhap: 0
 });
 
+// --- CẤU HÌNH PHÂN TRANG ---
+const currentPage = ref(1);
+const itemsPerPage = ref(10); // Đặt mặc định 10 bản ghi/trang cho quản lý kho
+
+// Computed property để lọc sản phẩm theo Mã SP
+const filteredProducts = computed(() => {
+    if (!searchQuery.value) return products.value;
+    return products.value.filter(p =>
+        p.maSanPham.toString().includes(searchQuery.value.trim())
+    );
+});
+
+// Tính tổng số trang
+const totalPages = computed(() => {
+    return Math.ceil(filteredProducts.value.length / itemsPerPage.value) || 1;
+});
+
+// Dữ liệu hiển thị trên trang hiện tại
+const paginatedProducts = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value;
+    const end = start + itemsPerPage.value;
+    return filteredProducts.value.slice(start, end);
+});
+
+// Reset về trang 1 mỗi khi người dùng gõ tìm kiếm
+watch(searchQuery, () => {
+    currentPage.value = 1;
+});
+
+// Hàm chuyển trang
+const prevPage = () => {
+    if (currentPage.value > 1) currentPage.value--;
+};
+
+const nextPage = () => {
+    if (currentPage.value < totalPages.value) currentPage.value++;
+};
+// --- KẾT THÚC CẤU HÌNH PHÂN TRANG ---
+
 const getImageUrl = (img) => {
     if (!img) return '/img/default-watch.png';
     return img.startsWith('http') ? img : `/img/${img}`;
@@ -179,14 +225,6 @@ const loadProducts = async () => {
         console.error('Lỗi kết nối Backend:', error);
     }
 };
-
-// Computed property để lọc sản phẩm theo Mã SP
-const filteredProducts = computed(() => {
-    if (!searchQuery.value) return products.value;
-    return products.value.filter(p =>
-        p.maSanPham.toString().includes(searchQuery.value.trim())
-    );
-});
 
 // Mở modal tạo phiếu
 const openModal = (product) => {
@@ -266,391 +304,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ================= LAYOUT & TABLE ================= */
-.admin-wrapper {
-    display: flex;
-    min-height: 100vh;
-    background: #f4f1ea;
-    font-family: sans-serif;
-}
+@import "../CSS/Admin/QuanLyKho.css";
 
-.sidebar {
-    width: 260px;
-    background: #3e332e;
-    color: #fff;
-    padding: 40px 20px;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-}
-
-.brand {
-    font-size: 18px;
-    color: #d1aa68;
-    margin-bottom: 50px;
-    text-align: center;
-    letter-spacing: 2px;
-}
-
-.menu li {
-    margin-bottom: 20px;
-    list-style: none;
-}
-
-.menu a {
-    color: #ccc;
-    text-decoration: none !important;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border-radius: 6px;
-    transition: 0.3s;
-}
-
-.menu a:hover,
-.menu a.active {
-    color: #d1aa68;
-    background-color: rgba(209, 170, 104, 0.1);
-}
-
-.sidebar-bottom {
-    margin-top: auto;
-    border-top: 1px solid #5a4b44;
-    padding-top: 20px;
-}
-
-.exit,
-.logout {
-    color: #aaa;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-    text-decoration: none !important;
-}
-
-.content {
-    flex: 1;
-    padding: 60px;
-    min-width: 0;
-}
-
-.gold {
-    color: #d1aa68;
-}
-
-.header {
-    margin-bottom: 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.header h1 {
-    color: #3e332e;
-    font-size: 32px;
-    margin-bottom: 5px;
-}
-
-.header p {
-    color: #888;
-    font-size: 14px;
-}
-
-/* SEARCH BOX MỚI */
-.search-box {
-    display: flex;
-    align-items: center;
-    background: #fff;
-    border: 1px solid #d1aa68;
-    border-radius: 20px;
-    padding: 8px 15px;
-    width: 250px;
-}
-
-.search-icon {
-    color: #d1aa68;
-    margin-right: 10px;
-}
-
-.search-input {
-    border: none;
-    outline: none;
-    font-size: 14px;
-    width: 100%;
-    color: #333;
-}
-
-.table-container {
-    background: #ffffff;
-    border: 1px solid #e0dcd5;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.02);
-}
-
-.admin-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-}
-
-.admin-table th {
-    background-color: #fcfbf9;
-    color: #3e332e;
-    padding: 18px 20px;
-    font-size: 13px;
-    text-transform: uppercase;
-    border-bottom: 2px solid #e0dcd5;
-    letter-spacing: 1px;
-}
-
-.admin-table td {
-    padding: 15px 20px;
-    border-bottom: 1px solid #f0efeb;
-    vertical-align: middle;
-    color: #555;
-    font-size: 14px;
-}
-
-.admin-table tbody tr:hover {
-    background-color: #fdfaf5;
-}
-
-.img-wrapper {
-    width: 50px;
-    height: 50px;
-    background: #f4f1ea;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-.img-wrapper img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-}
-
-.product-name {
-    font-weight: bold;
-    color: #3e332e;
-    max-width: 250px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.status-badge {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: bold;
-    text-transform: uppercase;
-    display: inline-block;
-    text-align: center;
-    width: 90px;
-}
-
-.in-stock {
-    background-color: #e8f5e9;
-    color: #2e7d32;
-}
-
-.out-stock {
-    background-color: #ffebee;
-    color: #c62828;
-}
-
-.btn-create-receipt {
-    background-color: #f4f1ea;
-    color: #3e332e;
-    border: 1px solid #e0dcd5;
-    padding: 8px 15px;
-    font-weight: bold;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.btn-create-receipt:hover {
-    background-color: #d1aa68;
-    color: #fff;
-    border-color: #d1aa68;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 40px !important;
-    color: #888;
-}
-
-/* ================= MODAL PHIẾU NHẬP ================= */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-.modal-box {
-    background: #fff;
-    width: 450px;
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.modal-header {
-    background: #3e332e;
-    color: #d1aa68;
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h2 {
-    font-size: 18px;
-    margin: 0;
-}
-
-.btn-close {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 20px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.btn-close:hover {
-    color: #d1aa68;
-}
-
-.modal-body {
-    padding: 25px;
-}
-
-.info-group {
-    margin-bottom: 15px;
-}
-
-.info-group label {
-    display: block;
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 5px;
-}
-
-.highlight-text {
-    font-weight: bold;
-    color: #333;
-    font-size: 16px;
-    margin: 0;
-}
-
-.stock-text {
-    font-weight: bold;
-    color: #2e7d32;
-    font-size: 16px;
-    margin: 0;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 8px;
-}
-
-.modal-input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 15px;
-    box-sizing: border-box;
-}
-
-.modal-input:focus {
-    border-color: #d1aa68;
-    outline: none;
-}
-
-.total-preview {
-    background: #e8f5e9;
-    border: 1px dashed #2e7d32;
-    padding: 15px;
-    color: #2e7d32;
-    border-radius: 4px;
-    font-size: 14px;
-}
-
-.modal-footer {
-    padding: 15px 25px;
-    background: #f4f1ea;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-.btn-cancel {
-    background: #ccc;
-    color: #333;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.btn-cancel:hover {
-    background: #bbb;
-}
-
-.btn-confirm-receipt {
-    background: #d1aa68;
-    color: #111;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.btn-confirm-receipt:hover {
-    background: #b8955b;
-    color: #fff;
-}
 </style>
