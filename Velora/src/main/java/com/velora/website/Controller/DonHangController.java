@@ -127,6 +127,31 @@ public class DonHangController {
         }
     }
 
+    @PatchMapping("/{id}/huy")
+    @Transactional
+    public ResponseEntity<?> huyDonHang(@PathVariable Integer id, @RequestParam(required = false) String lyDo) {
+        Optional<DonHang> optionalDonHang = donHangRepository.findById(id);
+        if (!optionalDonHang.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Lỗi: Không tìm thấy đơn hàng!");
+        }
+
+        DonHang donHang = optionalDonHang.get();
+        
+        // Kiểm tra xem đơn có đang ở trạng thái cho phép hủy hay không
+        if (!"CHO_XU_LY".equalsIgnoreCase(donHang.getTrangThaiDonHang())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Chỉ có thể hủy đơn hàng đang ở trạng thái chờ xử lý!");
+        }
+
+        donHang.setTrangThaiDonHang("DA_HUY");
+        if (lyDo != null && !lyDo.trim().isEmpty()) {
+            // Nếu entity của ku em có trường lưu ghi chú/lý do hủy thì set vào đây
+            // Ví dụ: donHang.setGhiChuDonHang((donHang.getGhiChuDonHang() != null ? donHang.getGhiChuDonHang() + " | " : "") + "Lý do hủy: " + lyDo);
+        }
+
+        donHangRepository.save(donHang);
+        return ResponseEntity.ok("Hủy đơn hàng thành công!");
+    }
+
     @PatchMapping("/{id}/trang-thai")
     public ResponseEntity<?> capNhatTrangThai(
             @PathVariable Integer id, 

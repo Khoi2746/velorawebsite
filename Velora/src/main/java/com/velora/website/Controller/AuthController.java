@@ -132,7 +132,7 @@ public class AuthController {
         nguoiDung.setNgayTao(new java.util.Date());
 
         // GÁN QUYỀN MẶC ĐỊNH LÀ "ROLE_USER"
-        VaiTro roleUser = vaiTroRepository.findByTenVaiTro("ROLE_USER")
+        VaiTro roleUser = vaiTroRepository.findByTenVaiTro("ROLE_CUSTOMER")
                 .orElseThrow(
                         () -> new RuntimeException("Lỗi Hệ Thống: Không tìm thấy quyền ROLE_USER trong Database!"));
 
