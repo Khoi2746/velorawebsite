@@ -13,8 +13,11 @@ import java.util.Optional;
 
 public interface DonHangRepository extends JpaRepository<DonHang, Integer> {
 
-    // 1. Tìm đơn hàng theo mã code
+    // 1. Tìm đơn hàng theo mã code chính xác
     Optional<DonHang> findByMaDonHangCode(String maDonHangCode);
+
+    // 🔥 BỔ SUNG: Tìm đơn hàng theo mã code linh hoạt (chứa chuỗi mã, bất chấp dấu # hay tiền tố)
+    Optional<DonHang> findByMaDonHangCodeContaining(String maDonHangCode);
 
     // 2. Tìm danh sách đơn hàng theo người dùng
     List<DonHang> findByMaNguoiDungOrderByMaDonHangDesc(Integer maNguoiDung);
@@ -36,7 +39,7 @@ public interface DonHangRepository extends JpaRepository<DonHang, Integer> {
         @Param("giaLucMua") double giaLucMua
     );
 
-    // 5. ĐÃ FIX: Bỏ cột GiaKhuyenMai bị lỗi, lấy trực tiếp GiaBan từ bảng SanPham
+    // 5. Chuyển giỏ hàng sang chi tiết đơn hàng (Lấy trực tiếp GiaBan từ SanPham)
     @Modifying
     @Query(value = "INSERT INTO ChiTietDonHang (MaDonHang, MaSanPham, SoLuong, GiaLucMua) " +
                    "SELECT :maDonHang, gh.MaSanPham, SUM(gh.SoLuong), sp.GiaBan " +

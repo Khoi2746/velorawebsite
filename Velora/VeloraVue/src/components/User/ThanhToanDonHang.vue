@@ -345,13 +345,13 @@ const xacNhanDatHang = async () => {
   let endpoint = '';
 
   if (isFromCart.value) {
-    // Đã chỉnh sửa full URL tới Backend port 8080
     endpoint = 'http://localhost:8080/api/don-hang/dat-gio-hang';
     payload = {
       maNguoiDung: user.maNguoiDung || 3,
       maDonHangCode: maCodeNgauNhien,
       tenNguoiNhan: formOrder.value.hoTen,
       soDienThoaiGiaoHang: formOrder.value.soDienThoai,
+      email: formOrder.value.email.trim(), // 🔥 ĐÃ THÊM: Truyền email khách nhập trên form
       diaChiGiaoHang: diaChiHoanChinh,
       phuongThucThanhToan: hinhThucThanhToan.value,
       tongTien: finalTotalAmount.value,
@@ -359,13 +359,13 @@ const xacNhanDatHang = async () => {
       maGiamGia: appliedVoucher.value ? appliedVoucher.value.maGiamGia : null
     };
   } else {
-    // Đã chỉnh sửa full URL tới Backend port 8080
     endpoint = 'http://localhost:8080/api/don-hang/dat-ngay';
     payload = {
       maNguoiDung: user.maNguoiDung || 3,
       maDonHangCode: maCodeNgauNhien, 
       tenNguoiNhan: formOrder.value.hoTen,
       soDienThoaiGiaoHang: formOrder.value.soDienThoai,
+      email: formOrder.value.email.trim(), // 🔥 ĐÃ THÊM: Truyền email khách nhập trên form
       diaChiGiaoHang: diaChiHoanChinh,
       phuongThucThanhToan: hinhThucThanhToan.value,
       maSanPham: product.value.maSanPham,

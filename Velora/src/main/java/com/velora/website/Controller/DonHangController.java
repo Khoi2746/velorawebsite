@@ -4,6 +4,7 @@ import com.velora.website.Entity.DonHang;
 import com.velora.website.Repository.DonHangRepository;
 import com.velora.website.Request.SepayResponse;
 import com.velora.website.Request.SePayWebhookDto;
+import com.velora.website.Service.EmailService;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,9 @@ import java.util.regex.Pattern;
 public class DonHangController {
 
     private final DonHangRepository donHangRepository;
+    private final EmailService emailService; // 🔥 BỔ SUNG Inject EmailService
+
+    private static final String ADMIN_EMAIL = "admin@velora.com"; 
 
     @GetMapping
     public ResponseEntity<List<DonHang>> getAllDonHang() {
@@ -137,15 +141,14 @@ public class DonHangController {
 
         DonHang donHang = optionalDonHang.get();
         
-        // Kiểm tra xem đơn có đang ở trạng thái cho phép hủy hay không
+        // 🔥 ĐÃ CHỈNH SỬA: Chặn không cho hủy nếu trạng thái khác CHO_XU_LY
         if (!"CHO_XU_LY".equalsIgnoreCase(donHang.getTrangThaiDonHang())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Chỉ có thể hủy đơn hàng đang ở trạng thái chờ xử lý!");
         }
 
         donHang.setTrangThaiDonHang("DA_HUY");
         if (lyDo != null && !lyDo.trim().isEmpty()) {
-            // Nếu entity của ku em có trường lưu ghi chú/lý do hủy thì set vào đây
-            // Ví dụ: donHang.setGhiChuDonHang((donHang.getGhiChuDonHang() != null ? donHang.getGhiChuDonHang() + " | " : "") + "Lý do hủy: " + lyDo);
+            donHang.setLyDoHuyDon(lyDo.trim());
         }
 
         donHangRepository.save(donHang);
@@ -192,6 +195,7 @@ public class DonHangController {
             donHang.setTongTien(BigDecimal.valueOf(payload.getTongTien()));
             donHang.setTenNguoiNhan(payload.getTenNguoiNhan());
             donHang.setSoDienThoaiGiaoHang(payload.getSoDienThoaiGiaoHang());
+            donHang.setEmail(payload.getEmail()); // 🔥 BỔ SUNG: Lưu email
             donHang.setDiaChiGiaoHang(payload.getDiaChiGiaoHang());
             donHang.setPhuongThucThanhToan(payload.getPhuongThucThanhToan());
             donHang.setTrangThaiDonHang("CHO_XU_LY");
@@ -212,6 +216,9 @@ public class DonHangController {
             );
 
             donHangRepository.xoaSanPhamKhoiGioHang(payload.getMaNguoiDung(), payload.getMaSanPham());
+
+            // 🔥 BỔ SUNG: Gửi mail thông báo
+            guiEmailThongBaoDonHang(payload.getEmail(), payload.getMaDonHangCode(), payload.getTenNguoiNhan(), payload.getTongTien(), payload.getDiaChiGiaoHang());
 
             return ResponseEntity.ok("Đặt hàng kiệt tác thành công!");
         } catch (Exception e) {
@@ -235,6 +242,7 @@ public class DonHangController {
             donHang.setTongTien(BigDecimal.valueOf(payload.getTongTien()));
             donHang.setTenNguoiNhan(payload.getTenNguoiNhan());
             donHang.setSoDienThoaiGiaoHang(payload.getSoDienThoaiGiaoHang());
+            donHang.setEmail(payload.getEmail()); // 🔥 BỔ SUNG: Lưu email
             donHang.setDiaChiGiaoHang(payload.getDiaChiGiaoHang());
             donHang.setPhuongThucThanhToan(payload.getPhuongThucThanhToan());
             donHang.setTrangThaiDonHang("CHO_XU_LY");
@@ -252,10 +260,45 @@ public class DonHangController {
             // Xóa sạch giỏ hàng của người dùng trong SQL Server
             donHangRepository.xoaToanBoGioHangCuaUser(payload.getMaNguoiDung());
 
+            // 🔥 BỔ SUNG: Gửi mail thông báo
+            guiEmailThongBaoDonHang(payload.getEmail(), payload.getMaDonHangCode(), payload.getTenNguoiNhan(), payload.getTongTien(), payload.getDiaChiGiaoHang());
+
             return ResponseEntity.ok("Đặt hàng giỏ hàng thành công!");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi xử lý giỏ hàng: " + e.getMessage());
+        }
+    }
+
+    // 🔥 BỔ SUNG: Hàm phụ trợ gửi Email
+    private void guiEmailThongBaoDonHang(String emailKhach, String maCode, String tenKhach, Double tongTien, String diaChi) {
+        try {
+            String subject = "[VELORA BOUTIQUE] XÁC NHẬN ĐƠN HÀNG #" + maCode;
+            String bodyKhach = "Kính chào quý khách " + tenKhach + ",\n\n"
+                    + "Cảm ơn quý khách đã tin tưởng và lựa chọn tuyệt tác thời gian tại Velora.\n"
+                    + "Thông tin đơn hàng của quý khách:\n"
+                    + "- Mã đơn hàng: " + maCode + "\n"
+                    + "- Tổng giá trị: " + String.format("%,.0f", tongTien) + " VND\n"
+                    + "- Địa chỉ giao hàng: " + diaChi + "\n\n"
+                    + "Chúng tôi đang tiến hành chuẩn bị đơn hàng và sẽ sớm giao đến quý khách.\n"
+                    + "Trân trọng,\nĐội ngũ Velora.";
+
+            if (emailKhach != null && !emailKhach.trim().isEmpty()) {
+                emailService.sendEmail(emailKhach, subject, bodyKhach);
+            }
+
+            String subjectAdmin = "[THÔNG BÁO CÓ ĐƠN HÀNG MỚI] #" + maCode;
+            String bodyAdmin = "Hệ thống Velora vừa ghi nhận 1 đơn hàng mới:\n"
+                    + "- Mã đơn hàng: " + maCode + "\n"
+                    + "- Khách hàng: " + tenKhach + "\n"
+                    + "- Email: " + emailKhach + "\n"
+                    + "- Tổng tiền: " + String.format("%,.0f", tongTien) + " VND\n"
+                    + "- Địa chỉ: " + diaChi + "\n"
+                    + "Vui lòng vào trang Quản trị đơn hàng để kiểm tra và duyệt đơn.";
+
+            emailService.sendEmail(ADMIN_EMAIL, subjectAdmin, bodyAdmin);
+        } catch (Exception e) {
+            System.err.println("Lỗi gửi email xác nhận đơn hàng: " + e.getMessage());
         }
     }
 }
@@ -269,6 +312,7 @@ class DatNgayRequest {
     private Double tongTien;
     private String tenNguoiNhan;
     private String soDienThoaiGiaoHang;
+    private String email; // 🔥 BỔ SUNG
     private String diaChiGiaoHang;
     private String phuongThucThanhToan;
     private Integer maSanPham;
@@ -283,6 +327,7 @@ class DatGioHangRequest {
     private Double tongTien;
     private String tenNguoiNhan;
     private String soDienThoaiGiaoHang;
+    private String email; // 🔥 BỔ SUNG
     private String diaChiGiaoHang;
     private String phuongThucThanhToan;
     private String ghiChuDonHang;

@@ -60,6 +60,7 @@
               <div class="detail-header">
                 <h2>CHI TIẾT ĐƠN HÀNG <span>#{{ selectedOrder.maDonHangCode }}</span></h2>
                 <div class="detail-actions">
+                  <!-- NÚT HỦY ĐƠN: CHỈ HIỂN THỊ KHI CHO_XU_LY -->
                   <button 
                     v-if="selectedOrder.trangThaiDonHang === 'CHO_XU_LY'" 
                     @click="cancelOrder(selectedOrder)" 
@@ -67,6 +68,16 @@
                   >
                     <i class="fas fa-ban"></i> HỦY ĐƠN
                   </button>
+
+                  <!-- NÚT YÊU CẦU HOÀN TIỀN: CHỈ HIỂN THỊ KHI DA_GIAO -->
+                  <button 
+                    v-if="selectedOrder.trangThaiDonHang === 'DA_GIAO'" 
+                    @click="goToRefundPage(selectedOrder)" 
+                    class="btn-refund-order"
+                  >
+                    <i class="fas fa-undo-alt"></i> YÊU CẦU HOÀN TIỀN
+                  </button>
+
                   <button class="btn-print" @click="window.print()"><i class="fas fa-print"></i> IN BIÊN LAI</button>
                 </div>
               </div>
@@ -166,13 +177,12 @@
       <i class="fas fa-info-circle"></i> {{ toastMessage }}
     </div>
 
-    <!-- CUSTOM LUXURY MODAL (HỖ TRỢ CẢ KHUNG NHẬP LÝ DO HỦY) -->
+    <!-- CUSTOM LUXURY MODAL -->
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div class="w-full max-w-md p-8 bg-[#141414] border border-[#c5a880]/40 rounded-xl shadow-2xl text-center">
         <h3 class="text-xl font-semibold text-[#c5a880] mb-3 tracking-wider">{{ modalTitle }}</h3>
         <p class="text-gray-300 mb-6 leading-relaxed">{{ modalMessage }}</p>
         
-        <!-- Khung nhập lý do hủy đơn -->
         <div v-if="modalType === 'cancel'" class="mb-6">
           <textarea 
             v-model="cancelReasonInput" 
@@ -212,7 +222,6 @@ const router = useRouter()
 const orders = ref([])
 const selectedOrder = ref(null)
 
-// ================= BIẾN QUẢN LÝ CUSTOM MODAL =================
 const showModal = ref(false)
 const modalTitle = ref('THÔNG BÁO')
 const modalMessage = ref('')
@@ -275,14 +284,18 @@ const tabs = [
 ]
 
 const filteredOrders = computed(() => {
-  if (currentTab.value === 'ALL') {
-    return orders.value
+  if (currentTab.value === 'ALL') return orders.value
+  if (currentTab.value === 'HOAN_TIEN') {
+    return orders.value.filter(o => ['YEU_CAU_HOAN_TIEN', 'TU_CHOI_HOAN_TIEN', 'DA_DUYET_HOAN_TIEN', 'HOAN_TIEN'].includes(o.trangThaiDonHang))
   }
   return orders.value.filter(order => order.trangThaiDonHang === currentTab.value)
 })
 
 const getCountByTab = (tabValue) => {
   if (tabValue === 'ALL') return orders.value.length
+  if (tabValue === 'HOAN_TIEN') {
+    return orders.value.filter(o => ['YEU_CAU_HOAN_TIEN', 'TU_CHOI_HOAN_TIEN', 'DA_DUYET_HOAN_TIEN', 'HOAN_TIEN'].includes(o.trangThaiDonHang)).length
+  }
   return orders.value.filter(order => order.trangThaiDonHang === tabValue).length
 }
 
@@ -312,6 +325,7 @@ const fetchUserOrders = async () => {
         tongTien: order.tongTien,
         tenNguoiNhan: order.tenNguoiNhan,
         soDienThoai: order.soDienThoaiGiaoHang,
+        email: order.email || user.email || '', 
         diaChi: order.diaChiGiaoHang,
         trangThaiDonHang: order.trangThaiDonHang,
         phuongThucThanhToan: order.phuongThucThanhToan,
@@ -326,8 +340,6 @@ const fetchUserOrders = async () => {
       if (orders.value.length > 0) {
         selectedOrder.value = orders.value[0]
       }
-    } else {
-      console.error('Không thể lấy danh sách đơn hàng thực tế:', response.status)
     }
   } catch (error) {
     console.error('Lỗi kết nối API đơn hàng đến Spring Boot:', error)
@@ -339,8 +351,13 @@ const selectOrder = (order) => {
 }
 
 const cancelOrder = async (order) => {
-  const reason = await triggerModal('Vui lòng cho biết lý do ku em muốn hủy đơn hàng này:', 'XÁC NHẬN HỦY ĐƠN', 'cancel')
-  if (!reason) return // Bấm hủy hoặc tắt popup
+  if (order.trangThaiDonHang !== 'CHO_XU_LY') {
+    await triggerModal('Đơn hàng đã được duyệt hoặc đang vận chuyển, không thể hủy!', 'THÔNG BÁO')
+    return
+  }
+
+  const reason = await triggerModal('Vui lòng cho biết lý do bạn muốn hủy đơn hàng này:', 'XÁC NHẬN HỦY ĐƠN', 'cancel')
+  if (!reason) return 
 
   try {
     const res = await fetch(`http://localhost:8080/api/don-hang/${order.maDonHang}/huy?lyDo=${encodeURIComponent(reason)}`, {
@@ -354,9 +371,13 @@ const cancelOrder = async (order) => {
       await triggerModal(errText || 'Không thể hủy đơn hàng này!', 'THÔNG BÁO')
     }
   } catch (error) {
-    console.error('Lỗi kết nối khi hủy đơn:', error)
     await triggerModal('Lỗi kết nối đến máy chủ!', 'LỖI')
   }
+}
+
+const goToRefundPage = (order) => {
+  localStorage.setItem('selectedRefundOrder', JSON.stringify(order))
+  router.push('/yeu-cau-hoan-tien')
 }
 
 const getStepLevel = (status) => {
@@ -373,28 +394,41 @@ const isStepCompleted = (status, stepNumber) => {
   return getStepLevel(status) > stepNumber;
 }
 
+// 🔥 ĐÃ CHỈNH SỬA CHUẨN XÁC CHUỖI HIỂN THỊ TRẠNG THÁI
 const getStatusText = (status) => {
+  if (!status) return ''
+  const cleanStatus = status.trim().toUpperCase()
+
   const map = {
     'CHO_XU_LY': 'Đang chờ xử lý',
     'DANG_CHUAN_BI': 'Đang chuẩn bị hàng',
     'DANG_GIAO': 'Đang vận chuyển',
     'DA_GIAO': 'Đã giao thành công',
     'DA_HUY': 'Đơn hàng đã hủy',
-    'HOAN_TIEN': 'Đang hoàn tiền'
+    'YEU_CAU_HOAN_TIEN': 'Yêu cầu hoàn tiền đã được gửi',
+    'TU_CHOI_HOAN_TIEN': 'Yêu cầu hoàn tiền bị từ chối',
+    'DA_DUYET_HOAN_TIEN': 'Yêu cầu hoàn tiền đã được duyệt',
+    'HOAN_TIEN': 'Yêu cầu hoàn tiền đã được gửi'
   }
-  return map[status] || status
+  return map[cleanStatus] || status
 }
 
 const getStatusClass = (status) => {
+  if (!status) return ''
+  const cleanStatus = status.trim().toUpperCase()
+
   const map = {
     'CHO_XU_LY': 'status-pending',
     'DANG_CHUAN_BI': 'status-prep',
     'DANG_GIAO': 'status-shipping',
     'DA_GIAO': 'status-delivered',
     'DA_HUY': 'status-cancelled',
-    'HOAN_TIEN': 'status-refund'
+    'YEU_CAU_HOAN_TIEN': 'status-refund-sent',
+    'TU_CHOI_HOAN_TIEN': 'status-refund-rejected',
+    'DA_DUYET_HOAN_TIEN': 'status-refund-approved',
+    'HOAN_TIEN': 'status-refund-sent'
   }
-  return map[status] || ''
+  return map[cleanStatus] || ''
 }
 
 onMounted(() => {
@@ -552,6 +586,43 @@ onMounted(() => {
   border-color: #f87171;
 }
 
+.btn-refund-order {
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 4px;
+  background-color: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-refund-order:hover {
+  background-color: #d97706;
+  color: #ffffff;
+  border-color: #d97706;
+}
+
+/* CÁC BADGE MÀU TRẠNG THÁI MỚI CHUẨN XÁC */
+.status-refund-sent { 
+  background-color: #fef3c7 !important; 
+  color: #b45309 !important; 
+}
+
+.status-refund-rejected { 
+  background-color: #fee2e2 !important; 
+  color: #b91c1c !important; 
+}
+
+.status-refund-approved { 
+  background-color: #dcfce7 !important; 
+  color: #15803d !important; 
+}
+
 .step-icon {
   width: 50px;
   height: 50px;
@@ -588,10 +659,5 @@ onMounted(() => {
 .td-price {
   font-size: 16px;
   font-weight: 700;
-}
-
-.status-refund { 
-  background-color: #f3e8ff; 
-  color: #7c3aed; 
 }
 </style>

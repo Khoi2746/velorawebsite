@@ -61,7 +61,6 @@ const userRole = computed(() => {
     }
 });
 
-// 2. Định nghĩa danh sách menu gốc
 // 2. Định nghĩa danh sách menu gốc với quyền cụ thể
 const allMenuItems = [
     { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge', roles: ['ROLE_ADMIN'] },
@@ -70,6 +69,8 @@ const allMenuItems = [
     { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group', roles: ['ROLE_ADMIN'] },
     { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users', roles: ['ROLE_ADMIN'] },
     { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice', roles: ['ROLE_ADMIN'] },
+    // 🔥 BỔ SUNG: QUẢN LÝ HOÀN TIỀN & TRẢ HÀNG VÀO SIDEBAR BÊN TRÁI
+    { name: 'Quản Lý Hoàn Tiền', link: '/admin/quan-ly-hoan-tien', icon: 'fa-solid fa-rotate-left', roles: ['ROLE_ADMIN'] },
     { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked', roles: ['ROLE_ADMIN'] },
     { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar', roles: ['ROLE_ADMIN'] },
     { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem', roles: ['ROLE_ADMIN'] },
@@ -79,32 +80,32 @@ const allMenuItems = [
     { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN'] },
     { name: 'Quản Lý Bảo Hành', link: '/admin/quan-ly-bao-hanh', icon: 'fa-solid fa-wrench', roles: ['ROLE_ADMIN'] }
 ];
+
 const allCards = [
-
     { title: 'Quản lý sản phẩm', desc: '...', icon: 'fa-solid fa-box-open', link: '/admin/products' },
-
     { title: 'Quản lý loại sản phẩm', desc: '...', icon: 'fa-solid fa-layer-group', link: '/admin/categories' },
-
     { title: 'Quản lý người dùng', desc: '...', icon: 'fa-solid fa-users', link: '/admin/users', requiresAdmin: true },
-
     { title: 'Quản lý đơn hàng', desc: '...', icon: 'fa-solid fa-file-invoice', link: '/admin/orders' },
-
+    // 🔥 BỔ SUNG: THẺ CẢNH BÁO / TRUY CẬP QUẢN LÝ HOÀN TIỀN
+    { title: 'Quản lý hoàn tiền', desc: '...', icon: 'fa-solid fa-rotate-left', link: '/admin/quan-ly-hoan-tien' },
     { title: 'Quản lý kho hàng', desc: '...', icon: 'fa-solid fa-boxes-stacked', link: '/admin/inventory' },
-
     { title: 'Xuất hóa đơn', desc: '...', icon: 'fa-solid fa-file-invoice-dollar', link: '/admin/invoices' },
-
     { title: 'Quản lý thương hiệu', desc: '...', icon: 'fa-solid fa-gem', link: '/admin/manufacturers' },
-
     { title: 'Phiếu nhập kho', desc: '...', icon: 'fa-solid fa-clipboard-list', link: '/admin/receipts' }
-
 ];
-
 
 // 3. Logic Lọc Menu
 const filteredMenuItems = computed(() => {
     if (!userRole.value) return [];
     
     return allMenuItems.filter(item => item.roles.includes(userRole.value));
+});
+
+// Lọc Thẻ Card Dashboard
+const filteredCards = computed(() => {
+    if (!userRole.value) return [];
+    if (userRole.value === 'ROLE_ADMIN') return allCards;
+    return allCards.filter(card => !card.requiresAdmin);
 });
 
 // 4. Các logic phụ

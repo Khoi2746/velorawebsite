@@ -30,6 +30,10 @@ public class DonHang {
     @Column(name = "SoDienThoaiGiaoHang")
     private String soDienThoaiGiaoHang;
 
+    // 🔥 BỔ SUNG: Trường Email lưu gmail đặt hàng của khách
+    @Column(name = "Email")
+    private String email;
+
     @Column(name = "DiaChiGiaoHang")
     private String diaChiGiaoHang;
 
