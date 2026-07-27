@@ -1,69 +1,69 @@
 <template>
-  <div class="admin-wrapper">
-    <nav class="sidebar no-print">
-      <h2 class="brand">VELORA ADMIN</h2>
-      <ul class="menu">
-        <li v-for="item in menuItems" :key="item.name">
-          <router-link :to="item.link" active-class="active">
-            <i :class="item.icon"></i> {{ item.name }}
-          </router-link>
-        </li>
-      </ul>
-      <div class="sidebar-bottom">
-        <router-link to="/" class="exit"><i class="fa-solid fa-house"></i> Return</router-link>
-        <button class="logout" @click="handleLogout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+  <div class="velora-admin-wrapper admin-wrapper">
+    <!-- KHỐI KHÔNG IN (GIAO DIỆN WEB QUẢN TRỊ) -->
+    <div class="no-print layout-container">
+      <!-- 1. GỌI COMPONENT SIDEBAR -->
+      <AdminSidebar :isCollapsed="isCollapsed" />
+
+      <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
+        <!-- 2. GỌI COMPONENT HEADER -->
+        <AdminHeader @toggle-sidebar="toggleSidebar" />
+
+        <!-- 3. NỘI DUNG CHÍNH -->
+        <main class="content">
+          <header class="header">
+            <div class="header-left">
+              <h1>Xuất <span class="gold">Hóa Đơn</span></h1>
+              <p>Chọn đơn hàng đã thanh toán để tiến hành in hóa đơn hoặc xuất file PDF.</p>
+            </div>
+          </header>
+
+          <section class="table-container">
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Mã Đơn Hàng</th>
+                    <th>Khách Hàng</th>
+                    <th>Tổng Tiền</th>
+                    <th>Thanh Toán</th>
+                    <th style="text-align: center;">Hành Động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="order in orders" :key="order.maDonHang">
+                    <td class="order-code">{{ order.maDonHangCode }}</td>
+                    <td>
+                      <div class="customer-info">
+                        <strong>{{ order.tenNguoiNhan }}</strong>
+                        <span>{{ order.soDienThoaiGiaoHang }}</span>
+                      </div>
+                    </td>
+                    <td class="price">{{ formatPrice(order.tongTien) }}</td>
+                    <td>
+                      <span class="payment-badge" :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'paid' : 'unpaid'">
+                        {{ order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'Đã Thanh Toán' : 'Chưa Thanh Toán' }}
+                      </span>
+                    </td>
+                    <td style="text-align: center;">
+                      <button class="btn-print" @click="selectAndPrint(order)">
+                        <i class="fa-solid fa-print"></i> In / Xuất PDF
+                      </button>
+                    </td>
+                  </tr>
+                  <tr v-if="orders.length === 0">
+                    <td colspan="5" class="empty-state">Đang tải dữ liệu đơn hàng...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </main>
       </div>
-    </nav>
+    </div>
 
-    <main class="content no-print">
-      <header class="header">
-        <div class="header-left">
-          <h1>Xuất <span class="gold">Hóa Đơn</span></h1>
-          <p>Chọn đơn hàng đã thanh toán để tiến hành in hóa đơn hoặc xuất file PDF.</p>
-        </div>
-      </header>
-
-      <section class="table-container">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Mã Đơn Hàng</th>
-              <th>Khách Hàng</th>
-              <th>Tổng Tiền</th>
-              <th>Thanh Toán</th>
-              <th style="text-align: center;">Hành Động</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="order in orders" :key="order.maDonHang">
-              <td class="order-code">{{ order.maDonHangCode }}</td>
-              <td>
-                <div class="customer-info">
-                  <strong>{{ order.tenNguoiNhan }}</strong>
-                  <span>{{ order.soDienThoaiGiaoHang }}</span>
-                </div>
-              </td>
-              <td class="price">{{ formatPrice(order.tongTien) }}</td>
-              <td>
-                <span class="payment-badge" :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'paid' : 'unpaid'">
-                  {{ order.trangThaiThanhToan === 'DA_THANH_TOAN' ? 'Đã Thanh Toán' : 'Chưa Thanh Toán' }}
-                </span>
-              </td>
-              <td style="text-align: center;">
-                <button class="btn-print" @click="selectAndPrint(order)">
-                  <i class="fa-solid fa-print"></i> In / Xuất PDF
-                </button>
-              </td>
-            </tr>
-            <tr v-if="orders.length === 0">
-              <td colspan="5" class="empty-state">Đang tải dữ liệu đơn hàng...</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    </main>
-
-    <div class="print-area" v-if="selectedOrder">
+    <!-- KHỐI CHỈ DÀNH CHO IN ẤN (INVOICE) -->
+    <div class="print-area print-only" v-if="selectedOrder">
       <div class="invoice-box">
         <div class="invoice-header">
           <div class="company-logo">
@@ -160,21 +160,15 @@
 import { ref, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 
-const menuItems = [
-  { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
-  { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open' },
-  { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group' },
-  { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
-  { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
-  { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
-  { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
-  { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
-  { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
-  { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
-  { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check' }, 
-    { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN'] },
-    { name: 'Quản Lý Bảo Hành', link: '/admin/quan-ly-bao-hanh', icon: 'fa-solid fa-wrench', roles: ['ROLE_ADMIN'] }
-];
+// IMPORT COMPONENT CON 
+import AdminSidebar from './AdminSidebar.vue';
+import AdminHeader from './AdminHeader.vue';
+
+const isCollapsed = ref(false);
+
+const toggleSidebar = () => {
+  isCollapsed.value = !isCollapsed.value;
+};
 
 const orders = ref([]);
 const selectedOrder = ref(null);
@@ -202,23 +196,12 @@ const loadOrders = async () => {
   }
 };
 
-// Hàm gộp: Chọn đơn hàng -> Cập nhật DOM -> GỌi lệnh In
 const selectAndPrint = async (order) => {
-  // 1. Gán dữ liệu vào hóa đơn ẩn
   selectedOrder.value = order;
   mockItems.value[0].giaLucMua = order.tongTien;
   mockItems.value[0].tenSanPham = `Cỗ máy thời gian cao cấp (Mã đơn: ${order.maDonHangCode})`;
-
-  // 2. Chờ Vue render cái div hóa đơn ẩn ra HTML xong xuôi
   await nextTick();
-
-  // 3. Gọi hộp thoại máy in (Ctrl + P)
   window.print();
-};
-
-const handleLogout = () => {
-  localStorage.removeItem('user');
-  window.location.href = '/';
 };
 
 onMounted(() => {
@@ -226,6 +209,149 @@ onMounted(() => {
 });
 </script>
 
+<style>
+:root {
+  --wood-dark: #362921;
+  --wood-active: #47372c;
+  --wood-medium: #544438;
+  --wood-light: #7a6352;
+  --gold-matte: #cca15e;
+  --bg-page: #f8f6f0;
+  --border-light: #eaeaea;
+  --text-main: #333333;
+  --text-muted: #888888;
+}
+
+@media print {
+  .no-print, .layout-container {
+    display: none !important;
+  }
+  .print-area, .print-only {
+    display: block !important;
+  }
+  .velora-admin-wrapper {
+    background: white !important;
+    height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+}
+</style>
+
 <style scoped>
 @import "../CSS/Admin/XuatHoaDon.css";
+
+/* ==============================================
+   CSS LAYOUT CHUNG BỌC BÊN NGOÀI (ĐÃ FIX TEO DÀN TRANG)
+   ============================================== */
+.velora-admin-wrapper {
+  background-color: var(--bg-page);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+.layout-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.content-wrapper {
+  flex: 1;
+  min-width: 0; /* THẦN CHÚ ÉP FLEXBOX KHÔNG BỊ BÓP MÉO */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--bg-page);
+}
+
+.content {
+  flex: 1;
+  padding: 30px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  width: 100%;
+}
+
+.header-left h1 {
+  font-size: 26px;
+  font-weight: bold;
+  color: var(--wood-dark);
+  margin: 0 0 5px 0;
+}
+
+.header-left .gold {
+  color: var(--gold-matte);
+}
+
+.header-left p {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* FIX BẢNG DANH SÁCH ĐƠN HÀNG FULL CHIỀU NGANG */
+.table-container {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--border-light);
+  margin-top: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px; /* Tránh bảng bị ép nhỏ quá */
+}
+
+.admin-table th {
+  text-align: left;
+  padding: 15px;
+  background-color: #faf9f6;
+  color: var(--wood-dark);
+  font-weight: 600;
+  border-bottom: 2px solid var(--border-light);
+  text-transform: uppercase;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 15px;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+  color: var(--text-main);
+}
+
+.admin-table tbody tr:hover {
+  background-color: #fcfcfc;
+}
+
+.empty-state {
+  text-align: center !important;
+  padding: 40px !important;
+  color: var(--text-muted);
+  font-style: italic;
+}
 </style>

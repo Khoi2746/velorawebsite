@@ -153,24 +153,24 @@ public class BaoHanhController {
         // ADMIN cập nhật trạng thái
         // ==========================
         @PutMapping("/{id}/status")
-public ResponseEntity<?> updateStatus(
-        @PathVariable Integer id,
-        @RequestBody Map<String, Object> body) {
-    
-    String trangThai = (String) body.get("trangThai");
-    LocalDateTime thoiGianHen = null;
+        public ResponseEntity<?> updateStatus(
+                        @PathVariable Integer id,
+                        @RequestBody Map<String, Object> body) {
 
-    if (body.get("thoiGianHen") != null && !body.get("thoiGianHen").toString().isBlank()) {
-        thoiGianHen = LocalDateTime.parse(body.get("thoiGianHen").toString());
-    }
+                String trangThai = (String) body.get("trangThai");
+                LocalDateTime thoiGianHen = null;
 
-    BaoHanh bh = baoHanhService.updateStatus(id, trangThai, thoiGianHen);
+                if (body.get("thoiGianHen") != null && !body.get("thoiGianHen").toString().isBlank()) {
+                        thoiGianHen = LocalDateTime.parse(body.get("thoiGianHen").toString());
+                }
 
-    return ResponseEntity.ok(
-            Map.of(
-                    "message", "Cập nhật trạng thái và gửi email thành công.",
-                    "data", bh));
-}
+                BaoHanh bh = baoHanhService.updateStatus(id, trangThai, thoiGianHen);
+
+                return ResponseEntity.ok(
+                                Map.of(
+                                                "message", "Cập nhật trạng thái và gửi email thành công.",
+                                                "data", bh));
+        }
 
         // ==========================
         // USER HỦY YÊU CẦU
@@ -201,5 +201,5 @@ public ResponseEntity<?> updateStatus(
                 }
 
         }
-        
+
 }

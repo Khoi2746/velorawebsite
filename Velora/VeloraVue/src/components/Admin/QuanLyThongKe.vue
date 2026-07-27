@@ -1,124 +1,118 @@
 <template>
-    <div class="admin-wrapper">
+    <div class="velora-admin-wrapper admin-wrapper">
+        <!-- KHỐI KHÔNG IN (GIAO DIỆN WEB QUẢN TRỊ) -->
+        <div class="no-print layout-container">
+            <!-- 1. GỌI COMPONENT SIDEBAR MỚI -->
+            <AdminSidebar :isCollapsed="isCollapsed" />
 
-        <div class="no-print" style="display: flex; width: 100%; min-height: 100vh;">
-            <nav class="sidebar">
-                <h2 class="brand">VELORA ADMIN</h2>
-                <ul class="menu">
-                    <li v-for="item in filteredMenuItems" :key="item.name">
-                        <router-link :to="item.link" active-class="active">
-                            <i :class="item.icon"></i> {{ item.name }}
-                        </router-link>
-                    </li>
-                </ul>
-                <div class="sidebar-bottom">
-                    <router-link to="/" class="exit"><i class="fa-solid fa-house"></i> Return</router-link>
-                    <button class="logout" @click="handleLogout"><i class="fa-solid fa-right-from-bracket"></i>
-                        Logout</button>
-                </div>
-            </nav>
+            <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
+                <!-- 2. GỌI COMPONENT HEADER MỚI -->
+                <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-            <main class="content">
-                <header class="header">
-                    <div class="header-left">
-                        <h1>Thống Kê <span class="gold">Doanh Thu</span></h1>
-                        <p>Phân tích hiệu quả kinh doanh và theo dõi dòng tiền hệ thống.</p>
-                    </div>
-                    <div class="header-right" style="position: relative;">
-                        <button class="btn-export" @click="toggleExportMenu">
-                            <i class="fa-solid fa-file-pdf"></i> Xuất Báo Cáo <i class="fa-solid fa-chevron-down"
-                                style="font-size: 12px; margin-left: 5px;"></i>
-                        </button>
-
-                        <div v-if="showExportMenu" class="export-dropdown">
-                            <button @click="triggerPrint('month')">
-                                <i class="fa-solid fa-calendar-days"></i> Báo Cáo Tháng (Theo Ngày)
+                <!-- 3. NỘI DUNG CHÍNH CỦA TRANG THỐNG KÊ -->
+                <main class="content">
+                    <header class="header">
+                        <div class="header-left">
+                            <h1>Thống Kê <span class="gold">Doanh Thu</span></h1>
+                            <p>Phân tích hiệu quả kinh doanh và theo dõi dòng tiền hệ thống.</p>
+                        </div>
+                        <div class="header-right" style="position: relative;">
+                            <button class="btn-export" @click="toggleExportMenu">
+                                <i class="fa-solid fa-file-pdf"></i> Xuất Báo Cáo <i class="fa-solid fa-chevron-down"
+                                    style="font-size: 12px; margin-left: 5px;"></i>
                             </button>
-                            <button @click="triggerPrint('year')">
-                                <i class="fa-solid fa-gem"></i> Báo Cáo Năm (Theo Sản Phẩm)
-                            </button>
-                        </div>
-                    </div>
-                </header>
 
-                <section class="kpi-grid">
-                    <div class="kpi-card">
-                        <div class="kpi-icon"><i class="fa-solid fa-wallet"></i></div>
-                        <div class="kpi-info">
-                            <p>Doanh Thu (Tháng {{ currentDisplayMonth }})</p>
-                            <h3>{{ formatPrice(calculatedMonthlyRevenue) }}</h3>
+                            <div v-if="showExportMenu" class="export-dropdown">
+                                <button @click="triggerPrint('month')">
+                                    <i class="fa-solid fa-calendar-days"></i> Báo Cáo Tháng (Theo Ngày)
+                                </button>
+                                <button @click="triggerPrint('year')">
+                                    <i class="fa-solid fa-gem"></i> Báo Cáo Năm (Theo Sản Phẩm)
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-icon"><i class="fa-solid fa-cart-shopping"></i></div>
-                        <div class="kpi-info">
-                            <p>Đơn Hàng (Tháng {{ currentDisplayMonth }})</p>
-                            <h3>{{ calculatedTotalOrders }} Đơn</h3>
-                        </div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
-                        <div class="kpi-info">
-                            <p>Sản Phẩm Đã Bán (Tháng {{ currentDisplayMonth }})</p>
-                            <h3>{{ calculatedTotalProducts }} Chiếc</h3>
-                        </div>
-                    </div>
+                    </header>
 
-                    <div class="kpi-card year-card">
-                        <div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
-                        <div class="kpi-info">
-                            <p>Tổng Doanh Thu (Năm {{ selectedYear }})</p>
-                            <h3>{{ formatPrice(yearlyTotalRevenue) }}</h3>
+                    <section class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-icon"><i class="fa-solid fa-wallet"></i></div>
+                            <div class="kpi-info">
+                                <p>Doanh Thu (Tháng {{ currentDisplayMonth }})</p>
+                                <h3>{{ formatPrice(calculatedMonthlyRevenue) }}</h3>
+                            </div>
                         </div>
-                    </div>
-                    <div class="kpi-card year-card">
-                        <div class="kpi-icon"><i class="fa-solid fa-truck-fast"></i></div>
-                        <div class="kpi-info">
-                            <p>Tổng Đơn Hàng (Năm {{ selectedYear }})</p>
-                            <h3>{{ yearlyTotalOrders }} Đơn</h3>
+                        <div class="kpi-card">
+                            <div class="kpi-icon"><i class="fa-solid fa-cart-shopping"></i></div>
+                            <div class="kpi-info">
+                                <p>Đơn Hàng (Tháng {{ currentDisplayMonth }})</p>
+                                <h3>{{ calculatedTotalOrders }} Đơn</h3>
+                            </div>
                         </div>
-                    </div>
-                    <div class="kpi-card year-card">
-                        <div class="kpi-icon"><i class="fa-solid fa-gem"></i></div>
-                        <div class="kpi-info">
-                            <p>Tổng SP Đã Bán (Năm {{ selectedYear }})</p>
-                            <h3>{{ yearlyTotalProducts }} Chiếc</h3>
+                        <div class="kpi-card">
+                            <div class="kpi-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                            <div class="kpi-info">
+                                <p>Sản Phẩm Đã Bán (Tháng {{ currentDisplayMonth }})</p>
+                                <h3>{{ calculatedTotalProducts }} Chiếc</h3>
+                            </div>
                         </div>
-                    </div>
-                </section>
 
-                <section class="chart-section">
-                    <div class="chart-header">
-                        <h2><i class="fa-solid fa-calendar-day"></i> Lịch Sử Doanh Thu Theo Ngày</h2>
-                        <div class="filter-box">
-                            <label>Chọn tháng để xem ngày:</label>
-                            <input type="month" v-model="selectedDailyMonth" @change="loadDailyChartData"
-                                class="filter-input" />
+                        <div class="kpi-card year-card">
+                            <div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                            <div class="kpi-info">
+                                <p>Tổng Doanh Thu (Năm {{ selectedYear }})</p>
+                                <h3>{{ formatPrice(yearlyTotalRevenue) }}</h3>
+                            </div>
                         </div>
-                    </div>
-                    <div class="chart-container">
-                        <Bar v-if="dailyChartData" :data="dailyChartData" :options="chartOptions" />
-                        <div v-else class="empty-chart">Đang tải dữ liệu biểu đồ...</div>
-                    </div>
-                </section>
+                        <div class="kpi-card year-card">
+                            <div class="kpi-icon"><i class="fa-solid fa-truck-fast"></i></div>
+                            <div class="kpi-info">
+                                <p>Tổng Đơn Hàng (Năm {{ selectedYear }})</p>
+                                <h3>{{ yearlyTotalOrders }} Đơn</h3>
+                            </div>
+                        </div>
+                        <div class="kpi-card year-card">
+                            <div class="kpi-icon"><i class="fa-solid fa-gem"></i></div>
+                            <div class="kpi-info">
+                                <p>Tổng SP Đã Bán (Năm {{ selectedYear }})</p>
+                                <h3>{{ yearlyTotalProducts }} Chiếc</h3>
+                            </div>
+                        </div>
+                    </section>
 
-                <section class="chart-section" style="margin-top: 40px;">
-                    <div class="chart-header">
-                        <h2><i class="fa-solid fa-calendar-days"></i> Doanh Thu Các Tháng Trong Năm</h2>
-                        <div class="filter-box">
-                            <label>Chọn năm:</label>
-                            <input type="number" v-model="selectedYear" min="2020" max="2100"
-                                @change="loadMonthlyChartData" class="filter-input" style="width: 120px;" />
+                    <section class="chart-section">
+                        <div class="chart-header">
+                            <h2><i class="fa-solid fa-calendar-day"></i> Lịch Sử Doanh Thu Theo Ngày</h2>
+                            <div class="filter-box">
+                                <label>Chọn tháng để xem ngày:</label>
+                                <input type="month" v-model="selectedDailyMonth" @change="loadDailyChartData"
+                                    class="filter-input" />
+                            </div>
                         </div>
-                    </div>
-                    <div class="chart-container">
-                        <Line v-if="monthlyChartData" :data="monthlyChartData" :options="chartOptions" />
-                        <div v-else class="empty-chart">Đang tải dữ liệu biểu đồ...</div>
-                    </div>
-                </section>
-            </main>
+                        <div class="chart-container">
+                            <Bar v-if="dailyChartData" :data="dailyChartData" :options="chartOptions" />
+                            <div v-else class="empty-chart">Đang tải dữ liệu biểu đồ...</div>
+                        </div>
+                    </section>
+
+                    <section class="chart-section" style="margin-top: 40px;">
+                        <div class="chart-header">
+                            <h2><i class="fa-solid fa-calendar-days"></i> Doanh Thu Các Tháng Trong Năm</h2>
+                            <div class="filter-box">
+                                <label>Chọn năm:</label>
+                                <input type="number" v-model="selectedYear" min="2020" max="2100"
+                                    @change="loadMonthlyChartData" class="filter-input" style="width: 120px;" />
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <Line v-if="monthlyChartData" :data="monthlyChartData" :options="chartOptions" />
+                            <div v-else class="empty-chart">Đang tải dữ liệu biểu đồ...</div>
+                        </div>
+                    </section>
+                </main>
+            </div>
         </div>
 
+        <!-- KHỐI CHỈ DÀNH CHO IN ẤN (PDF REPORT) -->
         <div class="print-only">
             <div class="print-header-company">
                 <p><strong>CỬA HÀNG ĐỒNG HỒ CAO CẤP VELORA CLOCK</strong></p>
@@ -225,9 +219,20 @@ import { ref, computed, onMounted } from 'vue';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement, Filler } from 'chart.js';
 import { Bar, Line } from 'vue-chartjs';
 
+// IMPORT COMPONENT CON VÀO ĐÂY
+import AdminSidebar from './AdminSidebar.vue';
+import AdminHeader from './AdminHeader.vue';
+
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement, Filler);
 
-const isAdmin = ref(false);
+// ================= LOGIC ĐIỀU KHIỂN LAYOUT CHUNG =================
+const isCollapsed = ref(false);
+
+const toggleSidebar = () => {
+    isCollapsed.value = !isCollapsed.value;
+};
+
+// ================= LOGIC DỮ LIỆU CŨ =================
 const userName = ref('Admin');
 
 const showExportMenu = ref(false);
@@ -238,29 +243,6 @@ const yyyy = today.getFullYear();
 const mm = String(today.getMonth() + 1).padStart(2, '0');
 const dd = String(today.getDate()).padStart(2, '0');
 const currentDateString = `${dd}/${mm}/${yyyy}`;
-
-const menuItems = [
-    { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
-    { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open' },
-    { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group' },
-    { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
-    { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
-    { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
-    { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
-    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
-    { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
-    { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
-    { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check' }, 
-    { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN'] },
-    { name: 'Quản Lý Bảo Hành', link: '/admin/quan-ly-bao-hanh', icon: 'fa-solid fa-wrench', roles: ['ROLE_ADMIN'] }
-];
-
-const filteredMenuItems = computed(() => menuItems.filter(item => !item.requiresAdmin || isAdmin.value));
-
-const handleLogout = () => {
-    localStorage.removeItem('user');
-    window.location.href = '/';
-};
 
 const formatPrice = (value) => {
     if (!value) return '0 ₫';
@@ -290,7 +272,7 @@ const dailyChartData = ref(null);
 const monthlyChartData = ref(null);
 
 const dailyReportData = ref([]);
-const reportProductStats = ref([]); // Bỏ khởi tạo cứng ở đây
+const reportProductStats = ref([]); 
 
 const calculatedMonthlyRevenue = computed(() => dailyReportData.value.reduce((total, item) => total + Number(item.doanhThu), 0));
 const calculatedTotalOrders = computed(() => dailyReportData.value.reduce((total, item) => total + Number(item.soDonHang), 0));
@@ -394,15 +376,134 @@ onMounted(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
         const userObj = JSON.parse(userStr);
-        const role = userObj.vaiTro || userObj.maVaiTro;
         userName.value = userObj.hoTen || 'Quản trị viên';
-        if (role === 'ROLE_ADMIN' || role === 1) isAdmin.value = true;
     }
     loadDailyChartData();
     loadMonthlyChartData();
 });
 </script>
 
+<!-- CSS CHỨA BIẾN GLOBAL ĐỂ SIDEBAR NHẬN MÀU -->
+<style>
+:root {
+    --wood-dark: #362921;
+    --wood-active: #47372c;
+    --wood-medium: #544438;
+    --wood-light: #7a6352;
+    --gold-matte: #cca15e;
+    --bg-page: #f8f6f0;
+    --border-light: #eaeaea;
+    --text-main: #333333;
+    --text-muted: #888888;
+}
+
+/* 
+  Đảm bảo khi in, các layout web (nút, thanh cuộn, sidebar) bị ẩn đi.
+  Chỉ hiện phần báo cáo (.print-only).
+*/
+@media print {
+    .no-print, .layout-container {
+        display: none !important;
+    }
+    .print-area, .print-only {
+        display: block !important;
+    }
+    .velora-admin-wrapper {
+        background: white !important;
+        height: auto !important;
+        width: 100% !important;
+        overflow: visible !important;
+    }
+}
+</style>
+
 <style scoped>
 @import "../CSS/Admin/QuanLyThongKe.css";
+
+/* ==============================================
+   CSS LAYOUT CHUNG BỌC BÊN NGOÀI (FIX TEO)
+   ============================================== */
+.velora-admin-wrapper {
+    background-color: var(--bg-page);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+}
+
+.layout-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.content-wrapper {
+    flex: 1;
+    min-width: 0; /* THẦN CHÚ CHỐNG TRÀN FLEXBOX */
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: var(--bg-page);
+}
+
+.content {
+    flex: 1;
+    padding: 30px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    width: 100%;
+}
+
+.header-left h1 {
+    font-size: 26px;
+    font-weight: bold;
+    color: var(--wood-dark);
+    margin: 0 0 5px 0;
+}
+
+.header-left .gold {
+    color: var(--gold-matte);
+}
+
+.header-left p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Đảm bảo các grid/chart không bị bóp vào 1 góc */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 30px;
+}
+
+.chart-section {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    border: 1px solid var(--border-light);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.chart-container {
+    width: 100%;
+    height: 350px;
+    position: relative; /* ChartJS cần relative parent để responsive */
+}
 </style>

@@ -1,142 +1,136 @@
 <template>
-    <div class="admin-wrapper">
-        <nav class="sidebar">
-            <h2 class="brand">VELORA ADMIN</h2>
-            <ul class="menu">
-                <li v-for="item in menuItems" :key="item.name">
-                    <router-link :to="item.link" active-class="active">
-                        <i :class="item.icon"></i> {{ item.name }}
-                    </router-link>
-                </li>
-            </ul>
-            <div class="sidebar-bottom">
-                <router-link to="/" class="exit"><i class="fa-solid fa-house"></i> Return</router-link>
-                <button class="logout" @click="handleLogout"><i class="fa-solid fa-right-from-bracket"></i>
-                    Logout</button>
-            </div>
-        </nav>
+    <div class="velora-admin-wrapper">
+        <!-- 1. GỌI COMPONENT SIDEBAR MỚI -->
+        <AdminSidebar :isCollapsed="isCollapsed" />
 
-        <main class="content">
-            <header class="header">
-                <div class="header-left">
-                    <h1>Quản Lý <span class="gold">Phiếu Nhập</span></h1>
-                    <p>Phê duyệt yêu cầu nhập hàng từ nhân viên và kiểm soát biến động kho.</p>
-                </div>
-            </header>
+        <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
+            <!-- 2. GỌI COMPONENT HEADER MỚI -->
+            <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-            <div class="controls-container">
-                <div class="filter-group">
-                    <div class="filter-item">
-                        <label>Trạng Thái:</label>
-                        <select v-model="filterTrangThai">
-                            <option value="all">Tất cả</option>
-                            <option value="CHO_DUYET">Chờ duyệt</option>
-                            <option value="DA_DUYET">Đã duyệt</option>
-                            <option value="TU_CHOI">Từ chối</option>
-                        </select>
+            <!-- 3. NỘI DUNG CHÍNH -->
+            <main class="content">
+                <header class="header">
+                    <div class="header-left">
+                        <h1>Quản Lý <span class="gold">Phiếu Nhập</span></h1>
+                        <p>Phê duyệt yêu cầu nhập hàng từ nhân viên và kiểm soát biến động kho.</p>
                     </div>
+                </header>
 
-                    <div class="filter-item">
-                        <label>Người Yêu Cầu:</label>
-                        <div class="search-box">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <input 
-                                type="text" 
-                                v-model="searchNguoiYeuCau" 
-                                placeholder="Nhập ID nhân viên..." 
-                            />
+                <div class="controls-container">
+                    <div class="filter-group">
+                        <div class="filter-item">
+                            <label>Trạng Thái:</label>
+                            <select v-model="filterTrangThai">
+                                <option value="all">Tất cả</option>
+                                <option value="CHO_DUYET">Chờ duyệt</option>
+                                <option value="DA_DUYET">Đã duyệt</option>
+                                <option value="TU_CHOI">Từ chối</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-item">
+                            <label>Người Yêu Cầu:</label>
+                            <div class="search-box">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input 
+                                    type="text" 
+                                    v-model="searchNguoiYeuCau" 
+                                    placeholder="Nhập ID nhân viên..." 
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <section class="table-container">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>Mã Phiếu</th>
-                            <th>Người Yêu Cầu</th>
-                            <th>Ngày Tạo</th>
-                            <th>Ngày Duyệt</th>
-                            <th>Trạng Thái</th>
-                            <th>Hành Động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="receipt in filteredReceipts" :key="receipt.maPhieuNhap">
-                            <td class="receipt-code">{{ receipt.maPhieuNhapCode || 'PNK-#' + receipt.maPhieuNhap }}</td>
-                            <td><strong>Nhân viên #{{ receipt.maNguoiYeuCau }}</strong></td>
-                            <td>{{ formatDate(receipt.ngayYeuCau) }}</td>
-                            <td>{{ receipt.ngayDuyet ? formatDate(receipt.ngayDuyet) : 'Chưa duyệt' }}</td>
-                            <td>
-                                <span class="status-badge" :class="getStatusClass(receipt.trangThai)">
-                                    <i :class="getStatusIcon(receipt.trangThai)"></i>
-                                    {{ getStatusText(receipt.trangThai) }}
-                                </span>
-                            </td>
-                            <td class="actions">
-                                <button class="btn-action view" title="Xem chi tiết phiếu nhập"
-                                    @click="viewDetails(receipt)">
-                                    <i class="fa-solid fa-eye"></i>
-                                </button>
-
-                                <button class="btn-action approve" title="Duyệt phiếu (Cộng số lượng vào kho)"
-                                    v-if="receipt.trangThai === 'CHO_DUYET'"
-                                    @click="processReceipt(receipt.maPhieuNhap, 'DA_DUYET')">
-                                    <i class="fa-solid fa-check"></i>
-                                </button>
-
-                                <button class="btn-action cancel" title="Từ chối yêu cầu nhập kho này"
-                                    v-if="receipt.trangThai === 'CHO_DUYET'"
-                                    @click="processReceipt(receipt.maPhieuNhap, 'TU_CHOI')">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr v-if="filteredReceipts.length === 0">
-                            <td colspan="6" class="empty-state">Không tìm thấy phiếu nhập nào phù hợp.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-        </main>
-
-        <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
-            <div class="modal-box modal-lg">
-                <div class="modal-header">
-                    <h2>Chi Tiết Phiếu Nhập <span class="gold">{{ selectedReceipt?.maPhieuNhapCode }}</span></h2>
-                    <button class="btn-close" @click="closeDetailModal"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-                <div class="modal-body">
-                    <div class="info-card" style="margin-bottom: 20px;">
-                        <p><strong>Ghi chú từ nhân viên:</strong> {{ selectedReceipt?.ghiChu || 'Không có ghi chú đính kèm' }}</p>
-                    </div>
-
-                    <h4 class="table-title"><i class="fa-solid fa-boxes-stacked"></i> Danh Sách Hàng Hóa Cần Nhập</h4>
-                    <table class="detail-table">
+                <section class="table-container">
+                    <table class="admin-table">
                         <thead>
                             <tr>
-                                <th>Mã Sản Phẩm</th>
-                                <th style="text-align: center;">Số Lượng Nhập</th>
-                                <th style="text-align: right;">Giá Nhập Dự Kiến</th>
+                                <th>Mã Phiếu</th>
+                                <th>Người Yêu Cầu</th>
+                                <th>Ngày Tạo</th>
+                                <th>Ngày Duyệt</th>
+                                <th>Trạng Thái</th>
+                                <th>Hành Động</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="item in receiptDetails" :key="item.maChiTietPhieuNhap">
-                                <td><strong>Sản phẩm #{{ item.maSanPham }}</strong></td>
-                                <td style="text-align: center;"><span class="qty-badge">{{ item.soLuongNhap }}</span>
+                            <tr v-for="receipt in filteredReceipts" :key="receipt.maPhieuNhap">
+                                <td class="receipt-code">{{ receipt.maPhieuNhapCode || 'PNK-#' + receipt.maPhieuNhap }}</td>
+                                <td><strong>Nhân viên #{{ receipt.maNguoiYeuCau }}</strong></td>
+                                <td>{{ formatDate(receipt.ngayYeuCau) }}</td>
+                                <td>{{ receipt.ngayDuyet ? formatDate(receipt.ngayDuyet) : 'Chưa duyệt' }}</td>
+                                <td>
+                                    <span class="status-badge" :class="getStatusClass(receipt.trangThai)">
+                                        <i :class="getStatusIcon(receipt.trangThai)"></i>
+                                        {{ getStatusText(receipt.trangThai) }}
+                                    </span>
                                 </td>
-                                <td style="text-align: right; color: #d1aa68; font-weight: bold;">{{
-                                    formatPrice(item.giaNhap) }}</td>
+                                <td class="actions">
+                                    <button class="btn-action view" title="Xem chi tiết phiếu nhập"
+                                        @click="viewDetails(receipt)">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+
+                                    <button class="btn-action approve" title="Duyệt phiếu (Cộng số lượng vào kho)"
+                                        v-if="receipt.trangThai === 'CHO_DUYET'"
+                                        @click="processReceipt(receipt.maPhieuNhap, 'DA_DUYET')">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+
+                                    <button class="btn-action cancel" title="Từ chối yêu cầu nhập kho này"
+                                        v-if="receipt.trangThai === 'CHO_DUYET'"
+                                        @click="processReceipt(receipt.maPhieuNhap, 'TU_CHOI')">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </td>
                             </tr>
-                            <tr v-if="receiptDetails.length === 0">
-                                <td colspan="3" class="empty-state">Đang tải danh sách hàng hóa...</td>
+                            <tr v-if="filteredReceipts.length === 0">
+                                <td colspan="6" class="empty-state">Không tìm thấy phiếu nhập nào phù hợp.</td>
                             </tr>
                         </tbody>
                     </table>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-cancel" @click="closeDetailModal">Đóng</button>
+                </section>
+            </main>
+
+            <!-- MODAL CHI TIẾT -->
+            <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
+                <div class="modal-box modal-lg">
+                    <div class="modal-header">
+                        <h2>Chi Tiết Phiếu Nhập <span class="gold">{{ selectedReceipt?.maPhieuNhapCode }}</span></h2>
+                        <button class="btn-close" @click="closeDetailModal"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="info-card" style="margin-bottom: 20px;">
+                            <p><strong>Ghi chú từ nhân viên:</strong> {{ selectedReceipt?.ghiChu || 'Không có ghi chú đính kèm' }}</p>
+                        </div>
+
+                        <h4 class="table-title"><i class="fa-solid fa-boxes-stacked"></i> Danh Sách Hàng Hóa Cần Nhập</h4>
+                        <table class="detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã Sản Phẩm</th>
+                                    <th style="text-align: center;">Số Lượng Nhập</th>
+                                    <th style="text-align: right;">Giá Nhập Dự Kiến</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="item in receiptDetails" :key="item.maChiTietPhieuNhap">
+                                    <td><strong>Sản phẩm #{{ item.maSanPham }}</strong></td>
+                                    <td style="text-align: center;"><span class="qty-badge">{{ item.soLuongNhap }}</span>
+                                    </td>
+                                    <td style="text-align: right; color: #d1aa68; font-weight: bold;">{{
+                                        formatPrice(item.giaNhap) }}</td>
+                                </tr>
+                                <tr v-if="receiptDetails.length === 0">
+                                    <td colspan="3" class="empty-state">Đang tải danh sách hàng hóa...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" @click="closeDetailModal">Đóng</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -146,22 +140,18 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 
-const menuItems = [
-    { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
-    { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open' },
-    { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group' },
-    { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
-    { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
-    { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
-    { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
-    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
-    { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
-    { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
-    { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check' }, 
-    { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN'] },
-    { name: 'Quản Lý Bảo Hành', link: '/admin/quan-ly-bao-hanh', icon: 'fa-solid fa-wrench', roles: ['ROLE_ADMIN'] }
-];
+// IMPORT COMPONENT SIDEBAR & HEADER MỚI
+import AdminSidebar from './AdminSidebar.vue'; 
+import AdminHeader from './AdminHeader.vue';
 
+// ================= LOGIC GIAO DIỆN CHUNG =================
+const isCollapsed = ref(false);
+
+const toggleSidebar = () => {
+    isCollapsed.value = !isCollapsed.value;
+};
+
+// ================= LOGIC DỮ LIỆU =================
 const receipts = ref([]);
 const showDetailModal = ref(false);
 const selectedReceipt = ref(null);
@@ -318,11 +308,6 @@ const closeDetailModal = () => {
     selectedReceipt.value = null;
 };
 
-const handleLogout = () => {
-    localStorage.removeItem('user');
-    window.location.href = '/';
-};
-
 onMounted(() => {
     loadReceipts();
 });
@@ -330,4 +315,103 @@ onMounted(() => {
 
 <style scoped>
 @import "../CSS/Admin/PhieuNhapKho.css";
+
+/* ==============================================
+   CSS LAYOUT CHUNG BỌC BÊN NGOÀI
+   ============================================== */
+.velora-admin-wrapper {
+    /* ĐÂY LÀ ĐOẠN BIẾN CSS LÚC NÃY ANH QUÊN MẤT, ĐÃ BỔ SUNG ĐẦY ĐỦ ĐỂ SIDEBAR NHẬN MÀU */
+    --wood-dark: #362921;
+    --wood-active: #47372c;
+    --wood-medium: #544438;
+    --wood-light: #7a6352;
+    --gold-matte: #cca15e;
+    --bg-page: #f8f6f0;
+    --border-light: #eaeaea;
+    --text-main: #333333;
+    --text-muted: #888888;
+
+    display: flex;
+    height: 100vh;
+    background-color: var(--bg-page);
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.content-wrapper { 
+    flex-grow: 1; 
+    display: flex; 
+    flex-direction: column; 
+    overflow-y: auto; 
+}
+
+/* Đè CSS cho màn Overlay của Modal để không bị tẹt xuống dưới */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-box {
+    background: #fff;
+    border-radius: 8px;
+    width: 600px; 
+    max-width: 90%;
+    max-height: 90vh; 
+    overflow-y: auto; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #eaeaea;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 10;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #888;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eaeaea;
+    display: flex;
+    justify-content: flex-end;
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+}
+
+.btn-cancel {
+    background: #f0f0f0;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #333;
+}
+.btn-cancel:hover {
+    background: #e4e4e4;
+}
 </style>

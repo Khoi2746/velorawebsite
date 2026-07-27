@@ -1,202 +1,196 @@
 <template>
-  <div class="admin-wrapper">
-    <nav class="sidebar">
-      <h2 class="brand">VELORA ADMIN</h2>
-      <ul class="menu">
-        <li v-for="item in menuItems" :key="item.name">
-          <router-link :to="item.link" active-class="active">
-            <i :class="item.icon"></i> {{ item.name }}
-          </router-link>
-        </li>
-      </ul>
-      <div class="sidebar-bottom">
-        <router-link to="/" class="exit"><i class="fa-solid fa-house"></i> Return</router-link>
-        <button class="logout" @click="handleLogout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
-      </div>
-    </nav>
+  <div class="velora-admin-wrapper admin-wrapper">
+    <!-- 1. GỌI COMPONENT SIDEBAR MỚI -->
+    <AdminSidebar :isCollapsed="isCollapsed" />
 
-    <main class="content">
-      <header class="header">
-        <div class="header-left">
-          <h1>Quản Lý <span class="gold">Người Dùng</span></h1>
-          <p>Danh sách khách hàng và nhân viên trên hệ thống.</p>
-        </div>
-        <div class="header-right">
-          <button class="btn-add" @click="openAddModal">
-            <i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản
-          </button>
-        </div>
-      </header>
+    <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
+      <!-- 2. GỌI COMPONENT HEADER MỚI -->
+      <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-      <!-- Thanh Tìm Kiếm và Lọc Dữ Liệu -->
-      <section class="filter-bar" style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-        <div class="search-box" style="flex: 2; min-width: 250px;">
-          <input type="text" v-model="searchQuery" @input="currentPage = 1" 
-            placeholder="Tìm theo tên, email hoặc số điện thoại..." 
-            style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none;" />
-        </div>
-        <div class="filter-box" style="flex: 1; min-width: 180px;">
-          <select v-model="filterRole" @change="currentPage = 1" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none; background: #fff; cursor: pointer;">
-            <option value="">-- Tất cả vai trò --</option>
-            <option value="ROLE_ADMIN">ROLE_ADMIN</option>
-            <option value="ROLE_STAFF">ROLE_STAFF</option>
-            <option value="ROLE_CUSTOMER">ROLE_CUSTOMER</option>
-          </select>
-        </div>
-        <div class="filter-box" style="flex: 1; min-width: 180px;">
-          <select v-model="filterStatus" @change="currentPage = 1" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none; background: #fff; cursor: pointer;">
-            <option value="">-- Tất cả trạng thái --</option>
-            <option value="HOAT_DONG">Đang Hoạt Động</option>
-            <option value="KHOA">Bị Khóa</option>
-          </select>
-        </div>
-      </section>
-
-      <section class="table-container">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>STT</th>
-              <th>Họ Tên</th>
-              <th>Email</th>
-              <th>Số Điện Thoại</th>
-              <th>Vai Trò</th>
-              <th>Trạng Thái</th>
-              <th>Hành Động</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(user, index) in paginatedUsers" :key="user.maNguoiDung">
-              <td>#{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
-              <td class="user-name">
-                <div class="user-info-flex">
-                  <div class="avatar-placeholder"><i class="fa-solid fa-user"></i></div>
-                  <span>{{ user.hoTen }}</span>
-                </div>
-              </td>
-              <td class="email-text">{{ user.email }}</td>
-              <td>{{ user.soDienThoai || 'Chưa cập nhật' }}</td>
-              <td>
-                <template v-if="user.vaiTros && user.vaiTros.length > 0">
-                  <span v-for="vt in user.vaiTros" :key="vt.maVaiTro" class="status-badge"
-                    :class="vt.tenVaiTro === 'ROLE_ADMIN' ? 'banned-status' : (vt.tenVaiTro === 'ROLE_STAFF' ? 'warn-status' : 'active-status')"
-                    style="margin-right: 4px; display: inline-block;">
-                    {{ vt.tenVaiTro }}
-                  </span>
-                </template>
-                <span v-else class="text-muted" style="font-style: italic; font-size: 0.85rem;">
-                  CHƯA GÁN
-                </span>
-              </td>
-              <td>
-                <span class="status-badge"
-                  :class="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'active-status' : 'banned-status'">
-                  {{ (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'Đang Hoạt Động' : 'Bị Khóa' }}
-                </span>
-              </td>
-              <td class="actions">
-                <button class="btn-action edit" @click="openEditModal(user)" title="Chỉnh sửa thông tin">
-                  <i class="fa-solid fa-pen"></i>
-                </button>
-
-                <button class="btn-action" :style="{
-                  backgroundColor: (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? '#ffebee' : '#e8f5e9',
-                  color: (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? '#c62828' : '#2e7d32'
-                }" @click="toggleUserStatus(user)"
-                  :title="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'Khóa tài khoản' : 'Mở khóa tài khoản'">
-                  <i :class="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'fa-solid fa-user-lock' : 'fa-solid fa-user-check'"></i>
-                </button>
-
-                <button class="btn-action delete" @click="deleteUser(user.maNguoiDung)" title="Xóa tài khoản">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </td>
-            </tr>
-            <tr v-if="filteredUsers.length === 0">
-              <td colspan="7" class="empty-state" style="text-align: center; padding: 30px; color: #888;">
-                Không tìm thấy người dùng nào phù hợp với bộ lọc.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="pagination-wrapper" v-if="totalPages > 1">
-          <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
-            <i class="fa-solid fa-chevron-left"></i> Trước
-          </button>
-
-          <span class="page-info">Trang <b>{{ currentPage }}</b> / {{ totalPages }}</span>
-
-          <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
-            Sau <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-      </section>
-    </main>
-
-    <!-- Modal Form Thêm/Sửa Tài Khoản -->
-    <div v-if="showForm" class="modal-overlay">
-      <div class="modal-box">
-        <div class="modal-header">
-          <h3>{{ isEditMode ? 'Chỉnh Sửa Thành Viên #' + userForm.maNguoiDung : 'Tạo Tài Khoản Mới' }}</h3>
-          <button class="close-btn" @click="closeForm">&times;</button>
-        </div>
-        <form @submit.prevent="saveUser">
-          <div class="form-group">
-            <label>Họ và Tên *</label>
-            <input type="text" v-model="userForm.hoTen" :disabled="isEditMode" required
-              :style="isEditMode ? { backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed' } : {}"
-              placeholder="Ví dụ: Nguyễn Văn A" />
+      <!-- 3. NỘI DUNG CHÍNH (Giữ nguyên 100% logic của ku em) -->
+      <main class="content">
+        <header class="header">
+          <div class="header-left">
+            <h1>Quản Lý <span class="gold">Người Dùng</span></h1>
+            <p>Danh sách khách hàng và nhân viên trên hệ thống.</p>
           </div>
-
-          <div class="form-group">
-            <label>Email Đăng Nhập *</label>
-            <input type="email" v-model="userForm.email" :disabled="isEditMode" required
-              :style="isEditMode ? { backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed' } : {}"
-              placeholder="name@example.com" />
+          <div class="header-right">
+            <button class="btn-add" @click="openAddModal">
+              <i class="fa-solid fa-user-plus"></i> Thêm Tài Khoản
+            </button>
           </div>
+        </header>
 
-          <div class="form-group" v-if="!isEditMode">
-            <label>Mật Khẩu Khởi Tạo *</label>
-            <input type="password" v-model="userForm.matKhauMaHoa" required placeholder="Nhập mật khẩu tối thiểu 6 ký tự" />
+        <!-- Thanh Tìm Kiếm và Lọc Dữ Liệu -->
+        <section class="filter-bar" style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+          <div class="search-box" style="flex: 2; min-width: 250px;">
+            <input type="text" v-model="searchQuery" @input="currentPage = 1" 
+              placeholder="Tìm theo tên, email hoặc số điện thoại..." 
+              style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none;" />
           </div>
-
-          <div class="form-group">
-            <label>Số Điện Thoại</label>
-            <input type="text" v-model="userForm.soDienThoai" :disabled="isEditMode"
-              :style="isEditMode ? { backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed' } : {}"
-              placeholder="Nhập số điện thoại" />
-          </div>
-
-          <div class="form-group">
-            <label>Địa Chỉ</label>
-            <input type="text" v-model="userForm.diaChi" :disabled="isEditMode"
-              :style="isEditMode ? { backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed' } : {}"
-              placeholder="Nhập địa chỉ cư trú" />
-          </div>
-
-          <div class="form-group">
-            <label>Phân Quyền *</label>
-            <select v-model="selectedRoleId" @change="updateRoleInForm($event)">
-              <option value="3">ROLE_CUSTOMER (Khách hàng)</option>
-              <option value="2">ROLE_STAFF (Nhân viên)</option>
-              <option value="1">ROLE_ADMIN (Quản trị viên)</option>
+          <div class="filter-box" style="flex: 1; min-width: 180px;">
+            <select v-model="filterRole" @change="currentPage = 1" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none; background: #fff; cursor: pointer;">
+              <option value="">-- Tất cả vai trò --</option>
+              <option value="ROLE_ADMIN">ROLE_ADMIN</option>
+              <option value="ROLE_STAFF">ROLE_STAFF</option>
+              <option value="ROLE_CUSTOMER">ROLE_CUSTOMER</option>
             </select>
           </div>
-
-          <div class="form-group" v-if="isEditMode">
-            <label>Trạng Thái Tài Khoản</label>
-            <select v-model="userForm.trangThai">
+          <div class="filter-box" style="flex: 1; min-width: 180px;">
+            <select v-model="filterStatus" @change="currentPage = 1" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none; background: #fff; cursor: pointer;">
+              <option value="">-- Tất cả trạng thái --</option>
               <option value="HOAT_DONG">Đang Hoạt Động</option>
               <option value="KHOA">Bị Khóa</option>
             </select>
           </div>
+        </section>
 
-          <div class="modal-actions">
-            <button type="button" class="btn-cancel" @click="closeForm">Hủy bỏ</button>
-            <button type="submit" class="btn-submit">Lưu thông tin</button>
+        <section class="table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Họ Tên</th>
+                <th>Email</th>
+                <th>Số Điện Thoại</th>
+                <th>Vai Trò</th>
+                <th>Trạng Thái</th>
+                <th>Hành Động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(user, index) in paginatedUsers" :key="user.maNguoiDung">
+                <td>#{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
+                <td class="user-name">
+                  <div class="user-info-flex">
+                    <div class="avatar-placeholder"><i class="fa-solid fa-user"></i></div>
+                    <span>{{ user.hoTen }}</span>
+                  </div>
+                </td>
+                <td class="email-text">{{ user.email }}</td>
+                <td>{{ user.soDienThoai || 'Chưa cập nhật' }}</td>
+                <td>
+                  <template v-if="user.vaiTros && user.vaiTros.length > 0">
+                    <span v-for="vt in user.vaiTros" :key="vt.maVaiTro" class="status-badge"
+                      :class="vt.tenVaiTro === 'ROLE_ADMIN' ? 'banned-status' : (vt.tenVaiTro === 'ROLE_STAFF' ? 'warn-status' : 'active-status')"
+                      style="margin-right: 4px; display: inline-block;">
+                      {{ vt.tenVaiTro }}
+                    </span>
+                  </template>
+                  <span v-else class="text-muted" style="font-style: italic; font-size: 0.85rem;">
+                    CHƯA GÁN
+                  </span>
+                </td>
+                <td>
+                  <span class="status-badge"
+                    :class="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'active-status' : 'banned-status'">
+                    {{ (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'Đang Hoạt Động' : 'Bị Khóa' }}
+                  </span>
+                </td>
+                <td class="actions">
+                  <button class="btn-action edit" @click="openEditModal(user)" title="Chỉnh sửa thông tin">
+                    <i class="fa-solid fa-pen"></i>
+                  </button>
+
+                  <button class="btn-action" :style="{
+                    backgroundColor: (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? '#ffebee' : '#e8f5e9',
+                    color: (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? '#c62828' : '#2e7d32'
+                  }" @click="toggleUserStatus(user)"
+                    :title="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'Khóa tài khoản' : 'Mở khóa tài khoản'">
+                    <i :class="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'fa-solid fa-user-lock' : 'fa-solid fa-user-check'"></i>
+                  </button>
+
+                  <button class="btn-action delete" @click="deleteUser(user.maNguoiDung)" title="Xóa tài khoản">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="filteredUsers.length === 0">
+                <td colspan="7" class="empty-state" style="text-align: center; padding: 30px; color: #888;">
+                  Không tìm thấy người dùng nào phù hợp với bộ lọc.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pagination-wrapper" v-if="totalPages > 1">
+            <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
+              <i class="fa-solid fa-chevron-left"></i> Trước
+            </button>
+
+            <span class="page-info">Trang <b>{{ currentPage }}</b> / {{ totalPages }}</span>
+
+            <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
+              Sau <i class="fa-solid fa-chevron-right"></i>
+            </button>
           </div>
-        </form>
+        </section>
+      </main>
+
+      <!-- Modal Form Thêm/Sửa Tài Khoản -->
+      <div v-if="showForm" class="modal-overlay" @click.self="closeForm">
+        <div class="modal-box">
+          <div class="modal-header">
+            <h3>{{ isEditMode ? 'Chỉnh Sửa Thành Viên #' + userForm.maNguoiDung : 'Tạo Tài Khoản Mới' }}</h3>
+            <button class="close-btn" @click="closeForm">&times;</button>
+          </div>
+          <form @submit.prevent="saveUser">
+            <div class="form-group">
+              <label>Họ và Tên *</label>
+              <input type="text" v-model="userForm.hoTen" :disabled="isEditMode" required
+                :style="isEditMode ? { backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed' } : {}"
+                placeholder="Ví dụ: Nguyễn Văn A" />
+            </div>
+
+            <div class="form-group">
+              <label>Email Đăng Nhập *</label>
+              <input type="email" v-model="userForm.email" :disabled="isEditMode" required
+                :style="isEditMode ? { backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed' } : {}"
+                placeholder="name@example.com" />
+            </div>
+
+            <div class="form-group" v-if="!isEditMode">
+              <label>Mật Khẩu Khởi Tạo *</label>
+              <input type="password" v-model="userForm.matKhauMaHoa" required placeholder="Nhập mật khẩu tối thiểu 6 ký tự" />
+            </div>
+
+            <div class="form-group">
+              <label>Số Điện Thoại</label>
+              <input type="text" v-model="userForm.soDienThoai" :disabled="isEditMode"
+                :style="isEditMode ? { backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed' } : {}"
+                placeholder="Nhập số điện thoại" />
+            </div>
+
+            <div class="form-group">
+              <label>Địa Chỉ</label>
+              <input type="text" v-model="userForm.diaChi" :disabled="isEditMode"
+                :style="isEditMode ? { backgroundColor: '#f5f5f5', color: '#888', cursor: 'not-allowed' } : {}"
+                placeholder="Nhập địa chỉ cư trú" />
+            </div>
+
+            <div class="form-group">
+              <label>Phân Quyền *</label>
+              <select v-model="selectedRoleId" @change="updateRoleInForm($event)">
+                <option value="3">ROLE_CUSTOMER (Khách hàng)</option>
+                <option value="2">ROLE_STAFF (Nhân viên)</option>
+                <option value="1">ROLE_ADMIN (Quản trị viên)</option>
+              </select>
+            </div>
+
+            <div class="form-group" v-if="isEditMode">
+              <label>Trạng Thái Tài Khoản</label>
+              <select v-model="userForm.trangThai">
+                <option value="HOAT_DONG">Đang Hoạt Động</option>
+                <option value="KHOA">Bị Khóa</option>
+              </select>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="btn-cancel" @click="closeForm">Hủy bỏ</button>
+              <button type="submit" class="btn-submit">Lưu thông tin</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -204,26 +198,19 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
 
-const router = useRouter();
+// IMPORT COMPONENT CON VÀO ĐÂY
+import AdminSidebar from './AdminSidebar.vue';
+import AdminHeader from './AdminHeader.vue';
 
-const menuItems = [
-    { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
-    { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open' },
-    { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group' },
-    { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
-    { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
-    { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
-    { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
-    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
-    { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
-    { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
-    { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check' }, 
-    { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN'] },
-    { name: 'Quản Lý Bảo Hành', link: '/admin/quan-ly-bao-hanh', icon: 'fa-solid fa-wrench', roles: ['ROLE_ADMIN'] }
-];
+// ================= LOGIC ĐIỀU KHIỂN LAYOUT CHUNG =================
+const isCollapsed = ref(false);
 
+const toggleSidebar = () => {
+  isCollapsed.value = !isCollapsed.value;
+};
+
+// ================= LOGIC DỮ LIỆU CŨ (Giữ nguyên 100%) =================
 const users = ref([]);
 const showForm = ref(false);
 const isEditMode = ref(false);
@@ -303,7 +290,7 @@ const loadUsers = async () => {
     });
     if (res.ok) {
       users.value = await res.json();
-      if (currentPage.value > totalPages.value) {
+      if (currentPage.value > totalPages.value && totalPages.value > 0) {
         currentPage.value = 1;
       }
     } else {
@@ -437,11 +424,6 @@ const deleteUser = async (id) => {
   }
 };
 
-const handleLogout = () => {
-  localStorage.removeItem('user');
-  router.push('/');
-};
-
 const updateRoleInForm = (event) => {
   const value = parseInt(event.target.value);
   let name = 'ROLE_CUSTOMER';
@@ -454,6 +436,82 @@ const updateRoleInForm = (event) => {
 
 onMounted(() => { loadUsers(); });
 </script>
+
+<!-- CSS CHỨA BIẾN GLOBAL ĐỂ SIDEBAR NHẬN MÀU -->
+<style>
+:root {
+  --wood-dark: #362921;
+  --wood-active: #47372c;
+  --wood-medium: #544438;
+  --wood-light: #7a6352;
+  --gold-matte: #cca15e;
+  --bg-page: #f8f6f0;
+  --border-light: #eaeaea;
+  --text-main: #333333;
+  --text-muted: #888888;
+}
+</style>
+
 <style scoped>
 @import "../CSS/Admin/QuanLyNguoiDung.css";
+
+/* ==============================================
+   CSS LAYOUT CHUNG BỌC BÊN NGOÀI & FIX MODAL
+   ============================================== */
+.velora-admin-wrapper { 
+  display: flex; 
+  height: 100vh; 
+  background-color: var(--bg-page); 
+  overflow: hidden; 
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+}
+
+.content-wrapper { 
+  flex-grow: 1; 
+  display: flex; 
+  flex-direction: column; 
+  overflow-y: auto; 
+}
+
+.content { 
+  flex: 1; 
+  padding: 30px; 
+}
+
+/* Modal Overlay fix giúp nhấn ra ngoài để đóng và hiện giữa màn hình */
+.modal-overlay { 
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0,0,0,0.5); 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  z-index: 1000; 
+  backdrop-filter: blur(2px); 
+}
+
+/* Đảm bảo header page vẫn đẹp */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.header-left h1 {
+  font-size: 26px;
+  font-weight: bold;
+  color: var(--wood-dark);
+  margin: 0 0 5px 0;
+}
+
+.header-left .gold {
+  color: var(--gold-matte);
+}
+
+.header-left p {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+}
 </style>

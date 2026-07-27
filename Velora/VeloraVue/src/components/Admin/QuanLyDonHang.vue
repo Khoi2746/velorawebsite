@@ -1,193 +1,187 @@
 <template>
-  <div class="admin-wrapper">
-    <nav class="sidebar">
-      <h2 class="brand">VELORA ADMIN</h2>
-      <ul class="menu">
-        <li v-for="item in menuItems" :key="item.name">
-          <router-link :to="item.link" active-class="active">
-            <i :class="item.icon"></i> {{ item.name }}
-          </router-link>
-        </li>
-      </ul>
-      <div class="sidebar-bottom">
-        <router-link to="/" class="exit"><i class="fa-solid fa-house"></i> Return</router-link>
-        <button class="logout" @click="handleLogout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
-      </div>
-    </nav>
+  <div class="velora-admin-wrapper admin-wrapper">
+    <!-- 1. GỌI COMPONENT SIDEBAR MỚI -->
+    <AdminSidebar :isCollapsed="isCollapsed" />
 
-    <main class="content">
-      <header class="header">
-        <div class="header-left">
-          <h1>Quản Lý <span class="gold">Đơn Hàng</span></h1>
-          <p>Theo dõi, luân chuyển trạng thái và xử lý các giao dịch giao hàng.</p>
-        </div>
-      </header>
+    <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
+      <!-- 2. GỌI COMPONENT HEADER MỚI -->
+      <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-      <section class="filter-wrapper">
-        <div class="search-box">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input 
-            type="text" 
-            v-model="searchQuery" 
-            placeholder="Tìm theo mã đơn, số điện thoại, tên khách hàng..." 
-            class="input-search"
-          />
-        </div>
-        <div class="date-box">
-          <label for="filterDate" class="label-date"><i class="fa-solid fa-calendar-days"></i> Lọc ngày:</label>
-          <input 
-            type="date" 
-            id="filterDate" 
-            v-model="filterDate" 
-            class="input-date"
-          />
-          <button v-if="filterDate" class="btn-clear-date" title="Xóa lọc ngày" @click="filterDate = ''">
-            <i class="fa-solid fa-circle-xmark"></i>
-          </button>
-        </div>
-      </section>
-
-      <section class="table-container">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Mã Đơn</th>
-              <th>Khách Hàng</th>
-              <th>Ngày Đặt</th>
-              <th>Tổng Tiền</th>
-              <th>Thanh Toán</th>
-              <th>Trạng Thái</th>
-              <th style="width: 160px;">Hành Động</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="order in filteredOrders" :key="order.maDonHang">
-              <td class="order-code">{{ order.maDonHangCode }}</td>
-              <td class="customer-info">
-                <strong>{{ order.tenNguoiNhan }}</strong>
-                <span class="phone">{{ order.soDienThoaiGiaoHang }}</span>
-              </td>
-              <td>{{ formatDate(order.ngayTao) }}</td>
-              <td class="price">{{ formatPrice(order.tongTien) }}</td>
-              <td>
-                <div class="payment-edit-group">
-                  <select 
-                    v-model="order.phuongThucThanhToan" 
-                    @change="changePaymentMethod(order.maDonHang, order.phuongThucThanhToan)"
-                    class="payment-select"
-                  >
-                    <option v-for="method in paymentMethods" :key="method" :value="method">
-                      {{ 
-                        method === 'CHUYEN_KHOAN_QR' ? 'Chuyển Khoản QR' : 
-                        method === 'THE_TIN_DUNG' ? 'Thẻ Tín Dụng' : 
-                        method === 'VNPAY' ? 'Cổng VNPAY' : method 
-                      }}
-                    </option>
-                  </select>
-                  <button class="btn-add-payment-method" title="Tạo thêm hình thức mới" @click="openAddPaymentModal">+</button>
-                </div>
-                
-                <div style="margin-top: 6px;">
-                  <span class="payment-status" :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' || order.trangThaiThanhToan === 'Đã thanh toán' ? 'paid' : 'unpaid'">
-                    <i :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' || order.trangThaiThanhToan === 'Đã thanh toán' ? 'fa-solid fa-check-circle' : 'fa-solid fa-clock'"></i>
-                    {{ order.trangThaiThanhToan === 'DA_THANH_TOAN' || order.trangThaiThanhToan === 'Đã thanh toán' ? 'Đã Thanh Toán' : 'Chưa Thanh Toán' }}
-                  </span>
-                </div>
-              </td>
-              <td>
-                <span class="status-badge" :class="getStatusClass(order.trangThaiDonHang)">
-                  {{ getStatusText(order.trangThaiDonHang) }}
-                </span>
-              </td>
-              <td>
-                <select 
-                  class="action-select" 
-                  value=""
-                  @change="handleActionSelect(order, $event)"
-                >
-                  <option value="" disabled selected>-- Chọn lệnh --</option>
-                  <option value="VIEW">👁️ Xem chi tiết</option>
-                  
-                  <option 
-                    v-if="order.trangThaiDonHang === 'CHO_XU_LY'" 
-                    value="SHIPPING"
-                  >
-                    🚚 Giao hàng
-                  </option>
-                  
-                  <option 
-                    v-if="order.trangThaiDonHang === 'DANG_GIAO'" 
-                    value="APPROVE"
-                  >
-                    ✅ Hoàn thành giao
-                  </option>
-                  
-                  <option 
-                    v-if="order.trangThaiDonHang === 'CHO_XU_LY' || order.trangThaiDonHang === 'DANG_GIAO'" 
-                    value="CANCEL"
-                    class="option-danger"
-                  >
-                    ❌ Hủy đơn hàng
-                  </option>
-                </select>
-              </td>
-            </tr>
-            <tr v-if="filteredOrders.length === 0">
-              <td colspan="7" class="empty-state">Không tìm thấy đơn hàng nào khớp với bộ lọc...</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    </main>
-
-    <!-- MODAL XEM CHI TIẾT -->
-    <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
-      <div class="modal-box modal-lg">
-        <div class="modal-header">
-          <h2>Chi Tiết Đơn Hàng <span class="gold">#{{ selectedOrder?.maDonHangCode }}</span></h2>
-          <button class="btn-close" @click="closeDetailModal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-          <div class="order-info-grid">
-            <div class="info-card">
-              <h4><i class="fa-solid fa-location-dot"></i> Thông Tin Giao Hàng</h4>
-              <p><strong>Người nhận:</strong> {{ selectedOrder?.tenNguoiNhan }}</p>
-              <p><strong>Điện thoại:</strong> {{ selectedOrder?.soDienThoaiGiaoHang }}</p>
-              <p><strong>Địa chỉ:</strong> {{ selectedOrder?.diaChiGiaoHang }}</p>
-            </div>
-            <div class="info-card">
-              <h4><i class="fa-solid fa-credit-card"></i> Thông Tin Thanh Toán</h4>
-              <p><strong>Hình thức:</strong> {{ selectedOrder?.phuongThucThanhToan }}</p>
-              <p><strong>Tình trạng:</strong>
-                <span :class="selectedOrder?.trangThaiThanhToan === 'DA_THANH_TOAN' || selectedOrder?.trangThaiThanhToan === 'Đã thanh toán' ? 'text-success' : 'text-danger'">
-                  {{ selectedOrder?.trangThaiThanhToan === 'DA_THANH_TOAN' || selectedOrder?.trangThaiThanhToan === 'Đã thanh toán' ? 'Đã thanh toán' : 'Chưa thanh toán' }}
-                </span>
-              </p>
-              <p><strong>Tổng cộng:</strong> <span class="price-large">{{ formatPrice(selectedOrder?.tongTien) }}</span></p>
-            </div>
+      <!-- 3. NỘI DUNG CHÍNH (Giữ nguyên 100% logic của ku em) -->
+      <main class="content">
+        <header class="header">
+          <div class="header-left">
+            <h1>Quản Lý <span class="gold">Đơn Hàng</span></h1>
+            <p>Theo dõi, luân chuyển trạng thái và xử lý các giao dịch giao hàng.</p>
           </div>
-          <h4 class="table-title"><i class="fa-solid fa-box-open"></i> Danh Sách Sản Phẩm (Chi Tiết)</h4>
-          <table class="detail-table">
+        </header>
+
+        <section class="filter-wrapper">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input 
+              type="text" 
+              v-model="searchQuery" 
+              placeholder="Tìm theo mã đơn, số điện thoại, tên khách hàng..." 
+              class="input-search"
+            />
+          </div>
+          <div class="date-box">
+            <label for="filterDate" class="label-date"><i class="fa-solid fa-calendar-days"></i> Lọc ngày:</label>
+            <input 
+              type="date" 
+              id="filterDate" 
+              v-model="filterDate" 
+              class="input-date"
+            />
+            <button v-if="filterDate" class="btn-clear-date" title="Xóa lọc ngày" @click="filterDate = ''">
+              <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+          </div>
+        </section>
+
+        <section class="table-container">
+          <table class="admin-table">
             <thead>
               <tr>
-                <th>Mã SP</th>
-                <th>Đơn Giá Lúc Mua</th>
-                <th style="text-align: center;">Số Lượng</th>
-                <th style="text-align: right;">Thành Tiền</th>
+                <th>Mã Đơn</th>
+                <th>Khách Hàng</th>
+                <th>Ngày Đặt</th>
+                <th>Tổng Tiền</th>
+                <th>Thanh Toán</th>
+                <th>Trạng Thái</th>
+                <th style="width: 160px;">Hành Động</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in orderDetails" :key="item.maChiTietDonHang">
-                <td><strong>SP #{{ item.maSanPham }}</strong></td>
-                <td>{{ formatPrice(item.giaLucMua) }}</td>
-                <td style="text-align: center;"><span class="qty-badge">{{ item.soLuong }}</span></td>
-                <td style="text-align: right; font-weight: bold; color: #d1aa68;">{{ formatPrice(item.giaLucMua * item.soLuong) }}</td>
+              <tr v-for="order in filteredOrders" :key="order.maDonHang">
+                <td class="order-code">{{ order.maDonHangCode }}</td>
+                <td class="customer-info">
+                  <strong>{{ order.tenNguoiNhan }}</strong>
+                  <span class="phone">{{ order.soDienThoaiGiaoHang }}</span>
+                </td>
+                <td>{{ formatDate(order.ngayTao) }}</td>
+                <td class="price">{{ formatPrice(order.tongTien) }}</td>
+                <td>
+                  <div class="payment-edit-group">
+                    <select 
+                      v-model="order.phuongThucThanhToan" 
+                      @change="changePaymentMethod(order.maDonHang, order.phuongThucThanhToan)"
+                      class="payment-select"
+                    >
+                      <option v-for="method in paymentMethods" :key="method" :value="method">
+                        {{ 
+                          method === 'CHUYEN_KHOAN_QR' ? 'Chuyển Khoản QR' : 
+                          method === 'THE_TIN_DUNG' ? 'Thẻ Tín Dụng' : 
+                          method === 'VNPAY' ? 'Cổng VNPAY' : method 
+                        }}
+                      </option>
+                    </select>
+                    <button class="btn-add-payment-method" title="Tạo thêm hình thức mới" @click="openAddPaymentModal">+</button>
+                  </div>
+                  
+                  <div style="margin-top: 6px;">
+                    <span class="payment-status" :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' || order.trangThaiThanhToan === 'Đã thanh toán' ? 'paid' : 'unpaid'">
+                      <i :class="order.trangThaiThanhToan === 'DA_THANH_TOAN' || order.trangThaiThanhToan === 'Đã thanh toán' ? 'fa-solid fa-check-circle' : 'fa-solid fa-clock'"></i>
+                      {{ order.trangThaiThanhToan === 'DA_THANH_TOAN' || order.trangThaiThanhToan === 'Đã thanh toán' ? 'Đã Thanh Toán' : 'Chưa Thanh Toán' }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span class="status-badge" :class="getStatusClass(order.trangThaiDonHang)">
+                    {{ getStatusText(order.trangThaiDonHang) }}
+                  </span>
+                </td>
+                <td>
+                  <select 
+                    class="action-select" 
+                    value=""
+                    @change="handleActionSelect(order, $event)"
+                  >
+                    <option value="" disabled selected>-- Chọn lệnh --</option>
+                    <option value="VIEW">👁️ Xem chi tiết</option>
+                    
+                    <option 
+                      v-if="order.trangThaiDonHang === 'CHO_XU_LY'" 
+                      value="SHIPPING"
+                    >
+                      🚚 Giao hàng
+                    </option>
+                    
+                    <option 
+                      v-if="order.trangThaiDonHang === 'DANG_GIAO'" 
+                      value="APPROVE"
+                    >
+                      ✅ Hoàn thành giao
+                    </option>
+                    
+                    <option 
+                      v-if="order.trangThaiDonHang === 'CHO_XU_LY' || order.trangThaiDonHang === 'DANG_GIAO'" 
+                      value="CANCEL"
+                      class="option-danger"
+                    >
+                      ❌ Hủy đơn hàng
+                    </option>
+                  </select>
+                </td>
+              </tr>
+              <tr v-if="filteredOrders.length === 0">
+                <td colspan="7" class="empty-state">Không tìm thấy đơn hàng nào khớp với bộ lọc...</td>
               </tr>
             </tbody>
           </table>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="closeDetailModal">Đóng</button>
+        </section>
+      </main>
+
+      <!-- MODAL XEM CHI TIẾT -->
+      <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
+        <div class="modal-box modal-lg">
+          <div class="modal-header">
+            <h2>Chi Tiết Đơn Hàng <span class="gold">#{{ selectedOrder?.maDonHangCode }}</span></h2>
+            <button class="btn-close" @click="closeDetailModal"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="modal-body">
+            <div class="order-info-grid">
+              <div class="info-card">
+                <h4><i class="fa-solid fa-location-dot"></i> Thông Tin Giao Hàng</h4>
+                <p><strong>Người nhận:</strong> {{ selectedOrder?.tenNguoiNhan }}</p>
+                <p><strong>Điện thoại:</strong> {{ selectedOrder?.soDienThoaiGiaoHang }}</p>
+                <p><strong>Địa chỉ:</strong> {{ selectedOrder?.diaChiGiaoHang }}</p>
+              </div>
+              <div class="info-card">
+                <h4><i class="fa-solid fa-credit-card"></i> Thông Tin Thanh Toán</h4>
+                <p><strong>Hình thức:</strong> {{ selectedOrder?.phuongThucThanhToan }}</p>
+                <p><strong>Tình trạng:</strong>
+                  <span :class="selectedOrder?.trangThaiThanhToan === 'DA_THANH_TOAN' || selectedOrder?.trangThaiThanhToan === 'Đã thanh toán' ? 'text-success' : 'text-danger'">
+                    {{ selectedOrder?.trangThaiThanhToan === 'DA_THANH_TOAN' || selectedOrder?.trangThaiThanhToan === 'Đã thanh toán' ? 'Đã thanh toán' : 'Chưa thanh toán' }}
+                  </span>
+                </p>
+                <p><strong>Tổng cộng:</strong> <span class="price-large">{{ formatPrice(selectedOrder?.tongTien) }}</span></p>
+              </div>
+            </div>
+            <h4 class="table-title"><i class="fa-solid fa-box-open"></i> Danh Sách Sản Phẩm (Chi Tiết)</h4>
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th>Mã SP</th>
+                  <th>Đơn Giá Lúc Mua</th>
+                  <th style="text-align: center;">Số Lượng</th>
+                  <th style="text-align: right;">Thành Tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in orderDetails" :key="item.maChiTietDonHang">
+                  <td><strong>SP #{{ item.maSanPham }}</strong></td>
+                  <td>{{ formatPrice(item.giaLucMua) }}</td>
+                  <td style="text-align: center;"><span class="qty-badge">{{ item.soLuong }}</span></td>
+                  <td style="text-align: right; font-weight: bold; color: #d1aa68;">{{ formatPrice(item.giaLucMua * item.soLuong) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-cancel" @click="closeDetailModal">Đóng</button>
+          </div>
         </div>
       </div>
     </div>
@@ -197,22 +191,18 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 
-const menuItems = [
-    { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
-    { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open' },
-    { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group' },
-    { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
-    { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
-    { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
-    { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
-    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
-    { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
-    { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
-    { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check' }, 
-    { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN'] },
-    { name: 'Quản Lý Bảo Hành', link: '/admin/quan-ly-bao-hanh', icon: 'fa-solid fa-wrench', roles: ['ROLE_ADMIN'] }
-];
+// IMPORT COMPONENT CON VÀO ĐÂY
+import AdminSidebar from './AdminSidebar.vue';
+import AdminHeader from './AdminHeader.vue';
 
+// ================= LOGIC ĐIỀU KHIỂN LAYOUT CHUNG =================
+const isCollapsed = ref(false);
+
+const toggleSidebar = () => {
+  isCollapsed.value = !isCollapsed.value;
+};
+
+// ================= LOGIC DỮ LIỆU CŨ (Giữ nguyên) =================
 const orders = ref([]);
 const showDetailModal = ref(false);
 const selectedOrder = ref(null);
@@ -345,14 +335,128 @@ const closeDetailModal = () => {
   selectedOrder.value = null;
 };
 
-const handleLogout = () => {
-  localStorage.removeItem('user');
-  window.location.href = '/';
-};
-
 onMounted(() => { loadOrders(); });
 </script>
 
+<!-- CSS CHỨA BIẾN GLOBAL (Trị dứt điểm lỗi Sidebar tàng hình) -->
+<style>
+:root {
+  --wood-dark: #362921;
+  --wood-active: #47372c;
+  --wood-medium: #544438;
+  --wood-light: #7a6352;
+  --gold-matte: #cca15e;
+  --bg-page: #f8f6f0;
+  --border-light: #eaeaea;
+  --text-main: #333333;
+  --text-muted: #888888;
+}
+</style>
+
 <style scoped>
 @import "../CSS/Admin/QuanLyDonHang.css";
+
+/* ==============================================
+   CSS LAYOUT CHUNG BỌC BÊN NGOÀI
+   ============================================== */
+.velora-admin-wrapper {
+  display: flex;
+  height: 100vh;
+  background-color: var(--bg-page);
+  overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.content-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* Đảm bảo phần tiêu đề trang nhận đúng font và màu */
+.header-left h1 {
+  font-size: 26px;
+  font-weight: bold;
+  color: var(--wood-dark);
+  margin: 0 0 5px 0;
+}
+.header-left .gold {
+  color: var(--gold-matte);
+}
+.header-left p {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Fix CSS Overlay cho Modal hiển thị chuẩn chính giữa màn hình */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: 8px;
+  width: 700px; /* Rộng hơn chút để chứa thông tin đơn hàng cho đẹp */
+  max-width: 90%;
+  max-height: 90vh; 
+  overflow-y: auto; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #eaeaea;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #888;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #eaeaea;
+  display: flex;
+  justify-content: flex-end;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+}
+
+.btn-cancel {
+  background: #f0f0f0;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #333;
+}
+.btn-cancel:hover {
+  background: #e4e4e4;
+}
 </style>

@@ -1,170 +1,162 @@
 <template>
-    <div class="admin-wrapper">
-        <!-- SIDEBAR -->
-        <nav class="sidebar">
-            <h2 class="brand">VELORA ADMIN</h2>
-            <ul class="menu">
-                <li v-for="item in menuItems" :key="item.name">
-                    <router-link :to="item.link" active-class="active">
-                        <i :class="item.icon"></i> {{ item.name }}
-                    </router-link>
-                </li>
-            </ul>
-            <div class="sidebar-bottom">
-                <router-link to="/" class="exit"><i class="fa-solid fa-house"></i> Return</router-link>
-                <button class="logout" @click="handleLogout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
-            </div>
-        </nav>
+    <div class="velora-admin-wrapper admin-wrapper">
+        <!-- 1. GỌI COMPONENT SIDEBAR MỚI -->
+        <AdminSidebar :isCollapsed="isCollapsed" />
 
-        <!-- MAIN CONTENT -->
-        <main class="content">
-            <header class="header">
-                <div class="header-title">
-                    <h1>Quản Lý <span class="gold">Mã Giảm Giá</span></h1>
-                    <p>Tạo và cấu hình các mã khuyến mãi, giới hạn lượt sử dụng cho khách hàng.</p>
-                </div>
-            </header>
+        <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
+            <!-- 2. GỌI COMPONENT HEADER MỚI -->
+            <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-            <!-- KHỐI CÔNG CỤ (TÌM KIẾM + LỌC + THÊM MỚI) TRÊN 1 HÀNG -->
-            <div class="controls-container">
-                <!-- Ô Tìm kiếm -->
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input 
-                        type="text" 
-                        v-model="searchQuery" 
-                        placeholder="Tìm theo mã code..."
-                    >
-                </div>
+            <!-- 3. NỘI DUNG CHÍNH (Giữ nguyên 100% logic của ku em) -->
+            <main class="content">
+                <header class="header">
+                    <div class="header-title">
+                        <h1>Quản Lý <span class="gold">Mã Giảm Giá</span></h1>
+                        <p>Tạo và cấu hình các mã khuyến mãi, giới hạn lượt sử dụng cho khách hàng.</p>
+                    </div>
+                </header>
 
-                <!-- Cụm Bộ lọc -->
-                <div class="filter-group">
-                    <div class="filter-item">
-                        <label>Trạng thái:</label>
-                        <select v-model="filterTrangThai">
-                            <option value="all">Tất cả</option>
-                            <option value="active">Đang hoạt động</option>
-                            <option value="expired">Đã hết hạn</option>
-                            <option value="empty">Đã hết lượt</option>
-                        </select>
+                <!-- KHỐI CÔNG CỤ (TÌM KIẾM + LỌC + THÊM MỚI) TRÊN 1 HÀNG -->
+                <div class="controls-container">
+                    <!-- Ô Tìm kiếm -->
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input 
+                            type="text" 
+                            v-model="searchQuery" 
+                            placeholder="Tìm theo mã code..."
+                        >
                     </div>
-                    <div class="filter-item">
-                        <label>Mức giảm:</label>
-                        <select v-model="filterMucGiam">
-                            <option value="all">Tất cả</option>
-                            <option value="under_10">Dưới 10%</option>
-                            <option value="10_to_20">Từ 10% - 20%</option>
-                            <option value="over_20">Trên 20%</option>
-                        </select>
+
+                    <!-- Cụm Bộ lọc -->
+                    <div class="filter-group">
+                        <div class="filter-item">
+                            <label>Trạng thái:</label>
+                            <select v-model="filterTrangThai">
+                                <option value="all">Tất cả</option>
+                                <option value="active">Đang hoạt động</option>
+                                <option value="expired">Đã hết hạn</option>
+                                <option value="empty">Đã hết lượt</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label>Mức giảm:</label>
+                            <select v-model="filterMucGiam">
+                                <option value="all">Tất cả</option>
+                                <option value="under_10">Dưới 10%</option>
+                                <option value="10_to_20">Từ 10% - 20%</option>
+                                <option value="over_20">Trên 20%</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label>Thời hạn:</label>
+                            <select v-model="filterHanSuDung">
+                                <option value="all">Tất cả</option>
+                                <option value="permanent">Vĩnh viễn</option>
+                                <option value="limited">Có thời hạn</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="filter-item">
-                        <label>Thời hạn:</label>
-                        <select v-model="filterHanSuDung">
-                            <option value="all">Tất cả</option>
-                            <option value="permanent">Vĩnh viễn</option>
-                            <option value="limited">Có thời hạn</option>
-                        </select>
-                    </div>
+
+                    <!-- Nút Thêm Mới (Được đẩy sang phải) -->
+                    <button @click="moModal()" class="btn-add">
+                        <i class="fa-solid fa-plus"></i> Thêm mã mới
+                    </button>
                 </div>
 
-                <!-- Nút Thêm Mới (Được đẩy sang phải) -->
-                <button @click="moModal()" class="btn-add">
-                    <i class="fa-solid fa-plus"></i> Thêm mã mới
-                </button>
-            </div>
-
-            <!-- BẢNG DỮ LIỆU -->
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>MÃ PHIẾU / CODE</th>
-                            <th>MỨC GIẢM (%)</th>
-                            <th>ĐÃ DÙNG / GIỚI HẠN</th>
-                            <th>HẠN SỬ DỤNG</th>
-                            <th>TRẠNG THÁI</th>
-                            <th>HÀNH ĐỘNG</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="item in paginatedDanhSach" :key="item.id">
-                            <td><strong>{{ item.maCode }}</strong></td>
-                            <td>Giảm {{ item.phanTramGiam }}%</td>
-                            <td>{{ item.soLuotDaDung }} / {{ item.gioiHanSuDung }}</td>
-                            <td>
-                                <span :class="{'permanent': !item.ngayHetHan}">
-                                    {{ formatDate(item.ngayHetHan) }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="status-badge" :class="tinhTrangThai(item).class">
-                                    {{ tinhTrangThai(item).text }}
-                                </span>
-                            </td>
-                            <td class="action-buttons">
-                                <button @click="moModal(item)" class="btn-icon btn-edit" title="Sửa">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
-                                <button @click="xoaMa(item.id)" class="btn-icon btn-delete" title="Xóa">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr v-if="paginatedDanhSach.length === 0">
-                            <td colspan="6" class="empty-msg">Không tìm thấy mã giảm giá nào phù hợp.</td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <!-- Khối điều hướng phân trang -->
-                <div class="pagination-wrapper" v-if="totalPages > 1">
-                    <button class="btn-page" @click="prevPage" :disabled="currentPage === 1">Trước</button>
-                    <span class="page-info">Trang <strong>{{ currentPage }}</strong> / {{ totalPages }}</span>
-                    <button class="btn-page" @click="nextPage" :disabled="currentPage === totalPages">Sau</button>
-                </div>
-            </div>
-        </main>
-
-        <!-- MODAL THÊM / SỬA -->
-        <div v-if="hienThiModal" class="modal-overlay">
-            <div class="modal-content">
-                <h3>{{ dangSua ? 'Sửa Mã Giảm Giá' : 'Thêm Mã Mới' }}</h3>
-                <form @submit.prevent="luuMaGiamGia">
-                    <div class="form-group">
-                        <label>Mã Code (VD: SALE10)</label>
-                        <input v-model="formData.maCode" :disabled="dangSua" type="text" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Mức giảm (%)</label>
-                        <input v-model="formData.phanTramGiam" type="number" step="0.1" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Giới hạn số lượt dùng</label>
-                        <input v-model="formData.gioiHanSuDung" type="number" required>
-                    </div>
+                <!-- BẢNG DỮ LIỆU -->
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>MÃ PHIẾU / CODE</th>
+                                <th>MỨC GIẢM (%)</th>
+                                <th>ĐÃ DÙNG / GIỚI HẠN</th>
+                                <th>HẠN SỬ DỤNG</th>
+                                <th>TRẠNG THÁI</th>
+                                <th>HÀNH ĐỘNG</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="item in paginatedDanhSach" :key="item.id">
+                                <td><strong>{{ item.maCode }}</strong></td>
+                                <td>Giảm {{ item.phanTramGiam }}%</td>
+                                <td>{{ item.soLuotDaDung }} / {{ item.gioiHanSuDung }}</td>
+                                <td>
+                                    <span :class="{'permanent': !item.ngayHetHan}">
+                                        {{ formatDate(item.ngayHetHan) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge" :class="tinhTrangThai(item).class">
+                                        {{ tinhTrangThai(item).text }}
+                                    </span>
+                                </td>
+                                <td class="action-buttons">
+                                    <button @click="moModal(item)" class="btn-icon btn-edit" title="Sửa">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button @click="xoaMa(item.id)" class="btn-icon btn-delete" title="Xóa">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="paginatedDanhSach.length === 0">
+                                <td colspan="6" class="empty-msg">Không tìm thấy mã giảm giá nào phù hợp.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                     
-                    <div class="form-group">
-                        <label>Thời hạn sử dụng</label>
-                        <select v-model="loaiHanSuDung">
-                            <option value="none">Vĩnh viễn (Không hết hạn)</option>
-                            <option value="1">Hết hạn sau 1 ngày</option>
-                            <option value="5">Hết hạn sau 5 ngày</option>
-                            <option value="15">Hết hạn sau 15 ngày</option>
-                            <option value="30">Hết hạn sau 30 ngày</option>
-                            <option value="custom">Chọn ngày khác...</option>
-                        </select>
+                    <!-- Khối điều hướng phân trang -->
+                    <div class="pagination-wrapper" v-if="totalPages > 1">
+                        <button class="btn-page" @click="prevPage" :disabled="currentPage === 1">Trước</button>
+                        <span class="page-info">Trang <strong>{{ currentPage }}</strong> / {{ totalPages }}</span>
+                        <button class="btn-page" @click="nextPage" :disabled="currentPage === totalPages">Sau</button>
                     </div>
+                </div>
+            </main>
 
-                    <div v-if="loaiHanSuDung === 'custom'" class="form-group">
-                        <label>Chọn ngày hết hạn (Mặc định đến 23:59 ngày đó)</label>
-                        <input v-model="formData.ngayHetHan" type="date" required>
-                    </div>
+            <!-- MODAL THÊM / SỬA -->
+            <div v-if="hienThiModal" class="modal-overlay" @click.self="hienThiModal = false">
+                <div class="modal-content">
+                    <h3>{{ dangSua ? 'Sửa Mã Giảm Giá' : 'Thêm Mã Mới' }}</h3>
+                    <form @submit.prevent="luuMaGiamGia">
+                        <div class="form-group">
+                            <label>Mã Code (VD: SALE10)</label>
+                            <input v-model="formData.maCode" :disabled="dangSua" type="text" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Mức giảm (%)</label>
+                            <input v-model="formData.phanTramGiam" type="number" step="0.1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Giới hạn số lượt dùng</label>
+                            <input v-model="formData.gioiHanSuDung" type="number" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Thời hạn sử dụng</label>
+                            <select v-model="loaiHanSuDung">
+                                <option value="none">Vĩnh viễn (Không hết hạn)</option>
+                                <option value="1">Hết hạn sau 1 ngày</option>
+                                <option value="5">Hết hạn sau 5 ngày</option>
+                                <option value="15">Hết hạn sau 15 ngày</option>
+                                <option value="30">Hết hạn sau 30 ngày</option>
+                                <option value="custom">Chọn ngày khác...</option>
+                            </select>
+                        </div>
 
-                    <div class="modal-actions">
-                        <button type="button" @click="hienThiModal = false" class="btn-cancel">Hủy</button>
-                        <button type="submit" class="btn-save">Lưu lại</button>
-                    </div>
-                </form>
+                        <div v-if="loaiHanSuDung === 'custom'" class="form-group">
+                            <label>Chọn ngày hết hạn (Mặc định đến 23:59 ngày đó)</label>
+                            <input v-model="formData.ngayHetHan" type="date" required>
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="button" @click="hienThiModal = false" class="btn-cancel">Hủy</button>
+                            <button type="submit" class="btn-save">Lưu lại</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -174,27 +166,18 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 
-const menuItems = [
-    { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
-    { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open' },
-    { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group' },
-    { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users' },
-    { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
-    { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
-    { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar' },
-    { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem' },
-    { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list' },
-    { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags' },
-    { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check' }, 
-    { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN'] },
-    { name: 'Quản Lý Bảo Hành', link: '/admin/quan-ly-bao-hanh', icon: 'fa-solid fa-wrench', roles: ['ROLE_ADMIN'] }
-];
+// IMPORT COMPONENT CON VÀO ĐÂY
+import AdminSidebar from './AdminSidebar.vue';
+import AdminHeader from './AdminHeader.vue';
 
-const handleLogout = () => {
-    localStorage.removeItem('role');
-    window.location.href = '/';
+// ================= LOGIC ĐIỀU KHIỂN LAYOUT CHUNG =================
+const isCollapsed = ref(false);
+
+const toggleSidebar = () => {
+    isCollapsed.value = !isCollapsed.value;
 };
 
+// ================= LOGIC DỮ LIỆU CŨ (Giữ nguyên 100%) =================
 const danhSachMa = ref([]);
 const searchQuery = ref(''); 
 const hienThiModal = ref(false);
@@ -289,9 +272,9 @@ const layDanhSach = async () => {
     if (res.data && Array.isArray(res.data.content)) {
         danhSachMa.value = res.data.content; 
     } else if (Array.isArray(res.data)) {
-        danhSachMa.value = res.data;         
+        danhSachMa.value = res.data;        
     } else {
-        danhSachMa.value = [];               
+        danhSachMa.value = [];              
     }
   } catch (error) {
     console.error("Lỗi lấy dữ liệu:", error);
@@ -379,76 +362,38 @@ onMounted(() => {
 });
 </script>
 
+<!-- CSS CHỨA BIẾN GLOBAL ĐỂ SIDEBAR NHẬN MÀU -->
+<style>
+:root {
+    --wood-dark: #362921;
+    --wood-active: #47372c;
+    --wood-medium: #544438;
+    --wood-light: #7a6352;
+    --gold-matte: #cca15e;
+    --bg-page: #f8f6f0;
+    --border-light: #eaeaea;
+    --text-main: #333333;
+    --text-muted: #888888;
+}
+</style>
+
 <style scoped>
-.admin-wrapper {
+/* ==============================================
+   CSS LAYOUT CHUNG BỌC BÊN NGOÀI
+   ============================================== */
+.velora-admin-wrapper {
     display: flex;
-    min-height: 100vh;
-    background: #f4f1ea;
-    font-family: sans-serif;
+    height: 100vh;
+    background-color: var(--bg-page);
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.sidebar {
-    width: 260px;
-    background: #3e332e;
-    color: #fff;
-    padding: 40px 20px;
+.content-wrapper {
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
-    flex-shrink: 0;
-}
-
-.brand {
-    font-size: 18px;
-    color: #d1aa68;
-    margin-bottom: 50px;
-    text-align: center;
-    letter-spacing: 2px;
-}
-
-.menu {
-    padding: 0;
-}
-
-.menu li {
-    margin-bottom: 20px;
-    list-style: none;
-}
-
-.menu a {
-    color: #ccc;
-    text-decoration: none !important;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: 0.3s;
-    padding: 10px;
-    border-radius: 6px;
-}
-
-.menu a:hover,
-.menu a.active {
-    color: #d1aa68;
-    background-color: rgba(209, 170, 104, 0.1);
-}
-
-.sidebar-bottom {
-    margin-top: auto;
-    border-top: 1px solid #5a4b44;
-    padding-top: 20px;
-}
-
-.exit,
-.logout {
-    color: #aaa;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-    text-decoration: none !important;
+    overflow-y: auto;
 }
 
 .content {
@@ -457,22 +402,26 @@ onMounted(() => {
     min-width: 0;
 }
 
+/* ==============================================
+   CSS CỦA TRANG MÃ GIẢM GIÁ (Giữ nguyên)
+   ============================================== */
 .header {
     margin-bottom: 25px;
 }
 
 .header h1 {
-    color: #3e332e;
+    color: var(--wood-dark);
     font-size: 28px;
     margin-bottom: 8px;
+    font-weight: bold;
 }
 
 .gold {
-    color: #d1aa68;
+    color: var(--gold-matte);
 }
 
 .header p {
-    color: #777;
+    color: var(--text-muted);
     font-size: 14px;
     margin: 0;
 }
