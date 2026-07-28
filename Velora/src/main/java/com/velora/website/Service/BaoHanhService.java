@@ -4,9 +4,12 @@ import com.velora.website.Entity.BaoHanh;
 import com.velora.website.Entity.NguoiDung;
 import com.velora.website.Repository.BaoHanhRepository;
 import com.velora.website.Repository.NguoiDungRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -15,19 +18,30 @@ import java.util.List;
 @Service
 public class BaoHanhService {
 
+    private static final Logger log = LoggerFactory.getLogger(BaoHanhService.class);
+    
+    private static final String TRANG_THAI_CHO_XU_LY = "CHO_XU_LY";
+    private static final String TRANG_THAI_DA_TIEP_NHAN = "DA_TIEP_NHAN";
+    private static final String TRANG_THAI_DA_HUY = "DA_HUY";
+
     private final BaoHanhRepository repo;
     private final NguoiDungRepository nguoiDungRepository;
     private final JavaMailSender mailSender;
 
-    public BaoHanhService(BaoHanhRepository repo, NguoiDungRepository nguoiDungRepository, JavaMailSender mailSender) {
+    public BaoHanhService(BaoHanhRepository repo, 
+                          NguoiDungRepository nguoiDungRepository, 
+                          JavaMailSender mailSender) {
         this.repo = repo;
         this.nguoiDungRepository = nguoiDungRepository;
         this.mailSender = mailSender;
     }
 
+    @Transactional
     public BaoHanh saveRequest(BaoHanh baoHanh) {
-        baoHanh.setTrangThai("CHO_XU_LY");
-        return repo.save(baoHanh);
+        baoHanh.setTrangThai(TRANG_THAI_CHO_XU_LY);
+        BaoHanh saved = repo.save(baoHanh);
+        log.info("Đã tạo mới yêu cầu bảo hành ID: {} cho người dùng ID: {}", saved.getMaBaoHanh(), saved.getMaNguoiDung());
+        return saved;
     }
 
     public List<BaoHanh> getAllRequests() {
@@ -35,38 +49,57 @@ public class BaoHanhService {
     }
 
     public List<BaoHanh> getPendingRequests() {
-        return repo.findByTrangThai("CHO_XU_LY");
+        return repo.findByTrangThai(TRANG_THAI_CHO_XU_LY);
     }
 
     public List<BaoHanh> findByMaNguoiDung(Integer maNguoiDung) {
-        return repo.findByMaNguoiDung(maNguoiDung);
+        return repo.findByMaNguoiDungOrderByNgayGuiDesc(maNguoiDung);
     }
 
-    // CẬP NHẬT TRẠNG THÁI VÀ GỬI EMAIL THÔNG BÁO LỊCH HẸN
+    @Transactional
     public BaoHanh updateStatus(Integer id, String trangThai, LocalDateTime thoiGianHen) {
         BaoHanh bh = repo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu bảo hành"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu bảo hành với ID: " + id));
 
-        bh.setTrangThai(trangThai.trim().toUpperCase());
+        String normalizedStatus = trangThai.trim().toUpperCase();
+        bh.setTrangThai(normalizedStatus);
         
         if (thoiGianHen != null) {
             bh.setThoiGianHen(thoiGianHen);
         }
 
         BaoHanh updated = repo.save(bh);
+        log.info("Cập nhật trạng thái yêu cầu bảo hành ID: {} thành {}", id, normalizedStatus);
 
-        // NẾU TRẠNG THÁI LÀ "DA_TIEP_NHAN", GỬI EMAIL CHO KHÁCH
-        if ("DA_TIEP_NHAN".equals(updated.getTrangThai()) && updated.getMaNguoiDung() != null) {
-            sendEmailToCustomer(updated);
+        if (TRANG_THAI_DA_TIEP_NHAN.equals(updated.getTrangThai()) && updated.getMaNguoiDung() != null) {
+            sendEmailToCustomerAsync(updated);
         }
 
         return updated;
     }
 
-    private void sendEmailToCustomer(BaoHanh bh) {
+    @Transactional
+    public BaoHanh cancelRequest(Integer id) {
+        BaoHanh bh = repo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu bảo hành với ID: " + id));
+        
+        if (!TRANG_THAI_CHO_XU_LY.equals(bh.getTrangThai())) {
+            throw new IllegalStateException("Chỉ có thể hủy yêu cầu đang ở trạng thái chờ xử lý.");
+        }
+        
+        bh.setTrangThai(TRANG_THAI_DA_HUY);
+        BaoHanh cancelled = repo.save(bh);
+        log.info("Đã hủy yêu cầu bảo hành ID: {}", id);
+        return cancelled;
+    }
+
+    private void sendEmailToCustomerAsync(BaoHanh bh) {
         try {
             NguoiDung user = nguoiDungRepository.findById(bh.getMaNguoiDung()).orElse(null);
-            if (user == null || user.getEmail() == null) return;
+            if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+                log.warn("Không thể gửi email do không tìm thấy email của User ID: {}", bh.getMaNguoiDung());
+                return;
+            }
 
             String formattedTime = bh.getThoiGianHen() != null 
                 ? bh.getThoiGianHen().format(DateTimeFormatter.ofPattern("HH:mm - dd/MM/yyyy")) 
@@ -81,24 +114,27 @@ public class BaoHanhService {
                 "LỊCH HẸN ĐẾN TRỰC TIẾP SHOP:\n" +
                 "- Thời gian: " + formattedTime + "\n" +
                 "- Địa điểm: Showroom Velora Clock, 123 Lê Lợi, TP.HCM\n\n" +
-                "Quý khách vui lòng mang theo đồng hồ và thông tin mã yêu cầu #" + bh.getMaBaoHanh() + " khi đến cửa hàng để được hỗ trợ tốt nhất.\n\n" +
+                "Quý khách vui lòng mang theo đồng hồ và mã yêu cầu #" + bh.getMaBaoHanh() + " khi đến cửa hàng.\n\n" +
                 "Trân trọng,\n" +
                 "Đội ngũ Velora Clock."
             );
 
             mailSender.send(message);
+            log.info("Đã gửi email lịch hẹn thành công tới: {}", user.getEmail());
         } catch (Exception e) {
-            System.err.println("Gửi email thất bại: " + e.getMessage());
+            log.error("Gửi email thất bại: {}", e.getMessage(), e);
         }
     }
-
-    public BaoHanh cancelRequest(Integer id) {
-        BaoHanh bh = repo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu"));
-        if (!bh.getTrangThai().equals("CHO_XU_LY")) {
-            throw new RuntimeException("Không thể hủy yêu cầu này.");
-        }
-        bh.setTrangThai("DA_HUY");
-        return repo.save(bh);
-    }
+    @Transactional
+public BaoHanh requestReschedule(Integer id, String thoiGianMongMuon) {
+    BaoHanh bh = repo.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu bảo hành ID: " + id));
+    
+    bh.setTrangThai("YEU_CAU_DOI_LICH");
+    bh.setThoiGianKhachMongMuon(thoiGianMongMuon);
+    BaoHanh updated = repo.save(bh);
+    log.info("Khách hàng yêu cầu đổi lịch cho đơn bảo hành ID: {} với thời gian mong muốn: {}", id, thoiGianMongMuon);
+    return updated;
 }
+}
+

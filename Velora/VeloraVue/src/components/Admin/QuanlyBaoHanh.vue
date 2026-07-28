@@ -1,18 +1,18 @@
 <template>
   <div class="velora-admin-wrapper admin-wrapper">
-    <!-- 1. GỌI COMPONENT SIDEBAR MỚI -->
+    <!-- Sidebar -->
     <AdminSidebar :isCollapsed="isCollapsed" />
 
     <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
-      <!-- 2. GỌI COMPONENT HEADER MỚI -->
+      <!-- Header -->
       <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-      <!-- 3. NỘI DUNG CHÍNH (Giữ nguyên 100% logic của ku em) -->
+      <!-- Nội dung chính -->
       <main class="content">
         <header class="header">
           <div class="header-left">
             <h1>Quản Lý <span class="gold">Bảo Hành</span></h1>
-            <p>Danh sách yêu cầu bảo hành đang chờ xác nhận từ khách hàng.</p>
+            <p>Danh sách yêu cầu bảo hành và điều phối lịch hẹn trực tiếp với khách hàng.</p>
           </div>
         </header>
 
@@ -26,62 +26,82 @@
               <tr>
                 <th>Mã yêu cầu</th>
                 <th>Mã đơn hàng</th>
-                <th>Loại sản phẩm</th>
-                <th>Mô tả lỗi</th>
+                <th>Khách hàng</th>
+                <th>Sản phẩm & Lỗi</th>
+                <th>Yêu cầu đổi lịch</th>
                 <th>Ngày gửi</th>
                 <th>Trạng thái</th>
-                <th>Hành động</th>
+                <th>Hành động & Lịch hẹn</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in paginatedRequests" :key="item.maBaoHanh">
-                <td>#{{ item.maBaoHanh }}</td>
-                <td>{{ item.maDonHangCode || 'Chưa có' }}</td>
-                <td>{{ item.loaiSanPham || 'Chưa rõ' }}</td>
-                <td>{{ item.moTaLoi || 'Không có mô tả' }}</td>
-                <td>{{ formatDate(item.ngayGui) }}</td>
-                <td>
-                  <span
-                    class="status-badge"
-                    :class="{
-                      pending: item.trangThai === 'CHO_XU_LY',
-                      received: item.trangThai === 'DA_TIEP_NHAN',
-                      processing: item.trangThai === 'DANG_XU_LY',
-                      completed: item.trangThai === 'HOAN_TAT',
-                      rejected: item.trangThai === 'TU_CHOI'
-                    }"
-                  >
-                    {{ getStatusText(item.trangThai) }}
-                  </span>
-                </td>
-                <td>
-                  <!-- Ô chọn thời gian hẹn (chỉ hiện khi chọn Đã tiếp nhận) -->
-                  <input 
-                    v-if="item.trangThai === 'DA_TIEP_NHAN'" 
-                    type="datetime-local" 
-                    v-model="item.thoiGianHenInput" 
-                    class="input-datetime" 
-                    style="margin-bottom: 5px; display: block; font-size: 11px;"
-                  />
+  <tr v-for="item in paginatedRequests" :key="item.maBaoHanh">
+    <td>#{{ item.maBaoHanh }}</td>
+    <td>{{ item.maDonHangCode || 'Chưa có' }}</td>
+    <td>
+      <strong>{{ item.hoTen || 'Khách lẻ' }}</strong><br/>
+      <small class="text-muted">{{ item.soDienThoai || 'Không có SĐT' }}</small>
+    </td>
+    <td>
+      <span class="product-badge">{{ item.loaiSanPham || 'Chưa rõ' }}</span>
+      <p class="error-description">{{ item.moTaLoi || 'Không có mô tả' }}</p>
+    </td>
 
-                  <select v-model="item.trangThai" class="status-select">
-                    <option value="CHO_XU_LY">Chờ xử lý</option>
-                    <option value="DA_TIEP_NHAN">Đã tiếp nhận</option>
-                    <option value="DANG_XU_LY">Đang xử lý</option>
-                    <option value="HOAN_TAT">Hoàn tất</option>
-                    <option value="TU_CHOI">Từ chối</option>
-                  </select>
+    <!-- 🌟 Thêm nội dung hiển thị cho cột mới -->
+    <td>
+  <div v-if="item.thoiGianKhachMongMuon" class="customer-note-box">
+    <span class="text-orange" style="font-weight: 600; font-size: 0.85rem;">
+      🕒 {{ formatDisplayTime(item.thoiGianKhachMongMuon) }}
+    </span>
+  </div>
+  <span v-else class="text-muted" style="font-size: 0.85rem;">Không có</span>
+</td>
 
-                  <button class="btn-confirm" @click="updateStatus(item)">
-                    Cập nhật
-                  </button>
-                </td>
-              </tr>
+    <td>{{ formatDate(item.ngayGui) }}</td>
+    <td>
+      <span
+        class="status-badge"
+        :class="{
+          pending: item.trangThai === 'CHO_XU_LY',
+          received: item.trangThai === 'DA_TIEP_NHAN',
+          reschedule: item.trangThai === 'YEU_CAU_DOI_LICH',
+          processing: item.trangThai === 'DANG_XU_LY',
+          completed: item.trangThai === 'HOAN_TAT',
+          rejected: item.trangThai === 'TU_CHOI'
+        }"
+      >
+        {{ getStatusText(item.trangThai) }}
+      </span>
+    </td>
+    <td>
+      <div class="action-cell">
+        <div class="datetime-wrapper" v-if="['DA_TIEP_NHAN', 'CHO_XU_LY', 'YEU_CAU_DOI_LICH'].includes(item.trangThai)">
+          <label class="input-label">Lịch hẹn đề xuất:</label>
+          <input type="datetime-local" v-model="item.thoiGianHenInput" class="input-datetime" />
+        </div>
+
+        <select v-model="item.trangThai" class="status-select">
+          <option value="CHO_XU_LY">Chờ xử lý</option>
+          <option value="DA_TIEP_NHAN">Đã tiếp nhận (Gửi lịch hẹn)</option>
+          <option value="YEU_CAU_DOI_LICH">Yêu cầu đổi lịch</option>
+          <option value="DANG_XU_LY">Đang xử lý kỹ thuật</option>
+          <option value="HOAN_TAT">Hoàn tất</option>
+          <option value="TU_CHOI">Từ chối</option>
+        </select>
+
+        <button class="btn-confirm" @click="updateStatus(item)">
+          Cập nhật & Gửi Email
+        </button>
+      </div>
+    </td>
+  </tr>
               <tr v-if="warrantyRequests.length === 0">
-                <td colspan="7" class="empty-state">Không có yêu cầu bảo hành nào đang chờ xác nhận.</td>
+                <td colspan="7" class="empty-state">Không có yêu cầu bảo hành nào trong hệ thống.</td>
               </tr>
             </tbody>
           </table>
+
+          <!-- Phân trang -->
           <div class="pagination-bar" v-if="totalPages > 1">
             <button class="btn-page" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">Trước</button>
 
@@ -107,25 +127,25 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import axios from 'axios'
 
-// IMPORT COMPONENT CON VÀO ĐÂY
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
-// ================= LOGIC ĐIỀU KHIỂN LAYOUT CHUNG =================
 const isCollapsed = ref(false);
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value;
 };
 
-// ================= LOGIC DỮ LIỆU CŨ CỦA KU EM (Giữ nguyên) =================
+// Sửa lại đường dẫn API cho đúng với Controller Admin
+// Đổi lại thành endpoint cũ đang hoạt động
 const API = "http://localhost:8080/api/bao-hanh"
 
 const warrantyRequests = ref([])
 const loading = ref(false)
-
 const message = ref(null)
+
 const currentPage = ref(1)
 const itemsPerPage = ref(5)
 
@@ -190,73 +210,66 @@ watch([warrantyRequests, totalPages], () => {
   }
 })
 
-// =============================
-// Format ngày
-// =============================
 const formatDate = (date) => {
   if (!date) return "---"
   return new Date(date).toLocaleString("vi-VN")
 }
 
-// =============================
-// Lấy danh sách
-// =============================
+// Hàm định dạng ngày giờ khách muốn đổi
+const formatDisplayTime = (val) => {
+  if (!val) return ''
+  try {
+    const d = new Date(val)
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleString('vi-VN')
+    }
+  } catch (e) {}
+  return val
+}
+
 const fetchWarrantyRequests = async () => {
   loading.value = true
   try {
-    const response = await fetch(API)
-    if (!response.ok) throw new Error()
-    warrantyRequests.value = await response.json()
+    const response = await axios.get(API)
+    const data = response.data
+    
+    warrantyRequests.value = data.map(item => ({
+      ...item,
+      thoiGianHenInput: item.thoiGianHen ? item.thoiGianHen.substring(0, 16) : ''
+    }))
   } catch (e) {
-    console.log(e)
+    console.error(e)
     message.value = {
       type: "error",
-      text: "Không tải được danh sách."
+      text: "Không tải được danh sách bảo hành từ máy chủ."
     }
   }
   loading.value = false
 }
 
-// =============================
-// Cập nhật trạng thái
-// =============================
 const updateStatus = async (item) => {
-    try {
-        const status = item.trangThai.trim();
-
-        const response = await fetch(`${API}/${item.maBaoHanh}/status`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                trangThai: status,
-                thoiGianHen: item.thoiGianHenInput || null // Gửi kèm thời gian hẹn nếu có
-            })
-        });
-
-        if (!response.ok) throw new Error();
-
-        message.value = {
-            type: "success",
-            text: "Cập nhật trạng thái và gửi email lịch hẹn thành công!"
-        };
-
-        await fetchWarrantyRequests();
-
-    } catch (e) {
-        console.log(e);
-        message.value = {
-            type: "error",
-            text: "Không cập nhật được."
-        };
+  try {
+    const payload = {
+      trangThai: item.trangThai,
+      ghiChuPhanHoi: item.ghiChuPhanHoi || "",
+      thoiGianHen: item.thoiGianHenInput ? item.thoiGianHenInput : null
     }
+
+    await axios.put(`http://localhost:8080/api/bao-hanh/admin/${item.maBaoHanh}/update`, payload)
+    
+    alert("Cập nhật trạng thái và lịch hẹn thành công!")
+    // Gọi lại danh sách để cập nhật giao diện ngay lập tức
+    await fetchWarrantyRequests()
+  } catch (err) {
+    alert("Cập nhật thất bại, vui lòng thử lại.")
+  }
 }
 
 const getStatusText = (status) => {
   switch(status){
     case "CHO_XU_LY": return "Chờ xử lý"
     case "DA_TIEP_NHAN": return "Đã tiếp nhận"
+    case "YEU_CAU_DOI_LICH": return "Yêu cầu đổi lịch"
     case "DANG_XU_LY": return "Đang xử lý"
     case "HOAN_TAT": return "Hoàn tất"
     case "TU_CHOI": return "Từ chối"
@@ -264,15 +277,11 @@ const getStatusText = (status) => {
   }
 }
 
-// =============================
-// Load
-// =============================
 onMounted(() => {
   fetchWarrantyRequests()
 })
 </script>
 
-<!-- CSS DÙNG ĐỂ CHỨA BIẾN GLOBAL (Trị dứt điểm lỗi Sidebar trắng) -->
 <style>
 :root {
   --wood-dark: #362921;
@@ -290,9 +299,6 @@ onMounted(() => {
 <style scoped>
 @import '../CSS/Admin/QuanLyBaoHanh.css';
 
-/* ==============================================
-   CSS LAYOUT CHUNG BỌC BÊN NGOÀI
-   ============================================== */
 .velora-admin-wrapper {
   display: flex;
   height: 100vh;
@@ -308,7 +314,6 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-/* Fix lại style cho thẻ header vì thẻ header cũ của em có thể đang dính CSS global */
 .header-left h1 {
   font-size: 26px;
   font-weight: bold;
@@ -322,5 +327,39 @@ onMounted(() => {
   font-size: 14px;
   color: var(--text-muted);
   margin: 0;
+}
+
+.action-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.datetime-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.input-datetime {
+  font-size: 11px;
+  padding: 4px;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+}
+
+.error-description {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 4px 0 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

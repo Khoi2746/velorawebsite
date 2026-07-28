@@ -201,5 +201,67 @@ public class BaoHanhController {
                 }
 
         }
+        // ==========================
+        // USER XÁC NHẬN LỊCH HẸN DO ADMIN ĐỀ XUẤT
+        // ==========================
+        @PutMapping("/{id}/confirm-schedule")
+        public ResponseEntity<?> confirmSchedule(@PathVariable Integer id) {
+            try {
+                // Bạn có thể gọi service tương ứng để đổi trạng thái thành DA_TIEP_NHAN hoặc ĐÃ XÁC NHẬN
+                BaoHanh bh = baoHanhService.updateStatus(id, "DA_TIEP_NHAN", null);
+                return ResponseEntity.ok(Map.of(
+                    "message", "Xác nhận lịch hẹn thành công!",
+                    "data", bh
+                ));
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            }
+        }
+
+        // ==========================
+        // USER YÊU CẦU ĐỔI LỊCH HẸN KHÁC
+        // ==========================
+        @PutMapping("/{id}/reschedule-request")
+        public ResponseEntity<?> rescheduleRequest(@PathVariable Integer id) {
+            try {
+                // Chuyển trạng thái sang chờ xếp lịch lại hoặc ghi nhận yêu cầu đổi lịch
+                BaoHanh bh = baoHanhService.updateStatus(id, "CHO_XU_LY", null);
+                return ResponseEntity.ok(Map.of(
+                    "message", "Đã gửi yêu cầu đổi lịch đến trung tâm.",
+                    "data", bh
+                ));
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            }
+        }
+// ==========================
+// USER XÁC NHẬN LỊCH HẸN DO ADMIN ĐỀ XUẤT
+// ==========================
+@PutMapping("/{id}/confirm-schedule")
+public ResponseEntity<?> confirmSchedule1(@PathVariable Integer id) {
+    try {
+        // Truyền tham số theo đúng thứ tự mà hàm updateStatus bên Service yêu cầu 
+        // (Ví dụ: truyền id, trạng thái mới và null hoặc giá trị thời gian tương ứng)
+        BaoHanh bh = baoHanhService.updateStatus(id, "DA_TIEP_NHAN", null);
+        
+        return ResponseEntity.ok(Map.of("message", "Xác nhận lịch hẹn thành công!", "data", bh));
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
+}
+
+// ==========================
+// USER YÊU CẦU ĐỔI LỊCH HẸN KHÁC (Tự nhập giờ mong muốn)
+// ==========================
+@PutMapping("/{id}/reschedule-request")
+public ResponseEntity<?> rescheduleRequest(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+    try {
+        String thoiGianMoi = body.get("thoiGianMongMuon");
+        BaoHanh bh = baoHanhService.requestReschedule(id, thoiGianMoi);
+        return ResponseEntity.ok(Map.of("message", "Đã gửi yêu cầu đổi lịch thành công đến hệ thống.", "data", bh));
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+    }
+}
 
 }
