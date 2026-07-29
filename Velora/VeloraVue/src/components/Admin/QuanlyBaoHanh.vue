@@ -255,12 +255,14 @@ const updateStatus = async (item) => {
       thoiGianHen: item.thoiGianHenInput ? item.thoiGianHenInput : null
     }
 
-    await axios.put(`http://localhost:8080/api/bao-hanh/admin/${item.maBaoHanh}/update`, payload)
+    // Đã sửa thành item.maBaoHanh
+    await axios.put(`http://localhost:8080/api/bao-hanh/${item.maBaoHanh}/status`, payload)
     
     alert("Cập nhật trạng thái và lịch hẹn thành công!")
     // Gọi lại danh sách để cập nhật giao diện ngay lập tức
     await fetchWarrantyRequests()
   } catch (err) {
+    console.error(err) // Thêm dòng này để lỡ có lỗi thì mở F12 Console lên xem cho dễ
     alert("Cập nhật thất bại, vui lòng thử lại.")
   }
 }

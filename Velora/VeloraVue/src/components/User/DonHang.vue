@@ -29,12 +29,14 @@
         </div>
 
         <div class="order-layout" v-if="filteredOrders.length > 0">
+          <!-- CỘT TRÁI: DANH SÁCH ĐƠN HÀNG CÓ PHÂN TRANG -->
           <div class="order-list-section">
             <h2 class="section-title">LỊCH SỬ GIAO DỊCH</h2>
             
             <div class="order-list">
+              <!-- Render mảng paginatedOrders thay vì filteredOrders -->
               <div 
-                v-for="order in filteredOrders" 
+                v-for="order in paginatedOrders" 
                 :key="order.maDonHang" 
                 class="order-card"
                 :class="{ 'active': selectedOrder && selectedOrder.maDonHang === order.maDonHang }"
@@ -44,23 +46,72 @@
                   <span class="order-code">#{{ order.maDonHangCode }}</span>
                   <span class="order-date">{{ order.ngayTao }}</span>
                 </div>
+                
                 <div class="order-card-body">
-                  <div class="order-total">{{ formatPrice(order.tongTien) }}</div>
-                  <div class="order-status" :class="getStatusClass(order.trangThaiDonHang)">
-                    {{ getStatusText(order.trangThaiDonHang) }}
+                  <!-- ĐÃ SỬA: Hiển thị toàn bộ sản phẩm trong thẻ đơn hàng -->
+                  <div class="order-card-products" v-if="order.items && order.items.length > 0">
+                    <div v-for="(item, idx) in order.items" :key="idx" class="product-item-mini">
+                      <img :src="item.anh && item.anh.startsWith('http') ? item.anh : '/img/' + item.anh" alt="" class="mini-img">
+                      <div class="mini-info">
+                        <span class="mini-name">{{ item.ten }}</span>
+                        <span class="mini-qty">Số lượng: x{{ item.soLuong }}</span>
+                      </div>
+                      <div class="mini-price">{{ formatPrice(item.gia) }}</div>
+                    </div>
+                  </div>
+
+                  <div class="order-card-footer">
+                    <div class="order-total">{{ formatPrice(order.tongTien) }}</div>
+                    <div class="order-status" :class="getStatusClass(order.trangThaiDonHang)">
+                      {{ getStatusText(order.trangThaiDonHang) }}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            <!-- COMPONENT PHÂN TRANG -->
+            <div class="pagination-wrapper" v-if="totalPages > 1">
+              <button 
+                class="page-btn" 
+                :disabled="currentPage === 1" 
+                @click="currentPage--"
+              >
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              
+              <button 
+                v-for="page in totalPages" 
+                :key="page" 
+                class="page-btn" 
+                :class="{ active: currentPage === page }"
+                @click="currentPage = page"
+              >
+                {{ page }}
+              </button>
+              
+              <button 
+                class="page-btn" 
+                :disabled="currentPage === totalPages" 
+                @click="currentPage++"
+              >
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
           </div>
 
+          <!-- CỘT PHẢI: CHI TIẾT ĐƠN HÀNG -->
           <div class="order-detail-section">
             <div v-if="selectedOrder" class="detail-box">
               
               <div class="detail-header">
                 <h2>CHI TIẾT ĐƠN HÀNG <span>#{{ selectedOrder.maDonHangCode }}</span></h2>
                 <div class="detail-actions">
-                  <!-- NÚT HỦY ĐƠN: CHỈ HIỂN THỊ KHI CHO_XU_LY -->
+                  
+                  <div v-if="selectedOrder.trangThaiDonHang === 'YEU_CAU_HUY'" class="pending-cancel-badge">
+                    <i class="fas fa-clock"></i> Đang chờ duyệt hủy
+                  </div>
+
                   <button 
                     v-if="selectedOrder.trangThaiDonHang === 'CHO_XU_LY'" 
                     @click="cancelOrder(selectedOrder)" 
@@ -69,9 +120,6 @@
                     <i class="fas fa-ban"></i> HỦY ĐƠN
                   </button>
 
-                  <!-- NÚT YÊU CẦU HOÀN TIỀN: 
-                       1. Đơn đã giao (DA_GIAO) 
-                       HOẶC 2. Đơn đã hủy (DA_HUY) NHƯNG thanh toán bằng hình thức Online (Chuyển khoản) -->
                   <button 
                     v-if="selectedOrder.trangThaiDonHang === 'DA_GIAO' || (selectedOrder.trangThaiDonHang === 'DA_HUY' && isOnlinePayment(selectedOrder.phuongThucThanhToan))" 
                     @click="goToRefundPage(selectedOrder)" 
@@ -80,11 +128,11 @@
                     <i class="fas fa-undo-alt"></i> YÊU CẦU HOÀN TIỀN
                   </button>
 
-                  <button class="btn-print" @click="window.print()"><i class="fas fa-print"></i> IN BIÊN LAI</button>
+                  <button class="btn-print" @click="printInvoice"><i class="fas fa-print"></i> IN BIÊN LAI</button>
                 </div>
               </div>
 
-              <div class="tracking-timeline">
+              <div class="tracking-timeline" v-if="!['DA_HUY', 'YEU_CAU_HUY'].includes(selectedOrder.trangThaiDonHang)">
                 <div class="step" :class="{ 'completed': isStepCompleted(selectedOrder.trangThaiDonHang, 1), 'active': getStepLevel(selectedOrder.trangThaiDonHang) === 1 }">
                   <div class="step-icon"><i class="fas fa-file-invoice-dollar"></i></div>
                   <p>Chờ xử lý</p>
@@ -104,6 +152,14 @@
                   <div class="step-icon"><i class="fas fa-check"></i></div>
                   <p>Đã giao</p>
                 </div>
+              </div>
+
+              <div v-if="['DA_HUY', 'YEU_CAU_HUY', 'TU_CHOI_HOAN_TIEN'].includes(selectedOrder.trangThaiDonHang)" class="cancel-info-box">
+                <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 8px;"><i class="fas fa-exclamation-triangle"></i> THÔNG TIN TRẠNG THÁI</h3>
+                <p style="font-size: 14px; margin-bottom: 5px;"><strong>Tình trạng:</strong> {{ getStatusText(selectedOrder.trangThaiDonHang) }}</p>
+                <p v-if="selectedOrder.lyDoHuy" style="font-size: 14px; color: #991b1b;">
+                  <strong>Lý do:</strong> {{ selectedOrder.lyDoHuy }}
+                </p>
               </div>
 
               <div class="info-map-grid">
@@ -192,23 +248,14 @@
         <div v-if="modalType === 'cancel'" style="margin-bottom: 20px;">
           <textarea 
             v-model="cancelReasonInput" 
-            placeholder="Vui lòng nhập lý do hủy đơn hàng..." 
+            placeholder="Vui lòng nhập lý do hủy đơn hàng (Bắt buộc)..." 
             class="velora-textarea"
           ></textarea>
         </div>
 
         <div class="velora-modal-actions">
-          <button 
-            v-if="modalType === 'confirm' || modalType === 'cancel'"
-            @click="handleModalClose" 
-            class="velora-btn-secondary"
-          >
-            Hủy
-          </button>
-          <button 
-            @click="handleModalConfirm" 
-            class="velora-btn-primary"
-          >
+          <button v-if="modalType === 'confirm' || modalType === 'cancel'" @click="handleModalClose" class="velora-btn-secondary">Hủy</button>
+          <button @click="handleModalConfirm" class="velora-btn-primary">
             {{ modalType === 'confirm' || modalType === 'cancel' ? 'Xác Nhận' : 'Đồng Ý' }}
           </button>
         </div>
@@ -219,7 +266,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
@@ -227,6 +274,55 @@ import Footer from '../Footer.vue'
 const router = useRouter()
 const orders = ref([])
 const selectedOrder = ref(null)
+
+const currentTab = ref('ALL')
+const currentPage = ref(1)
+const itemsPerPage = 4
+
+const tabs = [
+  { label: 'Tất cả', value: 'ALL' },
+  { label: 'Chờ xử lý', value: 'CHO_XU_LY' },
+  { label: 'Chuẩn bị hàng', value: 'CHUAN_BI_HANG' },
+  { label: 'Đang vận chuyển', value: 'DANG_GIAO' },
+  { label: 'Đã giao', value: 'DA_GIAO' },
+  { label: 'Yêu cầu hủy', value: 'YEU_CAU_HUY' },
+  { label: 'Đã hủy', value: 'DA_HUY' },
+  { label: 'Hoàn tiền', value: 'HOAN_TIEN' }
+]
+
+const filteredOrders = computed(() => {
+  if (currentTab.value === 'ALL') return orders.value
+  if (currentTab.value === 'HOAN_TIEN') {
+    return orders.value.filter(o => ['YEU_CAU_HOAN_TIEN', 'TU_CHOI_HOAN_TIEN', 'DA_DUYET_HOAN_TIEN', 'HOAN_TIEN'].includes(o.trangThaiDonHang))
+  }
+  return orders.value.filter(order => order.trangThaiDonHang === currentTab.value)
+})
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredOrders.value.length / itemsPerPage);
+})
+
+const paginatedOrders = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredOrders.value.slice(start, start + itemsPerPage);
+})
+
+const getCountByTab = (tabValue) => {
+  if (tabValue === 'ALL') return orders.value.length
+  if (tabValue === 'HOAN_TIEN') {
+    return orders.value.filter(o => ['YEU_CAU_HOAN_TIEN', 'TU_CHOI_HOAN_TIEN', 'DA_DUYET_HOAN_TIEN', 'HOAN_TIEN'].includes(o.trangThaiDonHang)).length
+  }
+  return orders.value.filter(order => order.trangThaiDonHang === tabValue).length
+}
+
+watch(currentTab, () => {
+  currentPage.value = 1;
+  if (paginatedOrders.value.length > 0) {
+    selectedOrder.value = paginatedOrders.value[0];
+  } else {
+    selectedOrder.value = null;
+  }
+})
 
 const showModal = ref(false)
 const modalTitle = ref('THÔNG BÁO')
@@ -273,42 +369,13 @@ const triggerToast = (msg) => {
   toastMessage.value = msg
   showToast.value = true
   if (toastTimer) clearTimeout(toastTimer)
-  toastTimer = setTimeout(() => {
-    showToast.value = false
-  }, 2000)
+  toastTimer = setTimeout(() => { showToast.value = false }, 3500)
 }
 
 const isOnlinePayment = (method) => {
   if (!method) return false;
   const m = method.toUpperCase();
   return m !== 'COD' && m !== 'THANH TOÁN COD';
-}
-
-const currentTab = ref('ALL')
-const tabs = [
-  { label: 'Tất cả', value: 'ALL' },
-  { label: 'Chờ xử lý', value: 'CHO_XU_LY' },
-  { label: 'Chuẩn bị hàng', value: 'CHUAN_BI_HANG' },
-  { label: 'Đang vận chuyển', value: 'DANG_GIAO' },
-  { label: 'Đã giao', value: 'DA_GIAO' },
-  { label: 'Đã hủy', value: 'DA_HUY' },
-  { label: 'Hoàn tiền', value: 'HOAN_TIEN' }
-]
-
-const filteredOrders = computed(() => {
-  if (currentTab.value === 'ALL') return orders.value
-  if (currentTab.value === 'HOAN_TIEN') {
-    return orders.value.filter(o => ['YEU_CAU_HOAN_TIEN', 'TU_CHOI_HOAN_TIEN', 'DA_DUYET_HOAN_TIEN', 'HOAN_TIEN'].includes(o.trangThaiDonHang))
-  }
-  return orders.value.filter(order => order.trangThaiDonHang === currentTab.value)
-})
-
-const getCountByTab = (tabValue) => {
-  if (tabValue === 'ALL') return orders.value.length
-  if (tabValue === 'HOAN_TIEN') {
-    return orders.value.filter(o => ['YEU_CAU_HOAN_TIEN', 'TU_CHOI_HOAN_TIEN', 'DA_DUYET_HOAN_TIEN', 'HOAN_TIEN'].includes(o.trangThaiDonHang)).length
-  }
-  return orders.value.filter(order => order.trangThaiDonHang === tabValue).length
 }
 
 const formatPrice = (value) => {
@@ -341,6 +408,8 @@ const fetchUserOrders = async () => {
         diaChi: order.diaChiGiaoHang,
         trangThaiDonHang: order.trangThaiDonHang,
         phuongThucThanhToan: order.phuongThucThanhToan,
+        lyDoHuy: order.lyDoHuy || order.ghiChu || '', 
+        // LƯU Ý: Nếu dữ liệu vẫn không hiện, kiểm tra xem tên trường "chiTietDonHangs" có trùng với API trả về chưa nhé!
         items: (order.chiTietDonHangs || []).map(ct => ({
           ten: ct.sanPham ? ct.sanPham.tenSanPham : 'Kiệt tác thời gian',
           soLuong: ct.soLuong,
@@ -352,9 +421,9 @@ const fetchUserOrders = async () => {
       if (orders.value.length > 0) {
         if (selectedOrder.value) {
           const updatedSelected = orders.value.find(o => o.maDonHang === selectedOrder.value.maDonHang);
-          selectedOrder.value = updatedSelected || orders.value[0];
+          selectedOrder.value = updatedSelected || paginatedOrders.value[0];
         } else {
-          selectedOrder.value = orders.value[0];
+          selectedOrder.value = paginatedOrders.value[0];
         }
       }
     }
@@ -369,31 +438,25 @@ const selectOrder = (order) => {
 
 const cancelOrder = async (order) => {
   if (order.trangThaiDonHang !== 'CHO_XU_LY') {
-    await triggerModal('Đơn hàng đã được duyệt hoặc đang vận chuyển, không thể hủy!', 'THÔNG BÁO')
+    await triggerModal('Đơn hàng đã được duyệt, không thể hủy. Vui lòng liên hệ Hotline!', 'THÔNG BÁO')
     return
   }
 
-  const reason = await triggerModal('Vui lòng cho biết lý do bạn muốn hủy đơn hàng này:', 'XÁC NHẬN HỦY ĐƠN', 'cancel')
+  const reason = await triggerModal('Vui lòng cho biết lý do bạn muốn hủy đơn hàng này:', 'XÁC NHẬN YÊU CẦU HỦY', 'cancel')
   if (!reason) return 
 
   try {
-    const res = await fetch(`http://localhost:8080/api/don-hang/${order.maDonHang}/huy?lyDo=${encodeURIComponent(reason)}`, {
+    const res = await fetch(`http://localhost:8080/api/don-hang/${order.maDonHang}/trang-thai?trangThaiMoi=YEU_CAU_HUY&lyDo=${encodeURIComponent(reason)}`, {
       method: 'PATCH'
     })
     
     if (res.ok) {
-      order.trangThaiDonHang = 'DA_HUY'
-      
-      if (isOnlinePayment(order.phuongThucThanhToan)) {
-        triggerToast('Hủy đơn thành công! Vui lòng nhấn "Yêu Cầu Hoàn Tiền" để hệ thống xử lý trả tiền.')
-      } else {
-        triggerToast('Đã hủy đơn hàng thành công!')
-      }
-
-      fetchUserOrders(); 
+      order.trangThaiDonHang = 'YEU_CAU_HUY'
+      triggerToast('Đã gửi yêu cầu hủy đơn thành công! Vui lòng chờ bộ phận CSKH xác nhận.')
+      fetchUserOrders();
     } else {
       const errText = await res.text()
-      await triggerModal(errText || 'Không thể hủy đơn hàng này!', 'THÔNG BÁO')
+      await triggerModal(errText || 'Không thể gửi yêu cầu hủy lúc này!', 'THÔNG BÁO')
     }
   } catch (error) {
     await triggerModal('Lỗi kết nối đến máy chủ!', 'LỖI')
@@ -403,6 +466,10 @@ const cancelOrder = async (order) => {
 const goToRefundPage = (order) => {
   localStorage.setItem('selectedRefundOrder', JSON.stringify(order))
   router.push('/yeu-cau-hoan-tien')
+}
+
+const printInvoice = () => {
+  window.print();
 }
 
 const getStepLevel = (status) => {
@@ -415,16 +482,14 @@ const getStepLevel = (status) => {
   }
 }
 
-const isStepCompleted = (status, stepNumber) => {
-  return getStepLevel(status) > stepNumber;
-}
+const isStepCompleted = (status, stepNumber) => { return getStepLevel(status) > stepNumber; }
 
 const getStatusText = (status) => {
   if (!status) return ''
   const cleanStatus = status.trim().toUpperCase()
-
   const map = {
     'CHO_XU_LY': 'Đang chờ xử lý',
+    'YEU_CAU_HUY': 'Đang chờ duyệt hủy',
     'CHUAN_BI_HANG': 'Đang chuẩn bị hàng',
     'DANG_GIAO': 'Đang vận chuyển',
     'DA_GIAO': 'Đã giao thành công',
@@ -440,9 +505,9 @@ const getStatusText = (status) => {
 const getStatusClass = (status) => {
   if (!status) return ''
   const cleanStatus = status.trim().toUpperCase()
-
   const map = {
     'CHO_XU_LY': 'status-pending',
+    'YEU_CAU_HUY': 'status-cancel-request',
     'CHUAN_BI_HANG': 'status-prep',
     'DANG_GIAO': 'status-shipping',
     'DA_GIAO': 'status-delivered',
@@ -455,326 +520,87 @@ const getStatusClass = (status) => {
   return map[cleanStatus] || ''
 }
 
-onMounted(() => {
-  fetchUserOrders()
-})
+onMounted(() => { fetchUserOrders() })
 </script>
 
 <style scoped>
 @import "../CSS/User/DonHang.css";
 
-.container {
-  max-width: 1450px !important;
-}
+.container { max-width: 1450px !important; }
 
-.order-tabs-wrapper {
-  margin-bottom: 35px;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  padding: 4px 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-}
+/* CSS PHÂN TRANG */
+.pagination-wrapper { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 25px; padding-bottom: 10px; }
+.page-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; color: #4b5563; font-weight: 600; transition: all 0.2s ease; font-size: 14px; }
+.page-btn:hover:not(:disabled) { border-color: #c5a880; color: #c5a880; }
+.page-btn.active { background: #c5a880; color: white; border-color: #c5a880; }
+.page-btn:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; border-color: #f3f4f6; }
 
-.order-tabs {
-  display: flex;
-  gap: 15px;
-  overflow-x: auto;
-  white-space: nowrap;
-}
+/* BỔ SUNG: CSS DANH SÁCH SẢN PHẨM TRONG THẺ ĐƠN HÀNG (Cột Trái) */
+.order-card-products { margin: 12px 0; border-bottom: 1px dashed #e5e7eb; padding-bottom: 12px; display: flex; flex-direction: column; gap: 12px; }
+.product-item-mini { display: flex; align-items: center; gap: 12px; }
+.mini-img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #f3f4f6; }
+.mini-info { display: flex; flex-direction: column; justify-content: center; flex: 1; }
+.mini-name { font-size: 13px; font-weight: 600; color: #374151; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+.mini-qty { font-size: 12px; color: #6b7280; margin-top: 4px; }
+.mini-price { font-size: 13px; font-weight: 700; color: #c5a880; white-space: nowrap; }
 
-.tab-btn {
-  background: none;
-  border: none;
-  padding: 20px 24px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #4b5563;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s ease;
-  letter-spacing: 0.5px;
-}
+/* BỔ SUNG: CSS CHO BẢNG SẢN PHẨM CHI TIẾT (Cột Phải) - GIÚP HIỂN THỊ HẾT LỖI TÀNG HÌNH */
+.order-items { margin-top: 30px; padding-top: 20px; border-top: 1px dashed #e5e7eb; }
+.item-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+.item-table td { padding: 15px 0; border-bottom: 1px solid #f3f4f6; }
+.item-table tr:last-child td { border-bottom: none; }
+.td-img img { width: 65px; height: 65px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; }
+.td-name { padding-left: 15px; vertical-align: middle; }
+.td-name .p-name { font-size: 14px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px; }
+.td-name .p-qty { font-size: 13px; color: #6b7280; }
+.td-price { text-align: right; font-size: 15px; font-weight: 700; color: #c5a880; vertical-align: middle; }
 
-.tab-btn:hover {
-  color: #c5a880;
-}
+/* Các class UI khác */
+.cancel-info-box { background: #fff9e6; border: 1px solid #fde68a; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; color: #b45309; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+.order-card-footer { display: flex; justify-content: space-between; align-items: center; }
+.pending-cancel-badge { background-color: #fffbeb; color: #b45309; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid #fde68a; display: flex; align-items: center; gap: 8px; }
+.status-cancel-request { background-color: #fef3c7 !important; color: #b45309 !important; border: 1px solid #fde68a; }
+.order-tabs-wrapper { margin-bottom: 35px; background-color: #ffffff; border: 1px solid #e5e7eb; padding: 4px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
+.order-tabs { display: flex; gap: 15px; overflow-x: auto; white-space: nowrap; }
+.tab-btn { background: none; border: none; padding: 20px 24px; font-size: 15px; font-weight: 600; color: #4b5563; cursor: pointer; position: relative; transition: all 0.3s ease; letter-spacing: 0.5px; }
+.tab-btn:hover { color: #c5a880; }
+.tab-btn.active { color: #c5a880; font-weight: 700; }
+.tab-btn.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background-color: #c5a880; border-radius: 3px 3px 0 0; }
+.tab-count { font-size: 13px; background-color: #f3f4f6; padding: 3px 8px; border-radius: 12px; margin-left: 6px; color: #4b5563; font-weight: 600; }
+.tab-btn.active .tab-count { background-color: rgba(197, 168, 128, 0.15); color: #c5a880; }
+.order-layout { display: grid; grid-template-columns: 400px 1fr; gap: 35px; align-items: start; }
+.section-title { font-size: 14px; color: #374151; font-weight: 700; letter-spacing: 2px; margin-bottom: 20px; }
+.order-card { padding: 24px; border-radius: 6px; }
+.order-code { font-size: 15px; font-weight: 700; }
+.order-date { font-size: 13px; }
+.order-total { font-size: 16px; font-weight: 700; }
+.order-status { font-size: 12px; padding: 6px 12px; font-weight: 700; }
+.detail-box { padding: 45px; border-radius: 8px; }
+.detail-header h2 { font-size: 21px; }
+.detail-actions { display: flex; gap: 12px; align-items: center; }
+.btn-print, .btn-cancel-order { padding: 10px 18px; font-size: 13px; font-weight: 700; border-radius: 4px; }
+.btn-cancel-order { background-color: #fee2e2; border: 1px solid #fecaca; color: #dc2626; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+.btn-cancel-order:hover { background-color: #f87171; color: #ffffff; border-color: #f87171; }
+.btn-refund-order { padding: 10px 18px; font-size: 13px; font-weight: 700; border-radius: 4px; background-color: #fef3c7; border: 1px solid #fde68a; color: #b45309; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+.btn-refund-order:hover { background-color: #d97706; color: #ffffff; border-color: #d97706; }
+.status-refund-sent { background-color: #fef3c7 !important; color: #b45309 !important; }
+.status-refund-rejected { background-color: #fee2e2 !important; color: #b91c1c !important; }
+.status-refund-approved { background-color: #dcfce7 !important; color: #15803d !important; }
+.step-icon { width: 50px; height: 50px; font-size: 18px; }
+.step p { font-size: 13px; font-weight: 700; }
+.info-panel { padding: 30px; }
+.info-panel h3, .order-items h3 { font-size: 14px; font-weight: 700; }
+.info-panel p { font-size: 15px; }
 
-.tab-btn.active {
-  color: #c5a880;
-  font-weight: 700;
-}
-
-.tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background-color: #c5a880;
-  border-radius: 3px 3px 0 0;
-}
-
-.tab-count {
-  font-size: 13px;
-  background-color: #f3f4f6;
-  padding: 3px 8px;
-  border-radius: 12px;
-  margin-left: 6px;
-  color: #4b5563;
-  font-weight: 600;
-}
-
-.tab-btn.active .tab-count {
-  background-color: rgba(197, 168, 128, 0.15);
-  color: #c5a880;
-}
-
-.order-layout {
-  display: grid;
-  grid-template-columns: 400px 1fr;
-  gap: 35px;
-  align-items: start;
-}
-
-.section-title {
-  font-size: 14px;
-  color: #374151;
-  font-weight: 700;
-  letter-spacing: 2px;
-  margin-bottom: 20px;
-}
-
-.order-card {
-  padding: 24px;
-  border-radius: 6px;
-}
-
-.order-code {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.order-date {
-  font-size: 13px;
-}
-
-.order-total {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.order-status {
-  font-size: 12px;
-  padding: 6px 12px;
-  font-weight: 700;
-}
-
-.detail-box {
-  padding: 45px;
-  border-radius: 8px;
-}
-
-.detail-header h2 {
-  font-size: 21px;
-}
-
-.detail-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.btn-print, .btn-cancel-order {
-  padding: 10px 18px;
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 4px;
-}
-
-.btn-cancel-order {
-  background-color: #fee2e2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-cancel-order:hover {
-  background-color: #f87171;
-  color: #ffffff;
-  border-color: #f87171;
-}
-
-.btn-refund-order {
-  padding: 10px 18px;
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 4px;
-  background-color: #fef3c7;
-  border: 1px solid #fde68a;
-  color: #b45309;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-refund-order:hover {
-  background-color: #d97706;
-  color: #ffffff;
-  border-color: #d97706;
-}
-
-.status-refund-sent { 
-  background-color: #fef3c7 !important; 
-  color: #b45309 !important; 
-}
-
-.status-refund-rejected { 
-  background-color: #fee2e2 !important; 
-  color: #b91c1c !important; 
-}
-
-.status-refund-approved { 
-  background-color: #dcfce7 !important; 
-  color: #15803d !important; 
-}
-
-.step-icon {
-  width: 50px;
-  height: 50px;
-  font-size: 18px;
-}
-
-.step p {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.info-panel {
-  padding: 30px;
-}
-
-.info-panel h3, .order-items h3 {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.info-panel p {
-  font-size: 15px;
-}
-
-.p-name {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.p-qty {
-  font-size: 13px;
-}
-
-.td-price {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.velora-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(4px);
-}
-
-.velora-modal-box {
-  width: 100%;
-  max-width: 450px;
-  background: #141414;
-  border: 1px solid rgba(197, 168, 128, 0.4);
-  border-radius: 12px;
-  padding: 30px;
-  text-align: center;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-}
-
-.velora-modal-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #c5a880;
-  margin-bottom: 12px;
-  letter-spacing: 1px;
-}
-
-.velora-modal-msg {
-  color: #d1d5db;
-  font-size: 14px;
-  margin-bottom: 20px;
-  line-height: 1.5;
-}
-
-.velora-textarea {
-  width: 100%;
-  height: 100px;
-  background: #1e1e1e;
-  border: 1px solid #374151;
-  border-radius: 8px;
-  padding: 12px;
-  color: white;
-  font-size: 14px;
-  resize: none;
-  font-family: inherit;
-}
-
-.velora-textarea:focus {
-  border-color: #c5a880;
-  outline: none;
-}
-
-.velora-modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-}
-
-.velora-btn-secondary {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: 1px solid #4b5563;
-  background: transparent;
-  color: #d1d5db;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.velora-btn-secondary:hover {
-  background: #1f2937;
-}
-
-.velora-btn-primary {
-  padding: 10px 24px;
-  border-radius: 8px;
-  border: none;
-  background: #c5a880;
-  color: #141414;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.velora-btn-primary:hover {
-  background: #b0936d;
-}
+.velora-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(4px); }
+.velora-modal-box { width: 100%; max-width: 450px; background: #141414; border: 1px solid rgba(197, 168, 128, 0.4); border-radius: 12px; padding: 30px; text-align: center; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); }
+.velora-modal-title { font-size: 20px; font-weight: 600; color: #c5a880; margin-bottom: 12px; letter-spacing: 1px; }
+.velora-modal-msg { color: #d1d5db; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+.velora-textarea { width: 100%; height: 100px; background: #1e1e1e; border: 1px solid #374151; border-radius: 8px; padding: 12px; color: white; font-size: 14px; resize: none; font-family: inherit; }
+.velora-textarea:focus { border-color: #c5a880; outline: none; }
+.velora-modal-actions { display: flex; justify-content: center; gap: 15px; }
+.velora-btn-secondary { padding: 10px 20px; border-radius: 8px; border: 1px solid #4b5563; background: transparent; color: #d1d5db; font-weight: 500; cursor: pointer; transition: 0.2s; }
+.velora-btn-secondary:hover { background: #1f2937; }
+.velora-btn-primary { padding: 10px 24px; border-radius: 8px; border: none; background: #c5a880; color: #141414; font-weight: 600; cursor: pointer; transition: 0.2s; }
+.velora-btn-primary:hover { background: #b0936d; }
 </style>

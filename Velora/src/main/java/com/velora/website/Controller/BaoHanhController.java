@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -39,8 +38,7 @@ public class BaoHanhController {
 
             if (maDonHangCode.isBlank() || loaiSanPham.isBlank() || moTaLoi.isBlank()) {
                 return ResponseEntity.badRequest().body(
-                        Map.of("message", "Vui lòng nhập đầy đủ thông tin.")
-                );
+                        Map.of("message", "Vui lòng nhập đầy đủ thông tin."));
             }
 
             BaoHanh baoHanh = new BaoHanh();
@@ -57,9 +55,7 @@ public class BaoHanhController {
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     Map.of(
                             "message", "Gửi yêu cầu thành công.",
-                            "data", saved
-                    )
-            );
+                            "data", saved));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", e.getMessage()));
@@ -90,6 +86,7 @@ public class BaoHanhController {
         return baoHanhService.findByMaNguoiDung(userId);
     }
 
+    @GetMapping("/my-requests")
     public List<BaoHanh> getMyWarrantyRequests(HttpSession session) {
         Integer userId = (Integer) session.getAttribute("USER_ID");
         if (userId == null) {
@@ -106,10 +103,11 @@ public class BaoHanhController {
             @PathVariable Integer id,
             @RequestBody Map<String, Object> body) {
         String trangThai = (String) body.get("trangThai");
-        LocalDateTime thoiGianHen = null;
 
+        // Đã sửa lại để lấy trực tiếp chuỗi String, không parse ra LocalDateTime nữa
+        String thoiGianHen = null;
         if (body.get("thoiGianHen") != null && !body.get("thoiGianHen").toString().isBlank()) {
-            thoiGianHen = LocalDateTime.parse(body.get("thoiGianHen").toString());
+            thoiGianHen = body.get("thoiGianHen").toString();
         }
 
         BaoHanh bh = baoHanhService.updateStatus(id, trangThai, thoiGianHen);
@@ -117,9 +115,7 @@ public class BaoHanhController {
         return ResponseEntity.ok(
                 Map.of(
                         "message", "Cập nhật trạng thái và gửi email thành công.",
-                        "data", bh
-                )
-        );
+                        "data", bh));
     }
 
     // ==========================
@@ -132,9 +128,7 @@ public class BaoHanhController {
             return ResponseEntity.ok(
                     Map.of(
                             "message", "Đã hủy yêu cầu bảo hành.",
-                            "data", bh
-                    )
-            );
+                            "data", bh));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -150,9 +144,7 @@ public class BaoHanhController {
             return ResponseEntity.ok(
                     Map.of(
                             "message", "Xác nhận lịch hẹn thành công!",
-                            "data", bh
-                    )
-            );
+                            "data", bh));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -163,7 +155,7 @@ public class BaoHanhController {
     // ==========================
     @PutMapping("/{id}/reschedule-request")
     public ResponseEntity<?> rescheduleRequest(
-            @PathVariable Integer id, 
+            @PathVariable Integer id,
             @RequestBody(required = false) Map<String, String> body) {
         try {
             String thoiGianMoi = (body != null) ? body.get("thoiGianMongMuon") : null;
@@ -171,9 +163,7 @@ public class BaoHanhController {
             return ResponseEntity.ok(
                     Map.of(
                             "message", "Đã gửi yêu cầu đổi lịch thành công đến hệ thống.",
-                            "data", bh
-                    )
-            );
+                            "data", bh));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }

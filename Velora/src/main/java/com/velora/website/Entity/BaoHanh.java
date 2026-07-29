@@ -37,16 +37,18 @@ public class BaoHanh {
     private String moTaLoi;
 
     @Column(name = "TrangThai", length = 50, nullable = false)
-    private String trangThai; // CHO_XU_LY, CHO_XAC_NHAN_HEN, DA_TIEP_NHAN, DANG_XU_LY, HOAN_TAT, DA_HUY, YEU_CAU_DOI_LICH
+    private String trangThai; 
 
     @Column(name = "NgayGui", nullable = false, updatable = false)
     private LocalDateTime ngayGui;
 
-    @Column(name = "ThoiGianHen")
-    private LocalDateTime thoiGianHen; // Thời gian do Admin đề xuất
+    // Đã đổi sang kiểu String để khớp với NVARCHAR(100) dưới DB
+    @Column(name = "ThoiGianHen", length = 100)
+    private String thoiGianHen; 
 
-    @Column(name = "ThoiGianKhachMongMuon", length = 100)
-    private String thoiGianKhachMongMuon; // Thời gian khách tự đề xuất khi muốn đổi lịch
+    // Đã gắn @Transient để Hibernate bỏ qua, tránh lỗi duplicated column
+    @Transient
+    private String thoiGianKhachMongMuon; 
 
     @PrePersist
     public void prePersist() {

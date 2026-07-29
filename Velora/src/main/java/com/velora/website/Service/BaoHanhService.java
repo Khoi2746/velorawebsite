@@ -11,8 +11,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -23,6 +21,7 @@ public class BaoHanhService {
     private static final String TRANG_THAI_CHO_XU_LY = "CHO_XU_LY";
     private static final String TRANG_THAI_DA_TIEP_NHAN = "DA_TIEP_NHAN";
     private static final String TRANG_THAI_DA_HUY = "DA_HUY";
+    private static final String TRANG_THAI_YEU_CAU_DOI_LICH = "YEU_CAU_DOI_LICH";
 
     private final BaoHanhRepository repo;
     private final NguoiDungRepository nguoiDungRepository;
@@ -57,14 +56,15 @@ public class BaoHanhService {
     }
 
     @Transactional
-    public BaoHanh updateStatus(Integer id, String trangThai, LocalDateTime thoiGianHen) {
+    // Đã đổi kiểu dữ liệu của thoiGianHen thành String
+    public BaoHanh updateStatus(Integer id, String trangThai, String thoiGianHen) {
         BaoHanh bh = repo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu bảo hành với ID: " + id));
 
         String normalizedStatus = trangThai.trim().toUpperCase();
         bh.setTrangThai(normalizedStatus);
         
-        if (thoiGianHen != null) {
+        if (thoiGianHen != null && !thoiGianHen.isBlank()) {
             bh.setThoiGianHen(thoiGianHen);
         }
 
@@ -101,8 +101,9 @@ public class BaoHanhService {
                 return;
             }
 
-            String formattedTime = bh.getThoiGianHen() != null 
-                ? bh.getThoiGianHen().format(DateTimeFormatter.ofPattern("HH:mm - dd/MM/yyyy")) 
+            // Do thoiGianHen giờ là String nên lấy trực tiếp, không cần format nữa
+            String formattedTime = (bh.getThoiGianHen() != null && !bh.getThoiGianHen().isBlank()) 
+                ? bh.getThoiGianHen() 
                 : "Sớm nhất có thể trong giờ hành chính";
 
             SimpleMailMessage message = new SimpleMailMessage();
@@ -125,16 +126,24 @@ public class BaoHanhService {
             log.error("Gửi email thất bại: {}", e.getMessage(), e);
         }
     }
-    @Transactional
-public BaoHanh requestReschedule(Integer id, String thoiGianMongMuon) {
-    BaoHanh bh = repo.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu bảo hành ID: " + id));
-    
-    bh.setTrangThai("YEU_CAU_DOI_LICH");
-    bh.setThoiGianKhachMongMuon(thoiGianMongMuon);
-    BaoHanh updated = repo.save(bh);
-    log.info("Khách hàng yêu cầu đổi lịch cho đơn bảo hành ID: {} với thời gian mong muốn: {}", id, thoiGianMongMuon);
-    return updated;
-}
-}
 
+    @Transactional
+    public BaoHanh requestReschedule(Integer id, String thoiGianMongMuon) {
+        BaoHanh bh = repo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu bảo hành ID: " + id));
+        
+        bh.setTrangThai(TRANG_THAI_YEU_CAU_DOI_LICH);
+        
+        // Cập nhật lại chuỗi thoiGianHen để lưu thẳng vào DB, giúp Admin thấy được yêu cầu của khách
+        if (thoiGianMongMuon != null && !thoiGianMongMuon.isBlank()) {
+            bh.setThoiGianHen("Khách yêu cầu đổi sang: " + thoiGianMongMuon);
+        }
+        
+        // Vẫn set vào biến ảo nếu sau này Frontend cần lấy data trực tiếp từ Object không qua DB
+        bh.setThoiGianKhachMongMuon(thoiGianMongMuon);
+        
+        BaoHanh updated = repo.save(bh);
+        log.info("Khách hàng yêu cầu đổi lịch cho đơn bảo hành ID: {} với thời gian mong muốn: {}", id, thoiGianMongMuon);
+        return updated;
+    }
+}
