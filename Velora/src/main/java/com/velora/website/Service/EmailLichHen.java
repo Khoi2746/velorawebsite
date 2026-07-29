@@ -2,7 +2,6 @@ package com.velora.website.Service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -13,8 +12,11 @@ import java.time.LocalDate;
 @Service
 public class EmailLichHen {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
+
+    EmailLichHen(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
 
     // 1. Gửi email HTML cho Admin khi có lịch hẹn mới
     @Async

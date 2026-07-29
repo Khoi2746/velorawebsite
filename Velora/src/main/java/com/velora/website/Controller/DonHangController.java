@@ -23,13 +23,12 @@ import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/don-hang")
-// ĐÃ FIX: Dùng originPatterns = "*" thay cho origins = "*" để không bị đụng allowCredentials
-@CrossOrigin(originPatterns = "*", allowedHeaders = "*", allowCredentials = "true") 
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*", allowCredentials = "true", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS}) 
 @RequiredArgsConstructor 
 public class DonHangController {
 
     private final DonHangRepository donHangRepository;
-    private final EmailService emailService; // 🔥 BỔ SUNG Inject EmailService
+    private final EmailService emailService; 
 
     private static final String ADMIN_EMAIL = "admin@velora.com"; 
 
@@ -131,35 +130,16 @@ public class DonHangController {
         }
     }
 
-    @PatchMapping("/{id}/huy")
-    @Transactional
-    public ResponseEntity<?> huyDonHang(@PathVariable Integer id, @RequestParam(required = false) String lyDo) {
-        Optional<DonHang> optionalDonHang = donHangRepository.findById(id);
-        if (!optionalDonHang.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Lỗi: Không tìm thấy đơn hàng!");
-        }
-
-        DonHang donHang = optionalDonHang.get();
-        
-        // 🔥 ĐÃ CHỈNH SỬA: Chặn không cho hủy nếu trạng thái khác CHO_XU_LY
-        if (!"CHO_XU_LY".equalsIgnoreCase(donHang.getTrangThaiDonHang())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Chỉ có thể hủy đơn hàng đang ở trạng thái chờ xử lý!");
-        }
-
-        donHang.setTrangThaiDonHang("DA_HUY");
-        if (lyDo != null && !lyDo.trim().isEmpty()) {
-            donHang.setLyDoHuyDon(lyDo.trim());
-        }
-
-        donHangRepository.save(donHang);
-        return ResponseEntity.ok("Hủy đơn hàng thành công!");
-    }
-
+    /**
+     * LUỒNG NGHIỆP VỤ: KHÁCH HÀNG / ADMIN HỦY ĐƠN HÀNG VÀ XỬ LÝ RẼ NHÁNH EMAIL
+     */
     @PatchMapping("/{id}/trang-thai")
-    public ResponseEntity<?> capNhatTrangThai(
+    @Transactional
+    public ResponseEntity<?> capNhatTrangThaiHoacHuy(
             @PathVariable Integer id, 
             @RequestParam String trangThaiMoi,
-            @RequestParam(required = false) String trangThaiThanhToanMoi) {
+            @RequestParam(required = false) String trangThaiThanhToanMoi,
+            @RequestParam(required = false) String lyDo) {
         
         Optional<DonHang> optionalDonHang = donHangRepository.findById(id);
         if (!optionalDonHang.isPresent()) {
@@ -167,16 +147,44 @@ public class DonHangController {
         }
 
         DonHang donHang = optionalDonHang.get();
+        String trangThaiCu = donHang.getTrangThaiDonHang();
+        
+        // Cập nhật trạng thái mới
         donHang.setTrangThaiDonHang(trangThaiMoi);
+
+        // Xử lý lý do hủy nếu có
+        if ("DA_HUY".equalsIgnoreCase(trangThaiMoi)) {
+            if (!"CHO_XU_LY".equalsIgnoreCase(trangThaiCu) && !"CHUAN_BI_HANG".equalsIgnoreCase(trangThaiCu)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Chỉ được hủy đơn hàng ở trạng thái Chờ xử lý hoặc Chuẩn bị hàng!");
+            }
+            if (lyDo != null && !lyDo.trim().isEmpty()) {
+                donHang.setLyDoHuyDon(lyDo.trim());
+            }
+        }
 
         if (trangThaiThanhToanMoi != null && !trangThaiThanhToanMoi.trim().isEmpty()) {
             donHang.setTrangThaiThanhToan(trangThaiThanhToanMoi);
-        } else if (trangThaiMoi != null && ("Đã giao hàng".equalsIgnoreCase(trangThaiMoi.trim()) || "DA_GIAO".equalsIgnoreCase(trangThaiMoi.trim()))) {
+        } else if ("DA_GIAO".equalsIgnoreCase(trangThaiMoi)) {
             donHang.setTrangThaiThanhToan("DA_THANH_TOAN");
         }
 
         donHangRepository.save(donHang);
+
+        // =========================================================================
+        // PHẦN TỰ ĐỘNG HÓA GỬI EMAIL THEO NGHIỆP VỤ DOANH NGHIỆP
+        // =========================================================================
+        if ("DA_HUY".equalsIgnoreCase(trangThaiMoi)) {
+            guiEmailThongBaoHuyDon(donHang, lyDo);
+        }
+
         return ResponseEntity.ok("Cập nhật trạng thái đơn hàng thành công!");
+    }
+
+    // Tương thích ngược với endpoint cũ /{id}/huy
+    @PatchMapping("/{id}/huy")
+    @Transactional
+    public ResponseEntity<?> huyDonHangNhanh(@PathVariable Integer id, @RequestParam(required = false) String lyDo) {
+        return capNhatTrangThaiHoacHuy(id, "DA_HUY", null, lyDo);
     }
 
     /**
@@ -195,7 +203,7 @@ public class DonHangController {
             donHang.setTongTien(BigDecimal.valueOf(payload.getTongTien()));
             donHang.setTenNguoiNhan(payload.getTenNguoiNhan());
             donHang.setSoDienThoaiGiaoHang(payload.getSoDienThoaiGiaoHang());
-            donHang.setEmail(payload.getEmail()); // 🔥 BỔ SUNG: Lưu email
+            donHang.setEmail(payload.getEmail()); 
             donHang.setDiaChiGiaoHang(payload.getDiaChiGiaoHang());
             donHang.setPhuongThucThanhToan(payload.getPhuongThucThanhToan());
             donHang.setTrangThaiDonHang("CHO_XU_LY");
@@ -217,8 +225,7 @@ public class DonHangController {
 
             donHangRepository.xoaSanPhamKhoiGioHang(payload.getMaNguoiDung(), payload.getMaSanPham());
 
-            // 🔥 BỔ SUNG: Gửi mail thông báo
-            guiEmailThongBaoDonHang(payload.getEmail(), payload.getMaDonHangCode(), payload.getTenNguoiNhan(), payload.getTongTien(), payload.getDiaChiGiaoHang());
+            guiEmailXacNhanDatHang(payload.getEmail(), payload.getMaDonHangCode(), payload.getTenNguoiNhan(), payload.getTongTien(), payload.getDiaChiGiaoHang());
 
             return ResponseEntity.ok("Đặt hàng kiệt tác thành công!");
         } catch (Exception e) {
@@ -242,7 +249,7 @@ public class DonHangController {
             donHang.setTongTien(BigDecimal.valueOf(payload.getTongTien()));
             donHang.setTenNguoiNhan(payload.getTenNguoiNhan());
             donHang.setSoDienThoaiGiaoHang(payload.getSoDienThoaiGiaoHang());
-            donHang.setEmail(payload.getEmail()); // 🔥 BỔ SUNG: Lưu email
+            donHang.setEmail(payload.getEmail()); 
             donHang.setDiaChiGiaoHang(payload.getDiaChiGiaoHang());
             donHang.setPhuongThucThanhToan(payload.getPhuongThucThanhToan());
             donHang.setTrangThaiDonHang("CHO_XU_LY");
@@ -253,15 +260,10 @@ public class DonHangController {
             }
 
             DonHang donHangDaLuu = donHangRepository.save(donHang);
-
-            // Chuyển chi tiết từ giỏ hàng sang chi tiết đơn hàng
             donHangRepository.chuyenGioHangSangChiTietDonHang(donHangDaLuu.getMaDonHang(), payload.getMaNguoiDung());
-
-            // Xóa sạch giỏ hàng của người dùng trong SQL Server
             donHangRepository.xoaToanBoGioHangCuaUser(payload.getMaNguoiDung());
 
-            // 🔥 BỔ SUNG: Gửi mail thông báo
-            guiEmailThongBaoDonHang(payload.getEmail(), payload.getMaDonHangCode(), payload.getTenNguoiNhan(), payload.getTongTien(), payload.getDiaChiGiaoHang());
+            guiEmailXacNhanDatHang(payload.getEmail(), payload.getMaDonHangCode(), payload.getTenNguoiNhan(), payload.getTongTien(), payload.getDiaChiGiaoHang());
 
             return ResponseEntity.ok("Đặt hàng giỏ hàng thành công!");
         } catch (Exception e) {
@@ -270,35 +272,84 @@ public class DonHangController {
         }
     }
 
-    // 🔥 BỔ SUNG: Hàm phụ trợ gửi Email
-    private void guiEmailThongBaoDonHang(String emailKhach, String maCode, String tenKhach, Double tongTien, String diaChi) {
+    // =========================================================================
+    // CÁC HÀM HỖ TRỢ XỬ LÝ EMAIL DOANH NGHIỆP CHUYÊN NGHIỆP
+    // =========================================================================
+
+    private void guiEmailXacNhanDatHang(String emailKhach, String maCode, String tenKhach, Double tongTien, String diaChi) {
         try {
-            String subject = "[VELORA BOUTIQUE] XÁC NHẬN ĐƠN HÀNG #" + maCode;
-            String bodyKhach = "Kính chào quý khách " + tenKhach + ",\n\n"
-                    + "Cảm ơn quý khách đã tin tưởng và lựa chọn tuyệt tác thời gian tại Velora.\n"
-                    + "Thông tin đơn hàng của quý khách:\n"
-                    + "- Mã đơn hàng: " + maCode + "\n"
-                    + "- Tổng giá trị: " + String.format("%,.0f", tongTien) + " VND\n"
-                    + "- Địa chỉ giao hàng: " + diaChi + "\n\n"
-                    + "Chúng tôi đang tiến hành chuẩn bị đơn hàng và sẽ sớm giao đến quý khách.\n"
-                    + "Trân trọng,\nĐội ngũ Velora.";
+            String subject = "[VELORA CLOCK] XÁC NHẬN ĐƠN HÀNG #" + maCode;
+            String bodyKhach = "Kính chào Quý khách " + tenKhach + ",\n\n"
+                    + "Cảm ơn Quý khách đã tin tưởng và lựa chọn tuyệt tác thời gian tại Velora Clock.\n"
+                    + "Chúng tôi xin gửi thông tin xác nhận đơn hàng của Quý khách như sau:\n\n"
+                    + "  - Mã đơn hàng: #" + maCode + "\n"
+                    + "  - Tổng giá trị: " + String.format("%,.0f", tongTien) + " VND\n"
+                    + "  - Địa chỉ nhận hàng: " + diaChi + "\n\n"
+                    + "Hệ thống đang tiến hành đóng gói kiệt tác và sẽ bàn giao cho đơn vị vận chuyển trong thời gian sớm nhất.\n\n"
+                    + "Trân trọng,\nĐội ngũ Vận Hành Velora Clock.";
 
             if (emailKhach != null && !emailKhach.trim().isEmpty()) {
                 emailService.sendEmail(emailKhach, subject, bodyKhach);
             }
 
-            String subjectAdmin = "[THÔNG BÁO CÓ ĐƠN HÀNG MỚI] #" + maCode;
-            String bodyAdmin = "Hệ thống Velora vừa ghi nhận 1 đơn hàng mới:\n"
-                    + "- Mã đơn hàng: " + maCode + "\n"
-                    + "- Khách hàng: " + tenKhach + "\n"
-                    + "- Email: " + emailKhach + "\n"
-                    + "- Tổng tiền: " + String.format("%,.0f", tongTien) + " VND\n"
-                    + "- Địa chỉ: " + diaChi + "\n"
-                    + "Vui lòng vào trang Quản trị đơn hàng để kiểm tra và duyệt đơn.";
+            String subjectAdmin = "[QUẢN TRỊ] ĐƠN HÀNG MỚI CẦN XỬ LÝ #" + maCode;
+            String bodyAdmin = "Hệ thống vừa ghi nhận một giao dịch đặt hàng mới:\n\n"
+                    + "  - Mã đơn: #" + maCode + "\n"
+                    + "  - Khách hàng: " + tenKhach + " (" + emailKhach + ")\n"
+                    + "  - Tổng tiền: " + String.format("%,.0f", tongTien) + " VND\n"
+                    + "  - Địa chỉ: " + diaChi + "\n\n"
+                    + "Vui lòng truy cập trang Quản Trị Hệ Thống để kiểm tra kho và tiến hành xác nhận đơn.";
 
             emailService.sendEmail(ADMIN_EMAIL, subjectAdmin, bodyAdmin);
         } catch (Exception e) {
-            System.err.println("Lỗi gửi email xác nhận đơn hàng: " + e.getMessage());
+            System.err.println("Lỗi gửi email đặt hàng: " + e.getMessage());
+        }
+    }
+
+    private void guiEmailThongBaoHuyDon(DonHang donHang, String lyDo) {
+        try {
+            String emailKhach = donHang.getEmail();
+            String maCode = donHang.getMaDonHangCode();
+            String tenKhach = donHang.getTenNguoiNhan();
+            String phuongThuc = donHang.getPhuongThucThanhToan();
+            boolean isOnline = (phuongThuc != null && !phuongThuc.toUpperCase().contains("COD"));
+
+            // 1. Gửi email cho Khách hàng
+            if (emailKhach != null && !emailKhach.trim().isEmpty()) {
+                String subjectKhach = "[VELORA CLOCK] THÔNG BÁO HỦY ĐƠN HÀNG #" + maCode;
+                StringBuilder bodyKhach = new StringBuilder();
+                bodyKhach.append("Kính chào Quý khách ").append(tenKhach).append(",\n\n");
+                bodyKhach.append("Yêu cầu hủy đơn hàng #").append(maCode).append(" của Quý khách đã được hệ thống ghi nhận thành công.\n");
+                bodyKhach.append("Lý do hủy: ").append(lyDo != null && !lyDo.trim().isEmpty() ? lyDo : "Không có lý do cụ thể").append("\n\n");
+
+                if (isOnline) {
+                    bodyKhach.append("Do đơn hàng này được thanh toán qua hình thức trực tuyến (").append(phuongThuc).append("), ")
+                             .append("Quý khách vui lòng truy cập hệ thống website Velora Clock, vào mục 'Đơn Hàng Của Bạn', ")
+                             .append("sau đó nhấn vào nút 'YÊU CẦU HOÀN TIỀN' để cung cấp thông tin tài khoản ngân hàng nhận lại tiền.\n\n");
+                } else {
+                    bodyKhach.append("Đơn hàng thanh toán theo hình thức COD đã được đóng tiến trình thành công. Rất tiếc vì trải nghiệm chưa trọn vẹn lần này.\n\n");
+                }
+
+                bodyKhach.append("Trân trọng,\nĐội ngũ Chăm Sóc Khách Hàng Velora Clock.");
+                emailService.sendEmail(emailKhach, subjectKhach, bodyKhach.toString());
+            }
+
+            // 2. Gửi email cho Admin / Kế toán
+            String subjectAdmin = "[QUẢN TRỊ] ĐƠN HÀNG ĐÃ BỊ HỦY #" + maCode;
+            StringBuilder bodyAdmin = new StringBuilder();
+            bodyAdmin.append("Hệ thống thông báo đơn hàng #").append(maCode).append(" đã bị hủy bởi người dùng.\n\n");
+            bodyAdmin.append("  - Khách hàng: ").append(tenKhach).append("\n");
+            bodyAdmin.append("  - Hình thức thanh toán: ").append(phuongThuc).append("\n");
+            bodyAdmin.append("  - Lý do hủy: ").append(lyDo != null ? lyDo : "Không có").append("\n");
+
+            if (isOnline) {
+                bodyAdmin.append("\n⚠️ LƯU Ý: Đơn hàng thanh toán Online. Yêu cầu bộ phận Kế toán chuẩn bị tiếp nhận hồ sơ hoàn tiền khi khách gửi thông tin số tài khoản.");
+            }
+
+            emailService.sendEmail(ADMIN_EMAIL, subjectAdmin, bodyAdmin.toString());
+
+        } catch (Exception e) {
+            System.err.println("Lỗi gửi email quy trình hủy đơn: " + e.getMessage());
         }
     }
 }
@@ -312,7 +363,7 @@ class DatNgayRequest {
     private Double tongTien;
     private String tenNguoiNhan;
     private String soDienThoaiGiaoHang;
-    private String email; // 🔥 BỔ SUNG
+    private String email; 
     private String diaChiGiaoHang;
     private String phuongThucThanhToan;
     private Integer maSanPham;
@@ -327,7 +378,7 @@ class DatGioHangRequest {
     private Double tongTien;
     private String tenNguoiNhan;
     private String soDienThoaiGiaoHang;
-    private String email; // 🔥 BỔ SUNG
+    private String email; 
     private String diaChiGiaoHang;
     private String phuongThucThanhToan;
     private String ghiChuDonHang;

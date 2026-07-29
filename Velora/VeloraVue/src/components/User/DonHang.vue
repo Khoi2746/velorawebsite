@@ -69,9 +69,11 @@
                     <i class="fas fa-ban"></i> HỦY ĐƠN
                   </button>
 
-                  <!-- NÚT YÊU CẦU HOÀN TIỀN: CHỈ HIỂN THỊ KHI DA_GIAO -->
+                  <!-- NÚT YÊU CẦU HOÀN TIỀN: 
+                       1. Đơn đã giao (DA_GIAO) 
+                       HOẶC 2. Đơn đã hủy (DA_HUY) NHƯNG thanh toán bằng hình thức Online (Chuyển khoản) -->
                   <button 
-                    v-if="selectedOrder.trangThaiDonHang === 'DA_GIAO'" 
+                    v-if="selectedOrder.trangThaiDonHang === 'DA_GIAO' || (selectedOrder.trangThaiDonHang === 'DA_HUY' && isOnlinePayment(selectedOrder.phuongThucThanhToan))" 
                     @click="goToRefundPage(selectedOrder)" 
                     class="btn-refund-order"
                   >
@@ -110,7 +112,11 @@
                   <p><strong>Người nhận:</strong> {{ selectedOrder.tenNguoiNhan }}</p>
                   <p><strong>Số điện thoại:</strong> {{ selectedOrder.soDienThoai }}</p>
                   <p><strong>Địa chỉ:</strong> {{ selectedOrder.diaChi }}</p>
-                  <p><strong>Thanh toán:</strong> {{ selectedOrder.phuongThucThanhToan }}</p>
+                  <p><strong>Thanh toán:</strong> 
+                    <span :class="isOnlinePayment(selectedOrder.phuongThucThanhToan) ? 'text-[#c5a880] font-bold' : ''">
+                      {{ selectedOrder.phuongThucThanhToan }}
+                    </span>
+                  </p>
                 </div>
                 
                 <div class="map-panel">
@@ -178,30 +184,30 @@
     </div>
 
     <!-- CUSTOM LUXURY MODAL -->
-    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div class="w-full max-w-md p-8 bg-[#141414] border border-[#c5a880]/40 rounded-xl shadow-2xl text-center">
-        <h3 class="text-xl font-semibold text-[#c5a880] mb-3 tracking-wider">{{ modalTitle }}</h3>
-        <p class="text-gray-300 mb-6 leading-relaxed">{{ modalMessage }}</p>
+    <div class="velora-modal-overlay" v-if="showModal">
+      <div class="velora-modal-box">
+        <h3 class="velora-modal-title">{{ modalTitle }}</h3>
+        <p class="velora-modal-msg">{{ modalMessage }}</p>
         
-        <div v-if="modalType === 'cancel'" class="mb-6">
+        <div v-if="modalType === 'cancel'" style="margin-bottom: 20px;">
           <textarea 
             v-model="cancelReasonInput" 
             placeholder="Vui lòng nhập lý do hủy đơn hàng..." 
-            class="w-full h-28 p-3 bg-[#1e1e1e] border border-gray-700 rounded-lg text-white text-sm focus:border-[#c5a880] focus:outline-none resize-none"
+            class="velora-textarea"
           ></textarea>
         </div>
 
-        <div class="flex justify-center gap-4">
+        <div class="velora-modal-actions">
           <button 
             v-if="modalType === 'confirm' || modalType === 'cancel'"
             @click="handleModalClose" 
-            class="px-5 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 transition font-medium"
+            class="velora-btn-secondary"
           >
             Hủy
           </button>
           <button 
             @click="handleModalConfirm" 
-            class="px-6 py-2.5 rounded-lg bg-[#c5a880] text-black font-semibold hover:bg-[#b0936d] transition shadow-lg"
+            class="velora-btn-primary"
           >
             {{ modalType === 'confirm' || modalType === 'cancel' ? 'Xác Nhận' : 'Đồng Ý' }}
           </button>
@@ -272,11 +278,17 @@ const triggerToast = (msg) => {
   }, 2000)
 }
 
+const isOnlinePayment = (method) => {
+  if (!method) return false;
+  const m = method.toUpperCase();
+  return m !== 'COD' && m !== 'THANH TOÁN COD';
+}
+
 const currentTab = ref('ALL')
 const tabs = [
   { label: 'Tất cả', value: 'ALL' },
   { label: 'Chờ xử lý', value: 'CHO_XU_LY' },
-  { label: 'Chuẩn bị hàng', value: 'DANG_CHUAN_BI' },
+  { label: 'Chuẩn bị hàng', value: 'CHUAN_BI_HANG' },
   { label: 'Đang vận chuyển', value: 'DANG_GIAO' },
   { label: 'Đã giao', value: 'DA_GIAO' },
   { label: 'Đã hủy', value: 'DA_HUY' },
@@ -338,11 +350,16 @@ const fetchUserOrders = async () => {
       }))
 
       if (orders.value.length > 0) {
-        selectedOrder.value = orders.value[0]
+        if (selectedOrder.value) {
+          const updatedSelected = orders.value.find(o => o.maDonHang === selectedOrder.value.maDonHang);
+          selectedOrder.value = updatedSelected || orders.value[0];
+        } else {
+          selectedOrder.value = orders.value[0];
+        }
       }
     }
   } catch (error) {
-    console.error('Lỗi kết nối API đơn hàng đến Spring Boot:', error)
+    console.error('Lỗi kết nối API đơn hàng:', error)
   }
 }
 
@@ -363,9 +380,17 @@ const cancelOrder = async (order) => {
     const res = await fetch(`http://localhost:8080/api/don-hang/${order.maDonHang}/huy?lyDo=${encodeURIComponent(reason)}`, {
       method: 'PATCH'
     })
+    
     if (res.ok) {
       order.trangThaiDonHang = 'DA_HUY'
-      triggerToast('Đã hủy đơn hàng thành công!')
+      
+      if (isOnlinePayment(order.phuongThucThanhToan)) {
+        triggerToast('Hủy đơn thành công! Vui lòng nhấn "Yêu Cầu Hoàn Tiền" để hệ thống xử lý trả tiền.')
+      } else {
+        triggerToast('Đã hủy đơn hàng thành công!')
+      }
+
+      fetchUserOrders(); 
     } else {
       const errText = await res.text()
       await triggerModal(errText || 'Không thể hủy đơn hàng này!', 'THÔNG BÁO')
@@ -383,7 +408,7 @@ const goToRefundPage = (order) => {
 const getStepLevel = (status) => {
   switch(status) {
     case 'CHO_XU_LY': return 1;
-    case 'DANG_CHUAN_BI': return 2;
+    case 'CHUAN_BI_HANG': return 2;
     case 'DANG_GIAO': return 3;
     case 'DA_GIAO': return 4;
     default: return 1;
@@ -394,21 +419,20 @@ const isStepCompleted = (status, stepNumber) => {
   return getStepLevel(status) > stepNumber;
 }
 
-// 🔥 ĐÃ CHỈNH SỬA CHUẨN XÁC CHUỖI HIỂN THỊ TRẠNG THÁI
 const getStatusText = (status) => {
   if (!status) return ''
   const cleanStatus = status.trim().toUpperCase()
 
   const map = {
     'CHO_XU_LY': 'Đang chờ xử lý',
-    'DANG_CHUAN_BI': 'Đang chuẩn bị hàng',
+    'CHUAN_BI_HANG': 'Đang chuẩn bị hàng',
     'DANG_GIAO': 'Đang vận chuyển',
     'DA_GIAO': 'Đã giao thành công',
     'DA_HUY': 'Đơn hàng đã hủy',
-    'YEU_CAU_HOAN_TIEN': 'Yêu cầu hoàn tiền đã được gửi',
-    'TU_CHOI_HOAN_TIEN': 'Yêu cầu hoàn tiền bị từ chối',
-    'DA_DUYET_HOAN_TIEN': 'Yêu cầu hoàn tiền đã được duyệt',
-    'HOAN_TIEN': 'Yêu cầu hoàn tiền đã được gửi'
+    'YEU_CAU_HOAN_TIEN': 'Yêu cầu hoàn tiền đã gửi',
+    'TU_CHOI_HOAN_TIEN': 'Từ chối hoàn tiền',
+    'DA_DUYET_HOAN_TIEN': 'Đã duyệt hoàn tiền',
+    'HOAN_TIEN': 'Đang xử lý hoàn tiền'
   }
   return map[cleanStatus] || status
 }
@@ -419,7 +443,7 @@ const getStatusClass = (status) => {
 
   const map = {
     'CHO_XU_LY': 'status-pending',
-    'DANG_CHUAN_BI': 'status-prep',
+    'CHUAN_BI_HANG': 'status-prep',
     'DANG_GIAO': 'status-shipping',
     'DA_GIAO': 'status-delivered',
     'DA_HUY': 'status-cancelled',
@@ -607,7 +631,6 @@ onMounted(() => {
   border-color: #d97706;
 }
 
-/* CÁC BADGE MÀU TRẠNG THÁI MỚI CHUẨN XÁC */
 .status-refund-sent { 
   background-color: #fef3c7 !important; 
   color: #b45309 !important; 
@@ -659,5 +682,99 @@ onMounted(() => {
 .td-price {
   font-size: 16px;
   font-weight: 700;
+}
+
+.velora-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.velora-modal-box {
+  width: 100%;
+  max-width: 450px;
+  background: #141414;
+  border: 1px solid rgba(197, 168, 128, 0.4);
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+}
+
+.velora-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #c5a880;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
+.velora-modal-msg {
+  color: #d1d5db;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.velora-textarea {
+  width: 100%;
+  height: 100px;
+  background: #1e1e1e;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 12px;
+  color: white;
+  font-size: 14px;
+  resize: none;
+  font-family: inherit;
+}
+
+.velora-textarea:focus {
+  border-color: #c5a880;
+  outline: none;
+}
+
+.velora-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.velora-btn-secondary {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid #4b5563;
+  background: transparent;
+  color: #d1d5db;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.velora-btn-secondary:hover {
+  background: #1f2937;
+}
+
+.velora-btn-primary {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #c5a880;
+  color: #141414;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.velora-btn-primary:hover {
+  background: #b0936d;
 }
 </style>

@@ -33,7 +33,7 @@ import LoaiSanPham from '../components/Admin/LoaiSanPham.vue'
 import QuanLyMaGiamGia from '../components/Admin/QuanLyMaGiamGia.vue'
 import QuanLyThongKe from '../components/Admin/QuanLyThongKe.vue'
 import AdminLichHen from '../components/Admin/AdminLichHen.vue'
-import QuanLyHoanTien from '../components/Admin/QuanLyHoanTien.vue' // 🔥 BỔ SUNG
+import QuanLyHoanTien from '../components/Admin/QuanLyHoanTien.vue' //
 
 // Các file giao diện Tư Vấn Viên
 import TuVanDashboard from '../components/ChuyenVienTuVan/TuVanDashboard.vue'

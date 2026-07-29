@@ -256,6 +256,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* --- Modal Override (If needed) --- */
+@import "../CSS/Admin/LoaiSanPham.css";
+
 /* ==============================================
    CSS LAYOUT CHUNG & KẾT HỢP TỪ ẢNH THIẾT KẾ
    ============================================== */
@@ -483,9 +486,6 @@ onMounted(() => {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
-/* --- Modal Override (If needed) --- */
-@import "../CSS/Admin/LoaiSanPham.css";
 
 /* ==============================================
    VIẾT THÊM CSS MODAL XUỐNG DƯỚI ĐÂY ĐỂ ĐÈ LÊN CSS CŨ
