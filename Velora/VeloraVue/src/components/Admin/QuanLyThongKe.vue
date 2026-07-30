@@ -2,14 +2,11 @@
     <div class="velora-admin-wrapper admin-wrapper">
         <!-- KHỐI KHÔNG IN (GIAO DIỆN WEB QUẢN TRỊ) -->
         <div class="no-print layout-container">
-            <!-- 1. GỌI COMPONENT SIDEBAR MỚI -->
             <AdminSidebar :isCollapsed="isCollapsed" />
 
             <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
-                <!-- 2. GỌI COMPONENT HEADER MỚI -->
                 <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-                <!-- 3. NỘI DUNG CHÍNH CỦA TRANG THỐNG KÊ -->
                 <main class="content">
                     <header class="header">
                         <div class="header-left">
@@ -18,8 +15,7 @@
                         </div>
                         <div class="header-right" style="position: relative;">
                             <button class="btn-export" @click="toggleExportMenu">
-                                <i class="fa-solid fa-file-pdf"></i> Xuất Báo Cáo <i class="fa-solid fa-chevron-down"
-                                    style="font-size: 12px; margin-left: 5px;"></i>
+                                <i class="fa-solid fa-file-pdf"></i> Xuất Báo Cáo <i class="fa-solid fa-chevron-down" style="font-size: 12px; margin-left: 5px;"></i>
                             </button>
 
                             <div v-if="showExportMenu" class="export-dropdown">
@@ -84,8 +80,7 @@
                             <h2><i class="fa-solid fa-calendar-day"></i> Lịch Sử Doanh Thu Theo Ngày</h2>
                             <div class="filter-box">
                                 <label>Chọn tháng để xem ngày:</label>
-                                <input type="month" v-model="selectedDailyMonth" @change="loadDailyChartData"
-                                    class="filter-input" />
+                                <input type="month" v-model="selectedDailyMonth" @change="loadDailyChartData" class="filter-input" />
                             </div>
                         </div>
                         <div class="chart-container">
@@ -99,8 +94,7 @@
                             <h2><i class="fa-solid fa-calendar-days"></i> Doanh Thu Các Tháng Trong Năm</h2>
                             <div class="filter-box">
                                 <label>Chọn năm:</label>
-                                <input type="number" v-model="selectedYear" min="2020" max="2100"
-                                    @change="loadMonthlyChartData" class="filter-input" style="width: 120px;" />
+                                <input type="number" v-model="selectedYear" min="2020" max="2100" @change="loadMonthlyChartData" class="filter-input" style="width: 120px;" />
                             </div>
                         </div>
                         <div class="chart-container">
@@ -149,8 +143,7 @@
                             <td style="text-align: right; font-weight: bold;">{{ formatPrice(item.doanhThu) }}</td>
                         </tr>
                         <tr v-if="dailyReportData.length === 0">
-                            <td colspan="4" style="text-align: center; font-style: italic;">Không có dữ liệu giao dịch
-                                trong tháng này.</td>
+                            <td colspan="4" style="text-align: center; font-style: italic;">Không có dữ liệu giao dịch trong tháng này.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -186,8 +179,7 @@
                             <td style="text-align: right;">{{ formatPrice(sp.doanhThu) }}</td>
                         </tr>
                         <tr v-if="reportProductStats.length === 0">
-                            <td colspan="3" style="text-align: center; font-style: italic; color: #555;">Không có sản
-                                phẩm nào được bán ra trong năm này.</td>
+                            <td colspan="3" style="text-align: center; font-style: italic; color: #555;">Không có sản phẩm nào được bán ra trong năm này.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -215,13 +207,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement, Filler } from 'chart.js';
 import { Bar, Line } from 'vue-chartjs';
-
-// IMPORT COMPONENT CON VÀO ĐÂY
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
+
+// IMPORT THƯ VIỆN WEBSOCKET
+import SockJS from 'sockjs-client/dist/sockjs';
+import { Stomp } from '@stomp/stompjs';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement, Filler);
 
@@ -234,7 +228,6 @@ const toggleSidebar = () => {
 
 // ================= LOGIC DỮ LIỆU CŨ =================
 const userName = ref('Admin');
-
 const showExportMenu = ref(false);
 const printMode = ref('month');
 
@@ -270,7 +263,6 @@ const currentDisplayMonth = computed(() => {
 
 const dailyChartData = ref(null);
 const monthlyChartData = ref(null);
-
 const dailyReportData = ref([]);
 const reportProductStats = ref([]); 
 
@@ -291,7 +283,6 @@ const chartOptions = {
     scales: { y: { beginAtZero: true, ticks: { callback: function (value) { return value / 1000000 + ' Tr'; } } } }
 };
 
-// Hàm cập nhật danh sách sản phẩm mẫu theo năm (Nếu có doanh thu thì hiện, = 0 thì ẩn)
 const updateReportProductStats = (totalRevenue) => {
     if (totalRevenue === 0) {
         reportProductStats.value = [];
@@ -323,6 +314,7 @@ const loadDailyChartData = async () => {
             });
         } else throw new Error();
     } catch (error) {
+        // Mock data nếu rớt mạng / lỗi API
         const dataMockDB = [
             { ngay: '2026-06-17', tongDoanhThu: 45000000, soDonHangThanhCong: 3, soSanPhamBanRa: 4 },
             { ngay: '2026-06-18', tongDoanhThu: 180000000, soDonHangThanhCong: 1, soSanPhamBanRa: 1 },
@@ -356,19 +348,53 @@ const loadMonthlyChartData = async () => {
             });
 
             yearlyTotalRevenue.value = totalRev; yearlyTotalOrders.value = totalOrd; yearlyTotalProducts.value = totalProd;
-
             updateReportProductStats(totalRev);
 
             monthlyChartData.value = { labels: labels, datasets: [{ label: `Biến động doanh thu năm ${selectedYear.value} (VNĐ)`, borderColor: '#3e332e', backgroundColor: 'rgba(209, 170, 104, 0.2)', borderWidth: 2, pointBackgroundColor: '#d1aa68', fill: true, tension: 0.3, data: dataValues }] };
         } else throw new Error();
     } catch (error) {
+        // Mock data
         const labelsMock = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7'];
         const dataMock = [1255000000, 850000000, 460000000, 470000000, 1150000000, 918500000, 0];
         monthlyChartData.value = { labels: labelsMock, datasets: [{ label: 'Biến động doanh thu (VNĐ)', borderColor: '#3e332e', backgroundColor: 'rgba(209, 170, 104, 0.2)', borderWidth: 2, pointBackgroundColor: '#d1aa68', fill: true, tension: 0.3, data: dataMock }] };
 
         yearlyTotalRevenue.value = 5993000000; yearlyTotalOrders.value = 145; yearlyTotalProducts.value = 168;
-
         updateReportProductStats(5993000000);
+    }
+};
+
+// ================= LẮP RÁP WEBSOCKET =================
+let stompClient = null;
+
+const connectWebSocket = () => {
+    const socket = new SockJS('http://localhost:8080/ws-chat');
+    stompClient = Stomp.over(socket);
+    
+    // Tắt log debug cho console đỡ rối
+    stompClient.debug = () => {};
+
+    stompClient.connect({}, (frame) => {
+        console.log('✅ Đã kết nối hệ thống Real-time: ' + frame);
+        
+        stompClient.subscribe('/topic/statistics', (message) => {
+            if (message.body === 'UPDATE_STATS') {
+                console.log("🔥 Đơn hàng mới! Chờ Backend chốt sổ nửa giây rồi cập nhật số liệu...");
+                
+                setTimeout(() => {
+                    loadDailyChartData();
+                    loadMonthlyChartData();
+                }, 500); 
+            }
+        });
+    }, (error) => {
+        console.error('Lỗi kết nối WebSocket:', error);
+    });
+};
+
+const disconnectWebSocket = () => {
+    if (stompClient !== null) {
+        stompClient.disconnect();
+        console.log("Đã ngắt kết nối hệ thống Real-time.");
     }
 };
 
@@ -378,12 +404,21 @@ onMounted(() => {
         const userObj = JSON.parse(userStr);
         userName.value = userObj.hoTen || 'Quản trị viên';
     }
+    
+    // Tải dữ liệu ban đầu
     loadDailyChartData();
     loadMonthlyChartData();
+
+    // Kết nối WebSocket
+    connectWebSocket();
+});
+
+onUnmounted(() => {
+    // Ngắt kết nối khi rời khỏi trang Thống kê
+    disconnectWebSocket();
 });
 </script>
 
-<!-- CSS CHỨA BIẾN GLOBAL ĐỂ SIDEBAR NHẬN MÀU -->
 <style>
 :root {
     --wood-dark: #362921;
@@ -397,10 +432,6 @@ onMounted(() => {
     --text-muted: #888888;
 }
 
-/* 
-  Đảm bảo khi in, các layout web (nút, thanh cuộn, sidebar) bị ẩn đi.
-  Chỉ hiện phần báo cáo (.print-only).
-*/
 @media print {
     .no-print, .layout-container {
         display: none !important;
@@ -420,9 +451,6 @@ onMounted(() => {
 <style scoped>
 @import "../CSS/Admin/QuanLyThongKe.css";
 
-/* ==============================================
-   CSS LAYOUT CHUNG BỌC BÊN NGOÀI (FIX TEO)
-   ============================================== */
 .velora-admin-wrapper {
     background-color: var(--bg-page);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -441,7 +469,7 @@ onMounted(() => {
 
 .content-wrapper {
     flex: 1;
-    min-width: 0; /* THẦN CHÚ CHỐNG TRÀN FLEXBOX */
+    min-width: 0;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -481,7 +509,6 @@ onMounted(() => {
     margin: 0;
 }
 
-/* Đảm bảo các grid/chart không bị bóp vào 1 góc */
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -504,6 +531,6 @@ onMounted(() => {
 .chart-container {
     width: 100%;
     height: 350px;
-    position: relative; /* ChartJS cần relative parent để responsive */
+    position: relative;
 }
 </style>

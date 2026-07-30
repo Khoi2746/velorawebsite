@@ -409,7 +409,6 @@ const fetchUserOrders = async () => {
         trangThaiDonHang: order.trangThaiDonHang,
         phuongThucThanhToan: order.phuongThucThanhToan,
         lyDoHuy: order.lyDoHuy || order.ghiChu || '', 
-        // LƯU Ý: Nếu dữ liệu vẫn không hiện, kiểm tra xem tên trường "chiTietDonHangs" có trùng với API trả về chưa nhé!
         items: (order.chiTietDonHangs || []).map(ct => ({
           ten: ct.sanPham ? ct.sanPham.tenSanPham : 'Kiệt tác thời gian',
           soLuong: ct.soLuong,

@@ -1,7 +1,11 @@
 package com.velora.website.Controller;
 
 import com.velora.website.Entity.DonHang;
+import com.velora.website.Entity.DoanhThuNgay;
+import com.velora.website.Entity.DoanhThuThang;
 import com.velora.website.Repository.DonHangRepository;
+import com.velora.website.Repository.DoanhThuNgayRepository;
+import com.velora.website.Repository.DoanhThuThangRepository;
 import com.velora.website.Request.SepayResponse;
 import com.velora.website.Request.SePayWebhookDto;
 import com.velora.website.Service.EmailService;
@@ -10,10 +14,12 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.Map;
@@ -29,6 +35,11 @@ public class DonHangController {
 
     private final DonHangRepository donHangRepository;
     private final EmailService emailService; 
+    private final SimpMessagingTemplate messagingTemplate;
+    
+    // Tiêm 2 Repository thống kê trực tiếp vào Controller
+    private final DoanhThuNgayRepository doanhThuNgayRepository;
+    private final DoanhThuThangRepository doanhThuThangRepository;
 
     private static final String ADMIN_EMAIL = "admin@velora.com"; 
 
@@ -114,6 +125,10 @@ public class DonHangController {
                             donHangKhop.setTrangThaiDonHang("CHO_XU_LY");
                             donHangRepository.save(donHangKhop);
 
+                            // Bơm tiền & Bắn sóng WebSocket
+                            capNhatBangThongKe(donHangKhop);
+                            messagingTemplate.convertAndSend("/topic/statistics", "UPDATE_STATS");
+
                             try {
                                 donHangRepository.truSoLuongTonKhoTheoMaDon(donHangKhop.getMaDonHang());
                             } catch (Exception ex) {
@@ -131,7 +146,7 @@ public class DonHangController {
     }
 
     /**
-     * LUỒNG NGHIỆP VỤ: KHÁCH HÀNG / ADMIN HỦY ĐƠN HÀNG VÀ XỬ LÝ RẼ NHÁNH EMAIL
+     * LUỒNG CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG CHÍNH THỨC
      */
     @PatchMapping("/{id}/trang-thai")
     @Transactional
@@ -148,11 +163,15 @@ public class DonHangController {
 
         DonHang donHang = optionalDonHang.get();
         String trangThaiCu = donHang.getTrangThaiDonHang();
+        String thanhToanCu = donHang.getTrangThaiThanhToan();
+
+        // Kiểm tra xem trước đó đơn này đã được tính doanh thu chưa (Tránh cộng dồn 2 lần)
+        boolean wasThanhCongTruocDo = "DA_GIAO".equalsIgnoreCase(trangThaiCu) 
+                                   || "DA_THANH_TOAN".equalsIgnoreCase(thanhToanCu);
         
         // Cập nhật trạng thái mới
         donHang.setTrangThaiDonHang(trangThaiMoi);
 
-        // Xử lý lý do hủy nếu có
         if ("DA_HUY".equalsIgnoreCase(trangThaiMoi)) {
             if (!"CHO_XU_LY".equalsIgnoreCase(trangThaiCu) && !"CHUAN_BI_HANG".equalsIgnoreCase(trangThaiCu)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Chỉ được hủy đơn hàng ở trạng thái Chờ xử lý hoặc Chuẩn bị hàng!");
@@ -168,28 +187,34 @@ public class DonHangController {
             donHang.setTrangThaiThanhToan("DA_THANH_TOAN");
         }
 
-        donHangRepository.save(donHang);
+        DonHang updatedDonHang = donHangRepository.save(donHang);
 
-        // =========================================================================
-        // PHẦN TỰ ĐỘNG HÓA GỬI EMAIL THEO NGHIỆP VỤ DOANH NGHIỆP
-        // =========================================================================
+        // ĐIỀU KIỆN KÍCH HOẠT DOANH THU & WEBSOCKET
+        boolean isGiaoThanhCong = "DA_GIAO".equalsIgnoreCase(trangThaiMoi) || "HOAN_TAT".equalsIgnoreCase(trangThaiMoi);
+        boolean isThanhToanXong = "DA_THANH_TOAN".equalsIgnoreCase(updatedDonHang.getTrangThaiThanhToan());
+
+        if ((isGiaoThanhCong || isThanhToanXong) && !wasThanhCongTruocDo) {
+            // 1. Bơm tiền vào bảng DoanhThuNgay và DoanhThuThang
+            capNhatBangThongKe(updatedDonHang);
+
+            // 2. Phát sóng WebSocket báo hiệu cho trang Admin vẽ lại biểu đồ
+            System.out.println("🔥 Controller: Đã chốt sổ doanh thu đơn #" + updatedDonHang.getMaDonHangCode() + " và phát sóng WebSocket!");
+            messagingTemplate.convertAndSend("/topic/statistics", "UPDATE_STATS");
+        }
+
         if ("DA_HUY".equalsIgnoreCase(trangThaiMoi)) {
-            guiEmailThongBaoHuyDon(donHang, lyDo);
+            guiEmailThongBaoHuyDon(updatedDonHang, lyDo);
         }
 
         return ResponseEntity.ok("Cập nhật trạng thái đơn hàng thành công!");
     }
 
-    // Tương thích ngược với endpoint cũ /{id}/huy
     @PatchMapping("/{id}/huy")
     @Transactional
     public ResponseEntity<?> huyDonHangNhanh(@PathVariable Integer id, @RequestParam(required = false) String lyDo) {
         return capNhatTrangThaiHoacHuy(id, "DA_HUY", null, lyDo);
     }
 
-    /**
-     * API 1: ĐẶT MUA NGAY 1 SẢN PHẨM
-     */
     @PostMapping("/dat-ngay")
     @Transactional
     public ResponseEntity<?> datHangNhanh(@RequestBody DatNgayRequest payload) {
@@ -224,7 +249,6 @@ public class DonHangController {
             );
 
             donHangRepository.xoaSanPhamKhoiGioHang(payload.getMaNguoiDung(), payload.getMaSanPham());
-
             guiEmailXacNhanDatHang(payload.getEmail(), payload.getMaDonHangCode(), payload.getTenNguoiNhan(), payload.getTongTien(), payload.getDiaChiGiaoHang());
 
             return ResponseEntity.ok("Đặt hàng kiệt tác thành công!");
@@ -234,9 +258,6 @@ public class DonHangController {
         }
     }
 
-    /**
-     * API 2: ĐẶT HÀNG CHO TOÀN BỘ GIỎ HÀNG
-     */
     @PostMapping("/dat-gio-hang")
     @Transactional
     public ResponseEntity<?> datHangTuGioHang(@RequestBody DatGioHangRequest payload) {
@@ -272,9 +293,45 @@ public class DonHangController {
         }
     }
 
-    // =========================================================================
-    // CÁC HÀM HỖ TRỢ XỬ LÝ EMAIL DOANH NGHIỆP CHUYÊN NGHIỆP
-    // =========================================================================
+   private void capNhatBangThongKe(DonHang donHang) {
+        LocalDate ngayHienTai = LocalDate.now();
+        int thang = ngayHienTai.getMonthValue();
+        int nam = ngayHienTai.getYear();
+
+        BigDecimal tienDonHang = donHang.getTongTien();
+        int soLuongSp = 1; 
+
+        // 1. Xử lý DoanhThuNgay bằng câu lệnh truy vấn chính xác
+        DoanhThuNgay dtNgay = doanhThuNgayRepository.findByNgayChinhXac(ngayHienTai);
+        if (dtNgay == null) {
+            dtNgay = new DoanhThuNgay();
+            dtNgay.setNgay(ngayHienTai);
+            dtNgay.setTongDoanhThu(BigDecimal.ZERO);
+            dtNgay.setSoDonHangThanhCong(0);
+            dtNgay.setSoSanPhamBanRa(0);
+        }
+        
+        dtNgay.setTongDoanhThu(dtNgay.getTongDoanhThu().add(tienDonHang));
+        dtNgay.setSoDonHangThanhCong(dtNgay.getSoDonHangThanhCong() + 1);
+        dtNgay.setSoSanPhamBanRa(dtNgay.getSoSanPhamBanRa() + soLuongSp);
+        doanhThuNgayRepository.save(dtNgay); // Bây giờ lệnh save này sẽ Update thay vì Insert lỗi trùng khóa!
+
+        // 2. Xử lý DoanhThuThang bằng câu lệnh truy vấn chính xác
+        DoanhThuThang dtThang = doanhThuThangRepository.findByThangVaNamChinhXac(thang, nam);
+        if (dtThang == null) {
+            dtThang = new DoanhThuThang();
+            dtThang.setThang(thang);
+            dtThang.setNam(nam);
+            dtThang.setTongDoanhThu(BigDecimal.ZERO);
+            dtThang.setSoDonHangThanhCong(0);
+            dtThang.setSoSanPhamBanRa(0);
+        }
+                
+        dtThang.setTongDoanhThu(dtThang.getTongDoanhThu().add(tienDonHang));
+        dtThang.setSoDonHangThanhCong(dtThang.getSoDonHangThanhCong() + 1);
+        dtThang.setSoSanPhamBanRa(dtThang.getSoSanPhamBanRa() + soLuongSp);
+        doanhThuThangRepository.save(dtThang);
+    }
 
     private void guiEmailXacNhanDatHang(String emailKhach, String maCode, String tenKhach, Double tongTien, String diaChi) {
         try {
@@ -314,7 +371,6 @@ public class DonHangController {
             String phuongThuc = donHang.getPhuongThucThanhToan();
             boolean isOnline = (phuongThuc != null && !phuongThuc.toUpperCase().contains("COD"));
 
-            // 1. Gửi email cho Khách hàng
             if (emailKhach != null && !emailKhach.trim().isEmpty()) {
                 String subjectKhach = "[VELORA CLOCK] THÔNG BÁO HỦY ĐƠN HÀNG #" + maCode;
                 StringBuilder bodyKhach = new StringBuilder();
@@ -334,7 +390,6 @@ public class DonHangController {
                 emailService.sendEmail(emailKhach, subjectKhach, bodyKhach.toString());
             }
 
-            // 2. Gửi email cho Admin / Kế toán
             String subjectAdmin = "[QUẢN TRỊ] ĐƠN HÀNG ĐÃ BỊ HỦY #" + maCode;
             StringBuilder bodyAdmin = new StringBuilder();
             bodyAdmin.append("Hệ thống thông báo đơn hàng #").append(maCode).append(" đã bị hủy bởi người dùng.\n\n");

@@ -35,9 +35,34 @@
               <div class="tag-new" v-if="product.loaiSanPham">
                 {{ product.loaiSanPham.tenLoai }}
               </div>
+
+              <!-- NÚT BẤM CHUYỂN ẢNH TRÁI / PHẢI TRÊN ẢNH CHÍNH -->
+              <button class="slider-arrow prev" @click="prevImage" v-if="allImages.length > 1">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+
               <img
-                :src="product.anhDaiDien && product.anhDaiDien.startsWith('http') ? product.anhDaiDien : '/img/' + product.anhDaiDien"
-                :alt="product.tenSanPham" class="main-image" />
+                :src="currentImage && currentImage.startsWith('http') ? currentImage : '/img/' + currentImage"
+                :alt="product.tenSanPham" 
+                class="main-image" 
+              />
+
+              <button class="slider-arrow next" @click="nextImage" v-if="allImages.length > 1">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+
+            <!-- DANH SÁCH THUMBNAIL (ẢNH NHỎ CÁC GÓC ĐỘ) -->
+            <div class="thumbnail-list" v-if="allImages.length > 1">
+              <div 
+                v-for="(img, idx) in allImages" 
+                :key="idx" 
+                class="thumbnail-item"
+                :class="{ 'active': currentImage === img }"
+                @click="currentImage = img"
+              >
+                <img :src="img && img.startsWith('http') ? img : '/img/' + img" alt="Góc chụp chi tiết" />
+              </div>
             </div>
           </div>
 
@@ -195,7 +220,7 @@ import Footer from '../Footer.vue'
 import Info from '../info.vue'
 import ThanhToan from './ThanhToan.vue'
 
-// IMPORT HÀM DÙNG CHUNG BẬT POPUP (Nhớ đảm bảo file useAlert.js đã nằm trong thư mục composables nhé)
+// IMPORT HÀM DÙNG CHUNG BẬT POPUP
 import { showAlert } from '@/composables/useAlert';
 
 const route = useRoute()
@@ -207,6 +232,25 @@ const carouselRef = ref(null)
 
 const quantity = ref(1)
 
+// ================= PHẦN QUẢN LÝ SLIDER NHIỀU ẢNH =================
+const allImages = ref([])
+const currentImage = ref('')
+
+const nextImage = () => {
+  if (allImages.value.length === 0) return
+  const currentIndex = allImages.value.indexOf(currentImage.value)
+  const nextIndex = (currentIndex + 1) % allImages.value.length
+  currentImage.value = allImages.value[nextIndex]
+}
+
+const prevImage = () => {
+  if (allImages.value.length === 0) return
+  const currentIndex = allImages.value.indexOf(currentImage.value)
+  const prevIndex = (currentIndex - 1 + allImages.value.length) % allImages.value.length
+  currentImage.value = allImages.value[prevIndex]
+}
+// ===============================================================
+
 const formatPrice = (value) => {
   if (!value) return 'Liên hệ'
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
@@ -215,10 +259,8 @@ const formatPrice = (value) => {
 const addToCart = async () => {
   const userStr = localStorage.getItem('user');
   
-  // Kiểm tra đăng nhập bằng Popup Luxury mới
   if (!userStr) {
     showAlert('Vui lòng đăng nhập để thêm kiệt tác này vào giỏ hàng!', 'warning');
-    // Chuyển hướng sau 1.5 giây để người dùng kịp đọc thông báo
     setTimeout(() => {
       router.push('/dang-nhap');
     }, 1500);
@@ -276,6 +318,23 @@ const loadProductDetail = async () => {
     const res = await fetch(`http://localhost:8080/api/san-pham/${productId}`)
     if (res.ok) {
       product.value = await res.json()
+
+      // GOM ẢNH ĐẠI DIỆN VÀ THƯ VIỆN ẢNH PHỤ VÀO MẢNG SLIDER
+      allImages.value = []
+      if (product.value.anhDaiDien) {
+        allImages.value.push(product.value.anhDaiDien)
+      }
+
+      if (product.value.thuVienAnhs && Array.isArray(product.value.thuVienAnhs)) {
+        product.value.thuVienAnhs.forEach(item => {
+          if (item.duongDanAnh && !allImages.value.includes(item.duongDanAnh)) {
+            allImages.value.push(item.duongDanAnh)
+          }
+        })
+      }
+
+      // Đặt ảnh hiển thị mặc định ban đầu là ảnh đầu tiên
+      currentImage.value = allImages.value.length > 0 ? allImages.value[0] : ''
     }
 
     const resAll = await fetch(`http://localhost:8080/api/san-pham`)
@@ -302,5 +361,89 @@ onMounted(() => {
 
 <style scoped>
 @import "../CSS/User/ChiTietSanPham.css";
+.main-image-wrapper {
+  position: relative;
+  width: 100%;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #eaeaea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+}
 
+.main-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.3s ease;
+}
+
+/* NÚT MŨI TÊN TRÁI PHẢI */
+.slider-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(20, 20, 20, 0.6);
+  color: #c5a880;
+  border: 1px solid rgba(197, 168, 128, 0.4);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.slider-arrow:hover {
+  background: #c5a880;
+  color: #141414;
+}
+
+.slider-arrow.prev { left: 15px; }
+.slider-arrow.next { right: 15px; }
+
+/* DANH SÁCH THUMBNAIL PHÍA DƯỚI */
+.thumbnail-list {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+
+.thumbnail-item {
+  width: 75px;
+  height: 75px;
+  border-radius: 6px;
+  border: 2px solid #eaeaea;
+  overflow: hidden;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  background: #fff;
+}
+
+.thumbnail-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-item:hover {
+  opacity: 1;
+  border-color: #c5a880;
+}
+
+.thumbnail-item.active {
+  opacity: 1;
+  border-color: #c5a880;
+  box-shadow: 0 0 8px rgba(197, 168, 128, 0.4);
+}
 </style>

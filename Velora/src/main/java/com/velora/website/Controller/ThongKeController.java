@@ -12,14 +12,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/thong-ke")
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*", allowCredentials = "true") // <-- THÊM DÒNG NÀY ĐỂ MỞ CỬA CORS
 @RequiredArgsConstructor
 public class ThongKeController {
 
     private final DoanhThuNgayRepository doanhThuNgayRepository;
     private final DoanhThuThangRepository doanhThuThangRepository;
 
-    // 1. API Lấy thống kê từng ngày trong tháng
-    // URL Demo: http://localhost:8080/api/thong-ke/ngay?thang=6&nam=2026
     @GetMapping("/ngay")
     public ResponseEntity<List<DoanhThuNgay>> getDoanhThuNgay(
             @RequestParam int thang,
@@ -28,8 +27,6 @@ public class ThongKeController {
         return ResponseEntity.ok(data);
     }
 
-    // 2. API Lấy thống kê 12 tháng trong 1 năm
-    // URL Demo: http://localhost:8080/api/thong-ke/thang?nam=2026
     @GetMapping("/thang")
     public ResponseEntity<List<DoanhThuThang>> getDoanhThuThang(@RequestParam int nam) {
         List<DoanhThuThang> data = doanhThuThangRepository.findByNamOrderByThangAsc(nam);

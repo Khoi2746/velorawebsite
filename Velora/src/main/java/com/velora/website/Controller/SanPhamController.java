@@ -14,6 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/san-pham")
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*", allowCredentials = "true", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
 @RequiredArgsConstructor // GẮN LOMBOK VÀO ĐỂ TỰ ĐỘNG TIÊM DEPENDENCY
 public class SanPhamController {
     
