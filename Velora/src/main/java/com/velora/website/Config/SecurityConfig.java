@@ -32,26 +32,25 @@ public class SecurityConfig {
         return http.build();
     }
 
-  @Bean
-public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-    
-    // 1. Dùng AllowedOriginPatterns thay vì AllowedOrigins
-    // Pattern "http://localhost:*" sẽ khớp với mọi port (như 5173, 5174, v.v.)
-    configuration.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
-    
-    // 2. Các cấu hình khác
-    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-    configuration.setAllowedHeaders(List.of("*"));
-    configuration.setExposedHeaders(List.of("*"));
-    
-    // 3. Cho phép credentials (cần thiết cho session/token/websocket)
-    configuration.setAllowCredentials(true);
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // 1. Chỉ định chính xác cổng của Vue (tránh lỗi wildcard khi allowCredentials = true)
+        configuration.setAllowedOrigins(List.of("http://localhost:5174", "http://127.0.0.1:5174"));
+        
+        // 2. Cho phép các method và header
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("*"));
+        
+        // 3. Cho phép credentials để gửi cookie/token
+        configuration.setAllowCredentials(true);
 
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", configuration);
-    return source;
-}
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

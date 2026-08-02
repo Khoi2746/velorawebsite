@@ -192,6 +192,7 @@
             </button>
           </div>
         </div>
+         <DanhGiaSanPham :maSanPham="product.maSanPham" />
       </div>
     </main>
 
@@ -205,8 +206,11 @@
         <h2>KHÔNG TÌM THẤY SẢN PHẨM</h2>
         <p>Sản phẩm này có thể đã được gỡ hoặc không tồn tại.</p>
         <router-link to="/san-pham" class="btn-primary">QUAY LẠI CỬA HÀNG</router-link>
+       
       </div>
+      
     </main>
+    
 
     <Footer />
   </div>
@@ -219,6 +223,7 @@ import Header from '../Header.vue'
 import Footer from '../Footer.vue'
 import Info from '../info.vue'
 import ThanhToan from './ThanhToan.vue'
+import DanhGiaSanPham from './DanhGiaSanPham.vue'
 
 // IMPORT HÀM DÙNG CHUNG BẬT POPUP
 import { showAlert } from '@/composables/useAlert';
