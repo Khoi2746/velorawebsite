@@ -7,7 +7,7 @@
         <div class="title-wrapper">
           <h1 class="page-title">VELORA</h1>
           <div class="title-divider">
-            <span class="diamond"></span>
+            <span class="diamond">◆</span>
           </div>
           <p class="page-subtitle">Khám phá những tuyệt tác thời gian cơ khí chính xác có sẵn tại cửa hàng</p>
         </div>
@@ -61,36 +61,69 @@
           </div>
         </div>
 
-        <div class="product-grid" v-if="filteredProducts.length > 0">
-          <div class="product-card" v-for="product in filteredProducts" :key="product.maSanPham">
+        <!-- DANH SÁCH SẢN PHẨM PHÂN TRANG -->
+        <template v-if="filteredProducts.length > 0">
+          <div class="product-grid">
+            <div class="product-card" v-for="product in paginatedProducts" :key="product.maSanPham">
+              <div class="tag-new" v-if="product.loaiSanPham">
+                {{ product.loaiSanPham.tenLoai }}
+              </div>
 
-            <div class="tag-new" v-if="product.loaiSanPham">
-              {{ product.loaiSanPham.tenLoai }}
-            </div>
-
-            <router-link :to="`/san-pham/${product.maSanPham}`" class="product-image-wrapper">
-              <img
-                :src="product.anhDaiDien && product.anhDaiDien.startsWith('http') ? product.anhDaiDien : '/img/' + product.anhDaiDien"
-                :alt="product.tenSanPham" class="product-image" />
-            </router-link>
-
-            <div class="product-info">
-              <router-link :to="`/san-pham/${product.maSanPham}`" class="product-name-link">
-                <h3 class="product-name">{{ product.tenSanPham }}</h3>
+              <router-link :to="`/san-pham/${product.maSanPham}`" class="product-image-wrapper">
+                <img
+                  :src="product.anhDaiDien && product.anhDaiDien.startsWith('http') ? product.anhDaiDien : '/img/' + product.anhDaiDien"
+                  :alt="product.tenSanPham" class="product-image" />
               </router-link>
 
-              <div class="product-price">
-                {{ product.giaBan > 100000000 ? 'Liên hệ để biết thêm chi tiết' : formatPrice(product.giaBan) }}
+              <div class="product-info">
+                <router-link :to="`/san-pham/${product.maSanPham}`" class="product-name-link">
+                  <h3 class="product-name">{{ product.tenSanPham }}</h3>
+                </router-link>
+
+                <div class="product-price">
+                  {{ product.giaBan > 100000000 ? 'Liên hệ để biết thêm chi tiết' : formatPrice(product.giaBan) }}
+                </div>
+              </div>
+
+              <div class="product-action">
+                <router-link :to="`/san-pham/${product.maSanPham}`" class="btn-contact">
+                  XEM CHI TIẾT
+                </router-link>
               </div>
             </div>
-
-            <div class="product-action">
-              <router-link :to="`/san-pham/${product.maSanPham}`" class="btn-contact">
-                XEM CHI TIẾT
-              </router-link>
-            </div>
           </div>
-        </div>
+
+          <!-- THANH PHÂN TRANG -->
+          <div class="pagination-container" v-if="totalPages > 1">
+            <button 
+              class="page-btn" 
+              :disabled="currentPage === 1" 
+              @click="currentPage--"
+            >
+              <i class="fas fa-chevron-left"></i> Trước
+            </button>
+            
+            <div class="page-numbers">
+              <button 
+                v-for="page in totalPages" 
+                :key="page" 
+                class="page-number-btn"
+                :class="{ active: page === currentPage }"
+                @click="currentPage = page"
+              >
+                {{ page }}
+              </button>
+            </div>
+
+            <button 
+              class="page-btn" 
+              :disabled="currentPage === totalPages" 
+              @click="currentPage++"
+            >
+              Sau <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </template>
 
         <div v-else class="empty-state">
           <p>Không tìm thấy sản phẩm nào phù hợp hoặc đang tải dữ liệu...</p>
@@ -103,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue' // ĐÃ THÊM: watch để theo dõi URL thay đổi
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
@@ -117,13 +150,28 @@ const brands = ref([])
 const categories = ref([])
 const activeDropdown = ref(null)
 
-// ĐÃ BỔ SUNG: Thêm trường search vào bộ lọc
+// Cấu hình phân trang: 3 dòng sản phẩm (4 cột x 3 dòng = 12 sản phẩm)
+const currentPage = ref(1)
+const pageSize = ref(12)
+
 const filters = ref({
   search: '', 
   price: '', priceText: '',
   brand: '', brandText: '',
   category: '', categoryText: '',
   gender: '', genderText: ''
+})
+
+// Tính tổng số trang
+const totalPages = computed(() => {
+  return Math.ceil(filteredProducts.value.length / pageSize.value) || 1
+})
+
+// Cắt danh sách sản phẩm theo trang hiện tại
+const paginatedProducts = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredProducts.value.slice(start, end)
 })
 
 const toggleDropdown = (dropdownName) => {
@@ -134,40 +182,37 @@ const toggleDropdown = (dropdownName) => {
   }
 }
 
-// BỘ LỌC TỔNG HỢP: Xử lý cả Hãng, Giá, Giới tính và TỪ KHÓA TÌM KIẾM
 const applyFilters = () => {
   let result = [...products.value]
 
-  // 1. Lọc theo TỪ KHÓA trên thanh tìm kiếm
   if (filters.value.search) {
     const keyword = filters.value.search.toLowerCase()
     result = result.filter(p => 
-      // Tìm trong Tên sản phẩm HOẶC Tên thương hiệu
       p.tenSanPham.toLowerCase().includes(keyword) || 
       (p.thuongHieu && p.thuongHieu.tenThuongHieu.toLowerCase().includes(keyword))
     )
   }
 
-  // 2. Lọc theo Thương hiệu
   if (filters.value.brand) {
     result = result.filter(p => p.maThuongHieu === parseInt(filters.value.brand) || (p.thuongHieu && p.thuongHieu.maThuongHieu === parseInt(filters.value.brand)))
   }
-  // 3. Lọc theo Giá
+
   if (filters.value.price) {
     if (filters.value.price === 'under-100m') result = result.filter(p => p.giaBan < 100000000)
     else if (filters.value.price === '100m-500m') result = result.filter(p => p.giaBan >= 100000000 && p.giaBan <= 500000000)
     else if (filters.value.price === 'over-500m') result = result.filter(p => p.giaBan > 500000000)
   }
-  // 4. Lọc theo Loại
+
   if (filters.value.category) {
     result = result.filter(p => p.loaiSanPham && p.loaiSanPham.maLoai === parseInt(filters.value.category))
   }
-  // 5. Lọc theo Giới tính
-if (filters.value.gender) {
-  result = result.filter(p => p.gioiTinh && p.gioiTinh.toLowerCase() === filters.value.gender.toLowerCase())
-}
+
+  if (filters.value.gender) {
+    result = result.filter(p => p.gioiTinh && p.gioiTinh.toLowerCase() === filters.value.gender.toLowerCase())
+  }
 
   filteredProducts.value = result
+  currentPage.value = 1 
 }
 
 const selectOption = (type, value, text) => {
@@ -207,7 +252,6 @@ const loadData = async () => {
       categories.value = await resCategories.json()
     }
 
-    // Sau khi tải xong hết Data, mồi URL một lần để kích hoạt bộ lọc
     syncFiltersFromUrl()
 
   } catch (error) {
@@ -215,12 +259,9 @@ const loadData = async () => {
   }
 }
 
-// BÍ KÍP: Hàm đồng bộ hóa bộ lọc với URL (kết hợp cả Search và Brand)
 const syncFiltersFromUrl = () => {
-  // Lấy keyword tìm kiếm
   filters.value.search = route.query.search || ''
 
-  // Lấy ID thương hiệu
   if (route.query.brand) {
     const brandIdFromUrl = parseInt(route.query.brand)
     const targetBrand = brands.value.find(b => b.maThuongHieu === brandIdFromUrl)
@@ -229,16 +270,13 @@ const syncFiltersFromUrl = () => {
       filters.value.brandText = targetBrand.tenThuongHieu
     }
   } else {
-    // Nếu URL không có brand, reset lại filter brand
     filters.value.brand = ''
     filters.value.brandText = ''
   }
 
-  // Chạy lệnh lọc sản phẩm
   applyFilters()
 }
 
-// RA-ĐA QUÉT URL: Nếu khách đang ở trang Sản Phẩm mà gõ tìm kiếm tiếp, hàm này sẽ tự nhảy
 watch(() => route.query, () => {
   syncFiltersFromUrl()
 })
@@ -254,4 +292,67 @@ onUnmounted(() => {
 
 <style scoped>
 @import "../CSS/User/SanPham.css";
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+
+.page-btn {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #333;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #c5a880;
+  border-color: #c5a880;
+  color: #fff;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 6px;
+}
+
+.page-number-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #333;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-number-btn:hover {
+  border-color: #c5a880;
+  color: #c5a880;
+}
+
+.page-number-btn.active {
+  background: #c5a880;
+  border-color: #c5a880;
+  color: #fff;
+  font-weight: 600;
+}
 </style>

@@ -36,7 +36,7 @@
                 {{ product.loaiSanPham.tenLoai }}
               </div>
 
-              <!-- NÚT BẤM CHUYỂN ẢNH TRÁI / PHẢI TRÊN ẢNH CHÍNH -->
+              <!-- NÚT BẤM CHUYỂN ẢNH TRÁI / PHẢI THỦ CÔNG -->
               <button class="slider-arrow prev" @click="prevImage" v-if="allImages.length > 1">
                 <i class="fas fa-chevron-left"></i>
               </button>
@@ -206,11 +206,8 @@
         <h2>KHÔNG TÌM THẤY SẢN PHẨM</h2>
         <p>Sản phẩm này có thể đã được gỡ hoặc không tồn tại.</p>
         <router-link to="/san-pham" class="btn-primary">QUAY LẠI CỬA HÀNG</router-link>
-       
       </div>
-      
     </main>
-    
 
     <Footer />
   </div>
@@ -225,7 +222,6 @@ import Info from '../info.vue'
 import ThanhToan from './ThanhToan.vue'
 import DanhGiaSanPham from './DanhGiaSanPham.vue'
 
-// IMPORT HÀM DÙNG CHUNG BẬT POPUP
 import { showAlert } from '@/composables/useAlert';
 
 const route = useRoute()
@@ -237,7 +233,7 @@ const carouselRef = ref(null)
 
 const quantity = ref(1)
 
-// ================= PHẦN QUẢN LÝ SLIDER NHIỀU ẢNH =================
+// ================= PHẦN QUẢN LÝ SLIDER THỦ CÔNG (KHÔNG TỰ ĐỘNG CHẠY) =================
 const allImages = ref([])
 const currentImage = ref('')
 
@@ -254,7 +250,7 @@ const prevImage = () => {
   const prevIndex = (currentIndex - 1 + allImages.value.length) % allImages.value.length
   currentImage.value = allImages.value[prevIndex]
 }
-// ===============================================================
+// ===================================================================================
 
 const formatPrice = (value) => {
   if (!value) return 'Liên hệ'
@@ -307,8 +303,6 @@ const contactVVIP = () => {
   })
 }
 
-const minDate = ref(new Date().toISOString().split('T')[0])
-
 const scrollCarousel = (direction) => {
   if (carouselRef.value) {
     carouselRef.value.scrollBy({ left: direction * 350, behavior: 'smooth' })
@@ -338,7 +332,6 @@ const loadProductDetail = async () => {
         })
       }
 
-      // Đặt ảnh hiển thị mặc định ban đầu là ảnh đầu tiên
       currentImage.value = allImages.value.length > 0 ? allImages.value[0] : ''
     }
 
@@ -366,6 +359,7 @@ onMounted(() => {
 
 <style scoped>
 @import "../CSS/User/ChiTietSanPham.css";
+
 .main-image-wrapper {
   position: relative;
   width: 100%;
@@ -386,7 +380,7 @@ onMounted(() => {
   transition: opacity 0.3s ease;
 }
 
-/* NÚT MŨI TÊN TRÁI PHẢI */
+/* NÚT MŨI TÊN TRÁI PHẢI THỦ CÔNG */
 .slider-arrow {
   position: absolute;
   top: 50%;
