@@ -10,7 +10,11 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "BaoHanh")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class BaoHanh {
 
     @Id
@@ -37,22 +41,24 @@ public class BaoHanh {
     private String moTaLoi;
 
     @Column(name = "TrangThai", length = 50, nullable = false)
-    private String trangThai; 
+    private String trangThai;
 
     @Column(name = "NgayGui", nullable = false, updatable = false)
     private LocalDateTime ngayGui;
 
     // Đã đổi sang kiểu String để khớp với NVARCHAR(100) dưới DB
     @Column(name = "ThoiGianHen", length = 100)
-    private String thoiGianHen; 
+    private String thoiGianHen;
 
-    // Đã gắn @Transient để Hibernate bỏ qua, tránh lỗi duplicated column
-    @Transient
-    private String thoiGianKhachMongMuon; 
+    // Bỏ @Transient đi để nó có thể nhận và truyền dữ liệu qua lại với Database
+    @Column(name = "ThoiGianKhachMongMuon", length = 100)
+    private String thoiGianKhachMongMuon;
 
     @PrePersist
     public void prePersist() {
-        if (this.ngayGui == null) this.ngayGui = LocalDateTime.now();
-        if (this.trangThai == null || this.trangThai.isBlank()) this.trangThai = "CHO_XU_LY";
+        if (this.ngayGui == null)
+            this.ngayGui = LocalDateTime.now();
+        if (this.trangThai == null || this.trangThai.isBlank())
+            this.trangThai = "CHO_XU_LY";
     }
 }
