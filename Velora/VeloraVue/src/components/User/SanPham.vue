@@ -5,12 +5,11 @@
     <main class="shop-content">
       <div class="container">
         <div class="title-wrapper">
-          <h1 class="page-title">VELORA</h1>
-          <div class="title-divider">
-            <span class="diamond">◆</span>
-          </div>
-          <p class="page-subtitle">Khám phá những tuyệt tác thời gian cơ khí chính xác có sẵn tại cửa hàng</p>
-        </div>
+                    <h1 class="page-title">SẢN PHẨM</h1>
+                    <div class="title-divider">
+                        <span class="diamond"></span>
+                    </div>
+                </div>
 
         <div class="filter-bar">
           <div class="custom-dropdown" :class="{ active: activeDropdown === 'price' }" @click="toggleDropdown('price')">
