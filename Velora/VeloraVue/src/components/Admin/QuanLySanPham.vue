@@ -198,7 +198,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>  
 </template>
 
 <script setup>
@@ -270,19 +270,21 @@ const filteredProducts = computed(() => {
     const query = searchQuery.value.toLowerCase().trim();
 
     return products.value.filter(product => {
-        // 1. Kiểm tra tìm kiếm theo tên hoặc ID (Nếu query trống thì mặc định là true)
-        const matchName = product.tenSanPham ? product.tenSanPham.toLowerCase().includes(query) : false;
-        const matchId = product.maSanPham ? String(product.maSanPham).includes(query) : false;
-        const matchSearch = !query || (matchName || matchId);
+        // Loại bỏ dấu # nếu người dùng lỡ gõ vào ô tìm kiếm (vd: gõ "#3" thành "3")
+        const cleanQuery = query.startsWith('#') ? query.slice(1) : query;
 
-        // 2. Các bộ lọc
+        // 1. Kiểm tra chính xác ID (Bằng tuyệt đối) hoặc tìm theo tên (Gần đúng)
+        const matchId = product.maSanPham != null && String(product.maSanPham) === cleanQuery;
+        const matchName = product.tenSanPham ? product.tenSanPham.toLowerCase().includes(query) : false;
+        
+        // Nếu người dùng nhập vào, ưu tiên khớp chính xác ID hoặc khớp tên
+        const matchSearch = !query || matchId || matchName;
+
+        // 2. Các bộ lọc danh mục, trạng thái, giới tính
         const matchDanhMuc = !filterDanhMuc.value || (product.danhMuc && product.danhMuc.maDanhMuc === Number(filterDanhMuc.value));
         const matchTrangThai = !filterTrangThai.value || product.trangThai === filterTrangThai.value;
-
-        // 3. Lọc theo giới tính
         const matchGioiTinh = !filterGioiTinh.value || product.gioiTinh === filterGioiTinh.value;
 
-        // 4. Kết quả cuối cùng: Phải thỏa mãn TẤT CẢ các điều kiện
         return matchSearch && matchDanhMuc && matchTrangThai && matchGioiTinh;
     });
 });
