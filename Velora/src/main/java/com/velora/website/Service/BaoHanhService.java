@@ -128,22 +128,19 @@ public class BaoHanhService {
     }
 
     @Transactional
-    public BaoHanh requestReschedule(Integer id, String thoiGianMongMuon) {
-        BaoHanh bh = repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu bảo hành ID: " + id));
-        
-        bh.setTrangThai(TRANG_THAI_YEU_CAU_DOI_LICH);
-        
-        // Cập nhật lại chuỗi thoiGianHen để lưu thẳng vào DB, giúp Admin thấy được yêu cầu của khách
-        if (thoiGianMongMuon != null && !thoiGianMongMuon.isBlank()) {
-            bh.setThoiGianHen("Khách yêu cầu đổi sang: " + thoiGianMongMuon);
-        }
-        
-        // Vẫn set vào biến ảo nếu sau này Frontend cần lấy data trực tiếp từ Object không qua DB
+public BaoHanh requestReschedule(Integer id, String thoiGianMongMuon) {
+    BaoHanh bh = repo.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu bảo hành ID: " + id));
+    
+    bh.setTrangThai(TRANG_THAI_YEU_CAU_DOI_LICH);
+    
+    if (thoiGianMongMuon != null && !thoiGianMongMuon.isBlank()) {
         bh.setThoiGianKhachMongMuon(thoiGianMongMuon);
-        
-        BaoHanh updated = repo.save(bh);
-        log.info("Khách hàng yêu cầu đổi lịch cho đơn bảo hành ID: {} với thời gian mong muốn: {}", id, thoiGianMongMuon);
-        return updated;
+        bh.setThoiGianHen(thoiGianMongMuon); // Đồng bộ luôn sang thoiGianHen nếu cần
     }
+    
+    BaoHanh updated = repo.save(bh);
+    log.info("Khách hàng yêu cầu đổi lịch cho đơn bảo hành ID: {} với thời gian mong muốn: {}", id, thoiGianMongMuon);
+    return updated;
+}
 }
