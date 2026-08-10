@@ -220,6 +220,172 @@
     color: #ff4444;
 }
 
+/* =================================================== */
+/* STYLES BỔ SUNG: DÀNH RIÊNG CHO TÍNH NĂNG LỊCH SỬ LỊCH HẸN */
+/* =================================================== */
+
+.appointment-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    border: 1px solid #e0e0e0;
+    background-color: #fdfdfd;
+    color: #555555;
+    padding: 8px 18px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+    background-color: #24201D;
+    color: #d1aa68;
+    border-color: #24201D;
+}
+
+.appointment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.appointment-card {
+    border: 1px solid #eeeeee;
+    border-left: 3px solid #d1aa68;
+    background-color: #ffffff;
+    padding: 25px;
+    transition: box-shadow 0.3s ease;
+}
+
+.appointment-card:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.appointment-id {
+    font-size: 13px;
+    font-weight: 600;
+    color: #24201D;
+    letter-spacing: 1px;
+}
+
+.status-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.badge-pending {
+    background-color: #fff9e6;
+    color: #b8860b;
+    border: 1px solid #ffe599;
+}
+
+.badge-confirmed {
+    background-color: #e8f4fd;
+    color: #1b6ec2;
+    border: 1px solid #b3d7ff;
+}
+
+.badge-completed {
+    background-color: #eafaf1;
+    color: #2b7a0b;
+    border: 1px solid #b7e4c7;
+}
+
+.badge-cancelled {
+    background-color: #fde8e8;
+    color: #ff4444;
+    border: 1px solid #f8b4b4;
+}
+
+.badge-default {
+    background-color: #f5f5f5;
+    color: #777777;
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: #555555;
+}
+
+.info-row i {
+    color: #d1aa68;
+    width: 16px;
+    text-align: center;
+}
+
+.info-row strong {
+    color: #24201D;
+}
+
+.card-footer {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #f0f0f0;
+    text-align: right;
+}
+
+.btn-cancel {
+    background-color: transparent;
+    border: 1px solid #ff4444;
+    color: #ff4444;
+    padding: 8px 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+    background-color: #ff4444;
+    color: #ffffff;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 0;
+    color: #aaaaaa;
+}
+
+.empty-state i {
+    font-size: 48px;
+    color: #d1aa68;
+    margin-bottom: 15px;
+}
+
+.empty-state p {
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
     .profile-layout {
@@ -229,5 +395,15 @@
     .profile-sidebar,
     .profile-form-section {
         width: 100%;
+    }
+
+    .appointment-filters {
+        gap: 8px;
+    }
+
+    .filter-btn {
+        flex: 1;
+        text-align: center;
+        padding: 8px 10px;
     }
 }

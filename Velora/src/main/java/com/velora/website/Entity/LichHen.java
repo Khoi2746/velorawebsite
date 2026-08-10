@@ -35,11 +35,14 @@ public class LichHen {
     @Column(name = "ghi_chu")
     private String ghiChu;
 
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_san_pham")
     private SanPham sanPham; 
 
     @Column(name = "trang_thai")
     private Integer trangThai = 0;
+
+    // Bổ sung thuộc tính lưu lý do hủy lịch hẹn
+    @Column(name = "ly_do_huy", columnDefinition = "NVARCHAR(500)")
+    private String lyDoHuy;
 }

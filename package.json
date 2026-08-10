@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@stomp/stompjs": "^7.3.0",
     "chart.js": "^4.5.1",
     "html2pdf.js": "^0.14.0",
     "router": "^2.2.0",
