@@ -1,8 +1,6 @@
 package com.velora.website.Controller;
 
 import com.velora.website.Entity.DonHang;
-import com.velora.website.Entity.DoanhThuNgay;
-import com.velora.website.Entity.DoanhThuThang;
 import com.velora.website.Repository.DonHangRepository;
 import com.velora.website.Repository.DoanhThuNgayRepository;
 import com.velora.website.Repository.DoanhThuThangRepository;
@@ -37,7 +35,6 @@ public class DonHangController {
     private final EmailService emailService; 
     private final SimpMessagingTemplate messagingTemplate;
     
-    // Tiêm 2 Repository thống kê trực tiếp vào Controller
     private final DoanhThuNgayRepository doanhThuNgayRepository;
     private final DoanhThuThangRepository doanhThuThangRepository;
 
@@ -165,19 +162,23 @@ public class DonHangController {
         String trangThaiCu = donHang.getTrangThaiDonHang();
         String thanhToanCu = donHang.getTrangThaiThanhToan();
 
-        // Kiểm tra xem trước đó đơn này đã được tính doanh thu chưa (Tránh cộng dồn 2 lần)
         boolean wasThanhCongTruocDo = "DA_GIAO".equalsIgnoreCase(trangThaiCu) 
                                    || "DA_THANH_TOAN".equalsIgnoreCase(thanhToanCu);
         
         // Cập nhật trạng thái mới
         donHang.setTrangThaiDonHang(trangThaiMoi);
 
+        // 🔥 Luôn lưu lý do vào database nếu có truyền lên (Rất quan trọng cho việc khách hàng gửi YEU_CAU_HUY)
+        if (lyDo != null && !lyDo.trim().isEmpty()) {
+            donHang.setLyDoHuyDon(lyDo.trim());
+        }
+
         if ("DA_HUY".equalsIgnoreCase(trangThaiMoi)) {
-            if (!"CHO_XU_LY".equalsIgnoreCase(trangThaiCu) && !"CHUAN_BI_HANG".equalsIgnoreCase(trangThaiCu)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Chỉ được hủy đơn hàng ở trạng thái Chờ xử lý hoặc Chuẩn bị hàng!");
-            }
-            if (lyDo != null && !lyDo.trim().isEmpty()) {
-                donHang.setLyDoHuyDon(lyDo.trim());
+            // 🔥 Bổ sung thêm "YEU_CAU_HUY" để Admin có thể duyệt hủy các đơn mà khách đã gửi yêu cầu
+            if (!"CHO_XU_LY".equalsIgnoreCase(trangThaiCu) 
+                && !"CHUAN_BI_HANG".equalsIgnoreCase(trangThaiCu) 
+                && !"YEU_CAU_HUY".equalsIgnoreCase(trangThaiCu)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Chỉ được hủy đơn hàng ở trạng thái Chờ xử lý, Chuẩn bị hàng hoặc Đang chờ duyệt hủy!");
             }
         }
 
@@ -194,10 +195,7 @@ public class DonHangController {
         boolean isThanhToanXong = "DA_THANH_TOAN".equalsIgnoreCase(updatedDonHang.getTrangThaiThanhToan());
 
         if ((isGiaoThanhCong || isThanhToanXong) && !wasThanhCongTruocDo) {
-            // 1. Bơm tiền vào bảng DoanhThuNgay và DoanhThuThang
             capNhatBangThongKe(updatedDonHang);
-
-            // 2. Phát sóng WebSocket báo hiệu cho trang Admin vẽ lại biểu đồ
             System.out.println("🔥 Controller: Đã chốt sổ doanh thu đơn #" + updatedDonHang.getMaDonHangCode() + " và phát sóng WebSocket!");
             messagingTemplate.convertAndSend("/topic/statistics", "UPDATE_STATS");
         }
@@ -299,27 +297,52 @@ public class DonHangController {
         int nam = ngayHienTai.getYear();
 
         BigDecimal tienDonHang = donHang.getTongTien();
-        int soLuongSp = 1; 
+        
+        // 🔥 LOGIC MỚI: Lấy danh sách tên sản phẩm trong đơn hàng
+        int soLuongSp = 0;
+        StringBuilder tenCacSanPham = new StringBuilder();
+        
+        if (donHang.getChiTietDonHangs() != null) {
+            for (com.velora.website.Entity.ChiTietDonHang ct : donHang.getChiTietDonHangs()) {
+                soLuongSp += ct.getSoLuong();
+                if (ct.getSanPham() != null) {
+                    // Cộng dồn tên sản phẩm vào chuỗi (Cách nhau bằng dấu phẩy)
+                    if (tenCacSanPham.length() > 0) tenCacSanPham.append(", ");
+                    tenCacSanPham.append(ct.getSanPham().getTenSanPham()).append(" (x").append(ct.getSoLuong()).append(")");
+                }
+            }
+        }
+        if (soLuongSp == 0) soLuongSp = 1; // Fallback an toàn
 
-        // 1. Xử lý DoanhThuNgay bằng câu lệnh truy vấn chính xác
-        DoanhThuNgay dtNgay = doanhThuNgayRepository.findByNgayChinhXac(ngayHienTai);
+        // 1. CẬP NHẬT DOANH THU NGÀY
+        com.velora.website.Entity.DoanhThuNgay dtNgay = doanhThuNgayRepository.findByNgayChinhXac(ngayHienTai);
         if (dtNgay == null) {
-            dtNgay = new DoanhThuNgay();
+            dtNgay = new com.velora.website.Entity.DoanhThuNgay();
             dtNgay.setNgay(ngayHienTai);
             dtNgay.setTongDoanhThu(BigDecimal.ZERO);
             dtNgay.setSoDonHangThanhCong(0);
             dtNgay.setSoSanPhamBanRa(0);
+            dtNgay.setDanhSachSanPham("");
         }
         
         dtNgay.setTongDoanhThu(dtNgay.getTongDoanhThu().add(tienDonHang));
         dtNgay.setSoDonHangThanhCong(dtNgay.getSoDonHangThanhCong() + 1);
         dtNgay.setSoSanPhamBanRa(dtNgay.getSoSanPhamBanRa() + soLuongSp);
-        doanhThuNgayRepository.save(dtNgay); // Bây giờ lệnh save này sẽ Update thay vì Insert lỗi trùng khóa!
+        
+        // Nối tên sản phẩm mới bán vào danh sách cũ của ngày hôm đó
+        String dsCu = dtNgay.getDanhSachSanPham() != null ? dtNgay.getDanhSachSanPham() : "";
+        if (dsCu.isEmpty()) {
+            dtNgay.setDanhSachSanPham(tenCacSanPham.toString());
+        } else {
+            dtNgay.setDanhSachSanPham(dsCu + ", " + tenCacSanPham.toString());
+        }
+        
+        doanhThuNgayRepository.save(dtNgay);
 
-        // 2. Xử lý DoanhThuThang bằng câu lệnh truy vấn chính xác
-        DoanhThuThang dtThang = doanhThuThangRepository.findByThangVaNamChinhXac(thang, nam);
+        // 2. CẬP NHẬT DOANH THU THÁNG (Giữ nguyên)
+        com.velora.website.Entity.DoanhThuThang dtThang = doanhThuThangRepository.findByThangVaNamChinhXac(thang, nam);
         if (dtThang == null) {
-            dtThang = new DoanhThuThang();
+            dtThang = new com.velora.website.Entity.DoanhThuThang();
             dtThang.setThang(thang);
             dtThang.setNam(nam);
             dtThang.setTongDoanhThu(BigDecimal.ZERO);

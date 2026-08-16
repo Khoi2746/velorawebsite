@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @Table(name = "DoanhThuNgay")
 @Data
 public class DoanhThuNgay {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "MaDoanhThuNgay")
@@ -27,6 +28,20 @@ public class DoanhThuNgay {
     @Column(name = "SoSanPhamBanRa")
     private Integer soSanPhamBanRa;
 
+    // 🔥 ĐÚNG CHỖ RỒI ĐÂY: Lưu chuỗi tên các sản phẩm bán được trong ngày
+    @Column(name = "DanhSachSanPham", columnDefinition = "NVARCHAR(MAX)")
+    private String danhSachSanPham;
+
     @Column(name = "NgayCapNhat")
     private LocalDateTime ngayCapNhat;
+
+    @PrePersist
+    protected void onCreate() {
+        this.ngayCapNhat = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.ngayCapNhat = LocalDateTime.now();
+    }
 }

@@ -212,21 +212,14 @@ import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, Li
 import { Bar, Line } from 'vue-chartjs';
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
-
-// IMPORT THƯ VIỆN WEBSOCKET
 import SockJS from 'sockjs-client/dist/sockjs';
 import { Stomp } from '@stomp/stompjs';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement, Filler);
 
-// ================= LOGIC ĐIỀU KHIỂN LAYOUT CHUNG =================
 const isCollapsed = ref(false);
+const toggleSidebar = () => { isCollapsed.value = !isCollapsed.value; };
 
-const toggleSidebar = () => {
-    isCollapsed.value = !isCollapsed.value;
-};
-
-// ================= LOGIC DỮ LIỆU CŨ =================
 const userName = ref('Admin');
 const showExportMenu = ref(false);
 const printMode = ref('month');
@@ -242,29 +235,23 @@ const formatPrice = (value) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
-const toggleExportMenu = () => {
-    showExportMenu.value = !showExportMenu.value;
-};
-
+const toggleExportMenu = () => { showExportMenu.value = !showExportMenu.value; };
 const triggerPrint = (mode) => {
-    printMode.value = mode;
-    showExportMenu.value = false;
-    setTimeout(() => {
-        window.print();
-    }, 100);
+    printMode.value = mode; showExportMenu.value = false;
+    setTimeout(() => { window.print(); }, 100);
 };
 
 const selectedDailyMonth = ref(`${yyyy}-${mm}`);
 const selectedYear = ref(yyyy);
-const currentDisplayMonth = computed(() => {
-    const [year, month] = selectedDailyMonth.value.split('-');
-    return `${month}/${year}`;
-});
+const currentDisplayMonth = computed(() => { const [year, month] = selectedDailyMonth.value.split('-'); return `${month}/${year}`; });
 
 const dailyChartData = ref(null);
 const monthlyChartData = ref(null);
 const dailyReportData = ref([]);
 const reportProductStats = ref([]); 
+
+// 🔥 MẢNG LƯU TRỮ TÊN SẢN PHẨM THEO NGÀY ĐỂ TRUYỀN VÀO CHART
+const rawDailyProductsList = ref([]);
 
 const calculatedMonthlyRevenue = computed(() => dailyReportData.value.reduce((total, item) => total + Number(item.doanhThu), 0));
 const calculatedTotalOrders = computed(() => dailyReportData.value.reduce((total, item) => total + Number(item.soDonHang), 0));
@@ -274,27 +261,53 @@ const yearlyTotalRevenue = ref(0);
 const yearlyTotalOrders = ref(0);
 const yearlyTotalProducts = ref(0);
 
+// ==========================================================
+// 🔥 CẤU HÌNH BIỂU ĐỒ (HIỂN THỊ TÊN SẢN PHẨM TRONG TOOLTIP)
+// ==========================================================
 const chartOptions = {
-    responsive: true, maintainAspectRatio: false,
+    responsive: true, 
+    maintainAspectRatio: false,
     plugins: {
         legend: { position: 'top' },
-        tooltip: { callbacks: { label: function (c) { let l = c.dataset.label || ''; if (l) l += ': '; if (c.parsed.y !== null) l += formatPrice(c.parsed.y); return l; } } }
+        tooltip: { 
+            callbacks: { 
+                label: function (c) { 
+                    let l = c.dataset.label || ''; 
+                    if (l) l += ': '; 
+                    if (c.parsed.y !== null) l += formatPrice(c.parsed.y); 
+                    return l; 
+                },
+                // HÀM MỚI: Vẽ thêm dòng chữ tên các sản phẩm bán được dưới số tiền
+                afterBody: function(context) {
+                    // Chỉ hiển thị ở biểu đồ Cột (Doanh thu ngày)
+                    if (context[0].dataset.label && context[0].dataset.label.includes('Ngày')) {
+                        const dataIndex = context[0].dataIndex;
+                        const productNames = rawDailyProductsList.value[dataIndex];
+                        if (productNames && productNames.trim() !== '') {
+                            // Cắt chuỗi để xuống dòng cho đẹp nếu quá dài
+                            const lines = productNames.split(', ');
+                            return ['\nĐã bán các SP:', ...lines.map(sp => `• ${sp}`)];
+                        } else {
+                            return ['\nKhông có chi tiết sản phẩm'];
+                        }
+                    }
+                    return null;
+                }
+            } 
+        }
     },
     scales: { y: { beginAtZero: true, ticks: { callback: function (value) { return value / 1000000 + ' Tr'; } } } }
 };
 
 const updateReportProductStats = (totalRevenue) => {
-    if (totalRevenue === 0) {
-        reportProductStats.value = [];
-    } else {
-        reportProductStats.value = [
+    if (totalRevenue === 0) reportProductStats.value = [];
+    else reportProductStats.value = [
             { id: 1, tenSanPham: 'Velora Noir Starlight (Automatic / Dây da)', soLuong: 58, doanhThu: 1073000000 },
             { id: 2, tenSanPham: 'Rolex Daytona Cosmograph (Automatic / Thép)', soLuong: 3, doanhThu: 1350000000 },
             { id: 3, tenSanPham: 'Hublot Classic Fusion (Automatic / Cao su)', soLuong: 8, doanhThu: 1440000000 },
             { id: 4, tenSanPham: 'Velora Da Galuchat (Automatic / Cá đuối)', soLuong: 42, doanhThu: 630000000 },
             { id: 5, tenSanPham: 'Patek Philippe Nautilus (Automatic / Thép)', soLuong: 1, doanhThu: 1500000000 }
         ];
-    }
 };
 
 const loadDailyChartData = async () => {
@@ -306,6 +319,9 @@ const loadDailyChartData = async () => {
             const dataDB = await res.json();
             const labels = dataDB.map(row => { const d = new Date(row.ngay); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`; });
             const dataValues = dataDB.map(row => row.tongDoanhThu);
+            
+            // 🔥 Lưu lại cái chuỗi danh sách sản phẩm lấy từ DB
+            rawDailyProductsList.value = dataDB.map(row => row.danhSachSanPham || '');
 
             dailyChartData.value = { labels: labels, datasets: [{ label: `Doanh thu Ngày trong tháng ${month} (VNĐ)`, backgroundColor: '#d1aa68', borderRadius: 4, data: dataValues }] };
             dailyReportData.value = dataDB.map(row => {
@@ -314,21 +330,7 @@ const loadDailyChartData = async () => {
             });
         } else throw new Error();
     } catch (error) {
-        // Mock data nếu rớt mạng / lỗi API
-        const dataMockDB = [
-            { ngay: '2026-06-17', tongDoanhThu: 45000000, soDonHangThanhCong: 3, soSanPhamBanRa: 4 },
-            { ngay: '2026-06-18', tongDoanhThu: 180000000, soDonHangThanhCong: 1, soSanPhamBanRa: 1 },
-            { ngay: '2026-06-19', tongDoanhThu: 33500000, soDonHangThanhCong: 2, soSanPhamBanRa: 2 },
-            { ngay: '2026-06-20', tongDoanhThu: 85000000, soDonHangThanhCong: 4, soSanPhamBanRa: 5 },
-            { ngay: '2026-06-21', tongDoanhThu: 125000000, soDonHangThanhCong: 3, soSanPhamBanRa: 3 },
-            { ngay: '2026-06-22', tongDoanhThu: 0, soDonHangThanhCong: 0, soSanPhamBanRa: 0 },
-            { ngay: '2026-06-23', tongDoanhThu: 450000000, soDonHangThanhCong: 1, soSanPhamBanRa: 1 }
-        ];
-        dailyChartData.value = { labels: ['17/06', '18/06', '19/06', '20/06', '21/06', '22/06', '23/06'], datasets: [{ label: 'Doanh thu (VNĐ)', backgroundColor: '#d1aa68', borderRadius: 4, data: dataMockDB.map(d => d.tongDoanhThu) }] };
-        dailyReportData.value = dataMockDB.map(row => {
-            const d = new Date(row.ngay);
-            return { ngay: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`, doanhThu: row.tongDoanhThu, soDonHang: row.soDonHangThanhCong, soSanPham: row.soSanPhamBanRa };
-        });
+        console.error("Lỗi tải biểu đồ ngày", error);
     }
 };
 
@@ -353,13 +355,7 @@ const loadMonthlyChartData = async () => {
             monthlyChartData.value = { labels: labels, datasets: [{ label: `Biến động doanh thu năm ${selectedYear.value} (VNĐ)`, borderColor: '#3e332e', backgroundColor: 'rgba(209, 170, 104, 0.2)', borderWidth: 2, pointBackgroundColor: '#d1aa68', fill: true, tension: 0.3, data: dataValues }] };
         } else throw new Error();
     } catch (error) {
-        // Mock data
-        const labelsMock = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7'];
-        const dataMock = [1255000000, 850000000, 460000000, 470000000, 1150000000, 918500000, 0];
-        monthlyChartData.value = { labels: labelsMock, datasets: [{ label: 'Biến động doanh thu (VNĐ)', borderColor: '#3e332e', backgroundColor: 'rgba(209, 170, 104, 0.2)', borderWidth: 2, pointBackgroundColor: '#d1aa68', fill: true, tension: 0.3, data: dataMock }] };
-
-        yearlyTotalRevenue.value = 5993000000; yearlyTotalOrders.value = 145; yearlyTotalProducts.value = 168;
-        updateReportProductStats(5993000000);
+        console.error("Lỗi tải biểu đồ tháng", error);
     }
 };
 
@@ -369,33 +365,19 @@ let stompClient = null;
 const connectWebSocket = () => {
     const socket = new SockJS('http://localhost:8080/ws-chat');
     stompClient = Stomp.over(socket);
-    
-    // Tắt log debug cho console đỡ rối
     stompClient.debug = () => {};
 
     stompClient.connect({}, (frame) => {
-        console.log('✅ Đã kết nối hệ thống Real-time: ' + frame);
-        
         stompClient.subscribe('/topic/statistics', (message) => {
             if (message.body === 'UPDATE_STATS') {
-                console.log("🔥 Đơn hàng mới! Chờ Backend chốt sổ nửa giây rồi cập nhật số liệu...");
-                
-                setTimeout(() => {
-                    loadDailyChartData();
-                    loadMonthlyChartData();
-                }, 500); 
+                setTimeout(() => { loadDailyChartData(); loadMonthlyChartData(); }, 500); 
             }
         });
-    }, (error) => {
-        console.error('Lỗi kết nối WebSocket:', error);
     });
 };
 
 const disconnectWebSocket = () => {
-    if (stompClient !== null) {
-        stompClient.disconnect();
-        console.log("Đã ngắt kết nối hệ thống Real-time.");
-    }
+    if (stompClient !== null) stompClient.disconnect();
 };
 
 onMounted(() => {
@@ -404,19 +386,10 @@ onMounted(() => {
         const userObj = JSON.parse(userStr);
         userName.value = userObj.hoTen || 'Quản trị viên';
     }
-    
-    // Tải dữ liệu ban đầu
-    loadDailyChartData();
-    loadMonthlyChartData();
-
-    // Kết nối WebSocket
-    connectWebSocket();
+    loadDailyChartData(); loadMonthlyChartData(); connectWebSocket();
 });
 
-onUnmounted(() => {
-    // Ngắt kết nối khi rời khỏi trang Thống kê
-    disconnectWebSocket();
-});
+onUnmounted(() => { disconnectWebSocket(); });
 </script>
 
 <style>

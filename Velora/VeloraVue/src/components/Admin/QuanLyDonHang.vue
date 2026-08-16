@@ -123,11 +123,11 @@
           </div>
           <div class="modal-body">
             
-            <!-- HIỂN THỊ LÝ DO HỦY ĐƠN NẾU ĐƠN ĐÃ BỊ HỦY -->
-            <div v-if="selectedOrder?.trangThaiDonHang === 'DA_HUY'" class="cancel-reason-box" style="background: #fdf2f2; border: 1px solid #f8d7da; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-              <h4 style="color: #dc3545; margin: 0 0 5px 0;"><i class="fa-solid fa-triangle-exclamation"></i> Thông Tin Hủy Đơn</h4>
+            <!-- HIỂN THỊ LÝ DO HỦY ĐƠN TỪ KHÁCH HÀNG NẾU Ở TRẠNG THÁI ĐÃ HỦY HOẶC YÊU CẦU HỦY -->
+            <div v-if="selectedOrder?.trangThaiDonHang === 'DA_HUY' || selectedOrder?.trangThaiDonHang === 'YEU_CAU_HUY'" class="cancel-reason-box" style="background: #fdf2f2; border: 1px solid #f8d7da; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+              <h4 style="color: #dc3545; margin: 0 0 5px 0;"><i class="fa-solid fa-triangle-exclamation"></i> Thông Tin Hủy Đơn Từ Khách Hàng</h4>
               <p style="margin: 0; color: #721c24; font-size: 14px;">
-                <strong>Lý do hủy từ khách hàng:</strong> {{ selectedOrder?.lyDoHuyDon || 'Không có lý do cụ thể' }}
+                <strong>Lý do chi tiết:</strong> {{ selectedOrder?.lyDoHuyDon && selectedOrder.lyDoHuyDon.trim() !== '' ? selectedOrder.lyDoHuyDon : 'Khách hàng không cung cấp lý do cụ thể' }}
               </p>
             </div>
 
@@ -175,7 +175,7 @@
         </div>
       </div>
 
-      <!-- MODAL XÁC NHẬN HỦY ĐƠN (DÀNH CHO ADMIN NẾU CẦN) -->
+      <!-- MODAL XÁC NHẬN HỦY ĐƠN (DÀNH CHO ADMIN CHỦ ĐỘNG HỦY NẾU CẦN) -->
       <div class="modal-overlay" v-if="showCancelModal" @click.self="closeCancelModal">
         <div class="modal-box" style="width: 500px;">
           <div class="modal-header">
@@ -233,13 +233,18 @@ import { ref, onMounted, computed } from 'vue';
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
+// 🔥 IMPORT THƯ VIỆN WEBSOCKET
+import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
+
 // CẤU HÌNH TRUNG TÂM TRẠNG THÁI
 const ORDER_STATUSES = {
   'CHO_XU_LY': { label: 'Chờ Xử Lý', cssClass: 'status-pending' },
   'CHUAN_BI_HANG': { label: 'Chuẩn Bị Hàng', cssClass: 'status-preparing' },
   'DANG_GIAO': { label: 'Đang Giao', cssClass: 'status-shipping' },
   'DA_GIAO': { label: 'Đã Giao', cssClass: 'status-delivered' },
-  'DA_HUY': { label: 'Đã Hủy', cssClass: 'status-canceled' }
+  'DA_HUY': { label: 'Đã Hủy', cssClass: 'status-canceled' },
+  'YEU_CAU_HUY': { label: 'Đang Chờ Duyệt Hủy', cssClass: 'status-pending' }
 };
 
 const ORDER_ACTIONS_MAP = {
@@ -263,6 +268,11 @@ const ORDER_ACTIONS_MAP = {
   ],
   'DA_HUY': [
     { value: 'VIEW', label: 'Xem chi tiết', isDanger: false }
+  ],
+  'YEU_CAU_HUY': [
+    { value: 'VIEW', label: 'Xem chi tiết', isDanger: false },
+    { value: 'APPROVE_CANCEL', label: 'Đồng ý hủy đơn', isDanger: true },
+    { value: 'REJECT_CANCEL', label: 'Từ chối hủy (Tiếp tục giao)', isDanger: false }
   ]
 };
 
@@ -367,6 +377,24 @@ const loadOrders = async () => {
   }
 };
 
+// 🔥 HÀM WEBSOCKET LẮNG NGHE ĐƠN HÀNG THAY ĐỔI
+const connectWebSocket = () => {
+  const socket = new SockJS('http://localhost:8080/ws'); 
+  const stompClient = new Client({
+    webSocketFactory: () => socket,
+    reconnectDelay: 5000,
+    onConnect: () => {
+      console.log('⚡ Admin: Đã kết nối WebSocket Đơn Hàng!');
+      stompClient.subscribe('/topic/orders', (message) => {
+        if (message.body === 'RELOAD_ORDERS') {
+          loadOrders(); // Khách hàng tác động -> Admin tự load lại
+        }
+      });
+    }
+  });
+  stompClient.activate();
+};
+
 const handleActionSelect = (order, event) => {
   const selectedAction = event.target.value;
   if (!selectedAction) return;
@@ -388,6 +416,16 @@ const handleActionSelect = (order, event) => {
       orderToCancel.value = order;
       cancelReason.value = '';
       showCancelModal.value = true;
+      break;
+    case 'APPROVE_CANCEL':
+      if (confirm(`Xác nhận đồng ý hủy đơn hàng #${order.maDonHangCode}?`)) {
+        changeOrderStatus(order.maDonHang, 'DA_HUY');
+      }
+      break;
+    case 'REJECT_CANCEL':
+      if (confirm(`Từ chối yêu cầu hủy và đưa đơn hàng #${order.maDonHangCode} về lại trạng thái Chờ xử lý?`)) {
+        changeOrderStatus(order.maDonHang, 'CHO_XU_LY');
+      }
       break;
   }
   event.target.value = "";
@@ -471,7 +509,10 @@ const changePaymentMethod = async (orderId, newMethod) => {
   }
 };
 
-onMounted(() => { loadOrders(); });
+onMounted(() => { 
+  loadOrders(); 
+  connectWebSocket(); // 🔥 BẬT ĂNG-TEN KHI VÀO TRANG ADMIN
+});
 </script>
 
 <style>

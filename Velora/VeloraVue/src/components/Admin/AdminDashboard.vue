@@ -64,11 +64,13 @@
         <!-- HÀNG 2: BIỂU ĐỒ DOANH THU TUẦN -->
         <section class="box mt-4" style="margin-bottom: 24px;">
           <div class="box-header">
-            <h3><i class="fa-solid fa-chart-bar" style="color: var(--gold-matte); margin-right: 8px;"></i> Biểu Đồ Doanh Thu 7 Ngày Gần Nhất</h3>
+            <h3><i class="fa-solid fa-chart-bar" style="color: var(--gold-matte); margin-right: 8px;"></i> Biểu Đồ Doanh
+              Thu 7 Ngày Gần Nhất</h3>
           </div>
           <div class="chart-container" style="height: 300px; position: relative;">
             <Bar v-if="chartData" :data="chartData" :options="chartOptions" />
-            <div v-else class="empty-chart" style="text-align: center; padding: 50px; color: #888;">Đang tải dữ liệu biểu đồ từ máy chủ...</div>
+            <div v-else class="empty-chart" style="text-align: center; padding: 50px; color: #888;">Đang tải dữ liệu
+              biểu đồ từ máy chủ...</div>
           </div>
         </section>
 
@@ -102,7 +104,8 @@
                     </td>
                   </tr>
                   <tr v-if="recentOrders.length === 0">
-                    <td colspan="4" style="text-align: center; padding: 20px; color: #888;">Chưa có đơn hàng nào trong hệ thống.</td>
+                    <td colspan="4" style="text-align: center; padding: 20px; color: #888;">Chưa có đơn hàng nào trong
+                      hệ thống.</td>
                   </tr>
                 </tbody>
               </table>
@@ -137,7 +140,7 @@ import { Bar } from 'vue-chartjs';
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
 // Gọi Component
-import AdminSidebar from './AdminSidebar.vue'; 
+import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
 const isCollapsed = ref(false);
@@ -187,10 +190,10 @@ const formatPrice = (value) => {
 // Phân quyền truy cập nhanh
 const userRole = computed(() => {
   try {
-    const userStr = localStorage.getItem('user'); 
+    const userStr = localStorage.getItem('user');
     if (userStr && userStr !== 'undefined') {
       const user = JSON.parse(userStr);
-      return user?.vaiTro || ''; 
+      return user?.vaiTro || '';
     }
   } catch (e) {
     console.error("Lỗi parse user từ localStorage:", e);
@@ -245,7 +248,7 @@ const fetchDashboardData = async () => {
       stats.value.tongDoanhThu = orders
         .filter(o => o.trangThaiDonHang === 'DA_GIAO')
         .reduce((sum, o) => sum + (o.tongTien || 0), 0);
-      
+
       // Lấy 5 đơn mới nhất
       recentOrders.value = orders.slice(0, 5);
     }
@@ -332,19 +335,19 @@ onMounted(() => {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.content-wrapper { 
-  flex: 1; 
-  min-width: 0; 
-  display: flex; 
-  flex-direction: column; 
+.content-wrapper {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
   background-color: var(--bg-page);
 }
 
-.content { 
+.content {
   flex: 1;
-  padding: 30px; 
+  padding: 30px;
   color: var(--text-main);
   width: 100%;
   box-sizing: border-box;
@@ -355,37 +358,65 @@ onMounted(() => {
   width: 100%;
 }
 
-.content-header h1 { 
-  font-size: 26px; 
-  font-weight: bold; 
-  color: var(--wood-dark); 
-  margin: 0 0 5px 0; 
+.content-header h1 {
+  font-size: 26px;
+  font-weight: bold;
+  color: var(--wood-dark);
+  margin: 0 0 5px 0;
 }
 
-.content-header .sub-title { 
-  font-size: 14px; 
-  color: var(--text-muted); 
-  margin: 0; 
+.content-header .sub-title {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
 }
 
-.gold-text { color: var(--gold-matte); }
-.fw-bold { font-weight: bold; }
-.mt-4 { margin-top: 24px; }
+.gold-text {
+  color: var(--gold-matte);
+}
 
-.box { 
-  background: #fff; 
-  border: 1px solid var(--border-light); 
-  border-radius: 12px; 
+.fw-bold {
+  font-weight: bold;
+}
+
+.mt-4 {
+  margin-top: 24px;
+}
+
+.box {
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
   padding: 20px;
   width: 100%;
   box-sizing: border-box;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
-.box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.box-header h3 { font-size: 18px; color: var(--wood-dark); font-weight: 600; margin: 0; }
-.view-all { color: var(--gold-matte); text-decoration: none; font-size: 14px; font-weight: 500; }
-.view-all:hover { text-decoration: underline; }
+.box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.box-header h3 {
+  font-size: 18px;
+  color: var(--wood-dark);
+  font-weight: 600;
+  margin: 0;
+}
+
+.view-all {
+  color: var(--gold-matte);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.view-all:hover {
+  text-decoration: underline;
+}
 
 /* METRICS CARDS */
 .metrics-grid {
@@ -403,7 +434,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   width: 100%;
   box-sizing: border-box;
@@ -411,7 +442,7 @@ onMounted(() => {
 
 .metric-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .metric-icon {
@@ -431,12 +462,37 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.metric-title { font-size: 14px; color: #6b7280; margin: 0 0 5px 0; font-weight: 500; white-space: nowrap; }
-.metric-value { font-size: 22px; color: var(--wood-dark); margin: 0 0 5px 0; font-weight: 700; }
-.metric-trend { font-size: 12px; font-weight: 500; }
-.metric-trend.positive { color: #52c41a; }
-.metric-trend.negative { color: #f5222d; }
-.metric-trend.neutral { color: #8c8c8c; }
+.metric-title {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 5px 0;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.metric-value {
+  font-size: 22px;
+  color: var(--wood-dark);
+  margin: 0 0 5px 0;
+  font-weight: 700;
+}
+
+.metric-trend {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.metric-trend.positive {
+  color: #52c41a;
+}
+
+.metric-trend.negative {
+  color: #f5222d;
+}
+
+.metric-trend.neutral {
+  color: #8c8c8c;
+}
 
 /* HÀNG DƯỚI: BẢNG & TRUY CẬP NHANH */
 .dashboard-bottom-grid {
@@ -457,25 +513,98 @@ onMounted(() => {
   overflow-x: auto;
 }
 
-.dashboard-table { width: 100%; border-collapse: collapse; min-width: 450px; }
-.dashboard-table th { text-align: left; padding: 12px; color: #6b7280; font-weight: 600; font-size: 13px; border-bottom: 2px solid var(--border-light); white-space: nowrap; }
-.dashboard-table td { padding: 14px 12px; font-size: 14px; color: var(--text-main); border-bottom: 1px solid var(--border-light); }
-.dashboard-table tbody tr:hover { background-color: #faf9f6; }
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 450px;
+}
 
-.badge-status { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-.status-pending { background-color: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
-.status-processing { background-color: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
-.status-success { background-color: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
-.status-danger { background-color: #fff1f0; color: #f5222d; border: 1px solid #ffa39e; }
+.dashboard-table th {
+  text-align: left;
+  padding: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 2px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.dashboard-table td {
+  padding: 14px 12px;
+  font-size: 14px;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.dashboard-table tbody tr:hover {
+  background-color: #faf9f6;
+}
+
+.badge-status {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pending {
+  background-color: #fffbe6;
+  color: #faad14;
+  border: 1px solid #ffe58f;
+}
+
+.status-processing {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border: 1px solid #91d5ff;
+}
+
+.status-success {
+  background-color: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.status-danger {
+  background-color: #fff1f0;
+  color: #f5222d;
+  border: 1px solid #ffa39e;
+}
 
 /* Quick Links Box */
-.quick-links { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
-.quick-link-item { 
-  display: flex; flex-direction: column; align-items: center; justify-content: center; 
-  padding: 15px; border: 1px solid var(--border-light); border-radius: 8px; 
-  text-decoration: none; color: var(--text-main); font-weight: 500; transition: all 0.2s ease;
-  background-color: #faf9f6; text-align: center;
+.quick-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
 }
-.quick-link-item i { font-size: 24px; color: var(--gold-matte); margin-bottom: 10px; }
-.quick-link-item:hover { background-color: var(--wood-dark); color: #fff; border-color: var(--wood-dark); }
+
+.quick-link-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text-main);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background-color: #faf9f6;
+  text-align: center;
+}
+
+.quick-link-item i {
+  font-size: 24px;
+  color: var(--gold-matte);
+  margin-bottom: 10px;
+}
+
+.quick-link-item:hover {
+  background-color: var(--wood-dark);
+  color: #fff;
+  border-color: var(--wood-dark);
+}
 </style>

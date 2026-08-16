@@ -1,9 +1,14 @@
 package com.velora.website.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties; 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List; 
 
 @Entity
 @Table(name = "DonHang")
@@ -30,7 +35,6 @@ public class DonHang {
     @Column(name = "SoDienThoaiGiaoHang")
     private String soDienThoaiGiaoHang;
 
-    // 🔥 BỔ SUNG: Trường Email lưu gmail đặt hàng của khách
     @Column(name = "Email")
     private String email;
 
@@ -57,6 +61,15 @@ public class DonHang {
 
     @Column(name = "NgayCapNhat")
     private LocalDateTime ngayCapNhat;
+
+    // ======================================================================
+    // 🔥 ĐOẠN CODE THÊM VÀO ĐỂ KÉO DANH SÁCH SẢN PHẨM KHÁCH MUA LÊN VUEJS
+    // ======================================================================
+    @OneToMany(mappedBy = "donHang", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JsonIgnoreProperties("donHang") 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<ChiTietDonHang> chiTietDonHangs;
 
     @PrePersist
     protected void onCreate() {
