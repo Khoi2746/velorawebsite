@@ -1,9 +1,10 @@
 package com.velora.website.Repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-// Thêm dòng import này để Java nhận diện được class LichHen
 import com.velora.website.Entity.LichHen;
+import java.util.List;
 
 public interface LichHenRepository extends JpaRepository<LichHen, Integer> {
-    // Có thể thêm các hàm tìm kiếm theo trạng thái, theo user (nếu cần)
+    // Bổ sung hàm tìm danh sách lịch hẹn theo Email của người dùng
+    List<LichHen> findByEmail(String email);
 }
