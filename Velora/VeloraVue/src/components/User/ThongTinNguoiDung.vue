@@ -20,16 +20,16 @@
 
           <nav class="profile-menu">
             <a href="#" :class="{ active: activeTab === 'profile' }" @click.prevent="switchTab('profile')">
-              <i class="fas fa-user-shield"></i> Hồ sơ của tôi
+              <i class="fas fa-user-shield fa-fw"></i> Hồ sơ của tôi
             </a>
             <a href="#" :class="{ active: activeTab === 'history' }" @click.prevent="switchTab('history')">
-              <i class="fas fa-box-open"></i> Lịch sử đơn hàng
+              <i class="fas fa-box-open fa-fw"></i> Lịch sử đơn hàng
             </a>
             <a href="#" :class="{ active: activeTab === 'appointments' }" @click.prevent="switchTab('appointments')">
-              <i class="fas fa-calendar-check"></i> Lịch sử lịch hẹn
+              <i class="fas fa-calendar-check fa-fw"></i> Lịch sử lịch hẹn
             </a>
             <a href="#" class="logout-link" @click.prevent="handleLogout">
-              <i class="fas fa-sign-out-alt"></i> Đăng xuất
+              <i class="fas fa-sign-out-alt fa-fw"></i> Đăng xuất
             </a>
           </nav>
         </aside>
@@ -390,8 +390,23 @@ const formatDateTime = (dateStr) => {
 .role-text { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
 
 .profile-menu { display: flex; flex-direction: column; margin-top: 10px; }
-.profile-menu a { padding: 15px 30px; color: #555; text-decoration: none; font-size: 14px; transition: 0.2s; border-left: 3px solid transparent; display: flex; align-items: center; gap: 10px;}
-.profile-menu a:hover { color: #cca15e; background: #fdfbf7; }
+.profile-menu a { 
+  padding: 15px 30px; 
+  color: #555; 
+  text-decoration: none; 
+  font-size: 14px; 
+  transition: 0.2s; 
+  border-left: 3px solid transparent; 
+  display: flex; 
+  align-items: center; 
+  gap: 10px;
+}
+
+/* 🔥 THÊM ĐOẠN NÀY ĐỂ ÉP ĐỘ RỘNG ICON CỐ ĐỊNH LÀ 24PX */
+.profile-menu a i {
+  width: 24px;
+  text-align: center;
+}
 .profile-menu a.active { color: #cca15e; font-weight: 600; border-left-color: #cca15e; background: #fdfbf7; }
 .logout-link { color: #dc2626 !important; }
 
