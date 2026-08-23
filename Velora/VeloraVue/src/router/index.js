@@ -100,6 +100,7 @@ const router = createRouter({
 })
 
 // ================== HỆ THỐNG KIỂM SOÁT REAL-TIME ==================
+// ================== HỆ THỐNG KIỂM SOÁT REAL-TIME CHUẨN SESSION BACKEND ==================
 router.beforeEach(async (to, from, next) => {
   // 🔥 Dọn sạch ký hiệu #_=_ hoặc _=_ do Facebook tự động gắn vào URL ngay khi router quét qua
   if (window.location.hash.includes('_=_') || window.location.href.includes('_=_')) {
@@ -107,33 +108,48 @@ router.beforeEach(async (to, from, next) => {
     window.history.replaceState({}, document.title, cleanUrl);
   }
 
-  const loggedInUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
-
-  if (loggedInUser && loggedInUser.email) {
-    try {
-      const res = await fetch(`http://localhost:8080/api/auth/check-status?email=${loggedInUser.email}`);
-      if (res.ok) {
-        const currentStatus = await res.text();
-        if (currentStatus === 'KHOA' || currentStatus === 'BI_KHOA') {
-          alert('Tài khoản của bạn đã bị khóa! Hệ thống sẽ tự động đăng xuất.');
-          localStorage.removeItem('user');
-          return next('/dang-nhap');
-        }
-      }
-    } catch (error) {
-      console.error("Lỗi kiểm tra trạng thái:", error);
-    }
-  }
-
+  // Nếu người dùng vào route cần quyền Admin
   if (to.meta.requiresAdmin) {
-    const allowedRoles = ['ROLE_ADMIN', 'ROLE_STAFF', 'ROLE_CHUYEN_VIEN_TU_VAN'];
-    if (!loggedInUser || !allowedRoles.includes(loggedInUser.vaiTro)) {
-      alert('Bạn không có quyền truy cập vào khu vực quản trị Velora!');
+    try {
+      // BẮT BUỘC FETCH TỪ BACKEND ĐỂ CHECK QUYỀN CHÍNH XÁC (Không xài LocalStorage ảo)
+      const res = await fetch(`http://localhost:8080/api/auth/me`, {
+        credentials: 'include' // Bắt buộc để gửi cookie session lên server
+      });
+
+      if (!res.ok) throw new Error("Unauthorized");
+
+      const text = await res.text();
+      if (!text) {
+        alert('Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại!');
+        return next('/dang-nhap');
+      }
+
+      const currentUser = JSON.parse(text);
+
+      // Check tài khoản có bị khóa không
+      if (currentUser.trangThai === 'KHOA' || currentUser.trangThai === 'BI_KHOA') {
+        alert('Tài khoản của bạn đã bị khóa! Hệ thống sẽ tự động đăng xuất.');
+        return next('/dang-nhap');
+      }
+
+      // Check quyền
+      const allowedRoles = ['ROLE_ADMIN', 'ROLE_STAFF', 'ROLE_CHUYEN_VIEN_TU_VAN'];
+      if (!allowedRoles.includes(currentUser.vaiTro)) {
+        alert('Bạn không có quyền truy cập vào khu vực quản trị Velora!');
+        return next('/'); // Đá về trang chủ thay vì bắt đăng nhập lại
+      }
+
+      // Vượt qua hết thì cho vào Admin
+      next();
+
+    } catch (error) {
+      alert('Vui lòng đăng nhập bằng tài khoản quản trị để truy cập!');
       return next('/dang-nhap');
     }
+  } else {
+    // Nếu vào trang thường thì thả cửa cho đi qua (Check khóa sẽ do Header.vue đảm nhận)
+    next();
   }
-
-  next();
 });
 
 export default router

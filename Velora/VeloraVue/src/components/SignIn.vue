@@ -31,7 +31,36 @@
                         <label for="password">Mật khẩu</label>
                         <div class="input-wrapper">
                             <i class="fas fa-lock input-icon"></i>
-                            <input type="password" id="password" v-model="password" placeholder="Nhập mật khẩu" required />
+                            <input :type="showPassword ? 'text' : 'password'" id="password" v-model="password" placeholder="Nhập mật khẩu" required />
+                            <i class="fas toggle-pw-icon" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'" @click="togglePassword"></i>
+                        </div>
+
+                        <!-- 🔥 PREMIUM PASSWORD STRENGTH UI -->
+                        <div class="password-strength-container" v-if="password.length > 0">
+                            <div class="strength-header">
+                                <span>Độ mạnh mật khẩu</span>
+                                <span class="strength-text" :style="{ color: strengthColor }">{{ strengthText }}</span>
+                            </div>
+                            <div class="strength-bar-bg">
+                                <div class="strength-bar-fill" :style="{ width: (strengthScore / 5 * 100) + '%', backgroundColor: strengthColor }"></div>
+                            </div>
+                            <div class="strength-criteria">
+                                <div class="criteria-item" :class="{ 'valid': hasLength }">
+                                    <i :class="hasLength ? 'fas fa-check-circle' : 'far fa-circle'"></i> 8+ Ký tự
+                                </div>
+                                <div class="criteria-item" :class="{ 'valid': hasUpper }">
+                                    <i :class="hasUpper ? 'fas fa-check-circle' : 'far fa-circle'"></i> A-Z
+                                </div>
+                                <div class="criteria-item" :class="{ 'valid': hasLower }">
+                                    <i :class="hasLower ? 'fas fa-check-circle' : 'far fa-circle'"></i> a-z
+                                </div>
+                                <div class="criteria-item" :class="{ 'valid': hasNumber }">
+                                    <i :class="hasNumber ? 'fas fa-check-circle' : 'far fa-circle'"></i> Số
+                                </div>
+                                <div class="criteria-item" :class="{ 'valid': hasSpecial }">
+                                    <i :class="hasSpecial ? 'fas fa-check-circle' : 'far fa-circle'"></i> @#$
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -39,8 +68,9 @@
                         <label for="confirmPassword">Xác nhận mật khẩu</label>
                         <div class="input-wrapper">
                             <i class="fas fa-lock input-icon"></i>
-                            <input type="password" id="confirmPassword" v-model="confirmPassword"
+                            <input :type="showConfirmPassword ? 'text' : 'password'" id="confirmPassword" v-model="confirmPassword"
                                 placeholder="Nhập lại mật khẩu" required />
+                            <i class="fas toggle-pw-icon" :class="showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'" @click="toggleConfirmPassword"></i>
                         </div>
                     </div>
 
@@ -89,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Header from '../components/Header.vue'
 import Footer from '../components/Footer.vue'
@@ -104,6 +134,8 @@ const fullName = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 const popup = ref({
     show: false,
@@ -126,7 +158,40 @@ const closePopup = () => {
     if (popupTimeout) clearTimeout(popupTimeout)
 }
 
-// 🔥 Tự động bắt lỗi từ Backend nếu OAuth2 trả về trùng lặp tài khoản khi đang đăng ký
+// 🔥 Logic Ẩn/Hiện mật khẩu
+const togglePassword = () => showPassword.value = !showPassword.value
+const toggleConfirmPassword = () => showConfirmPassword.value = !showConfirmPassword.value
+
+// 🔥 Tính toán độ mạnh mật khẩu (Premium Password UI Logic)
+const hasLength = computed(() => password.value.length >= 8)
+const hasUpper = computed(() => /[A-Z]/.test(password.value))
+const hasLower = computed(() => /[a-z]/.test(password.value))
+const hasNumber = computed(() => /[0-9]/.test(password.value))
+const hasSpecial = computed(() => /[^A-Za-z0-9]/.test(password.value))
+
+const strengthScore = computed(() => {
+    let score = 0
+    if (hasLength.value) score++
+    if (hasUpper.value) score++
+    if (hasLower.value) score++
+    if (hasNumber.value) score++
+    if (hasSpecial.value) score++
+    return score
+})
+
+const strengthText = computed(() => {
+    if (strengthScore.value <= 2) return 'Yếu'
+    if (strengthScore.value <= 4) return 'Khá'
+    return 'Mạnh'
+})
+
+const strengthColor = computed(() => {
+    if (strengthScore.value <= 2) return '#e74c3c' // Đỏ (Yếu)
+    if (strengthScore.value <= 4) return '#f39c12' // Cam (Khá)
+    return '#2ecc71' // Xanh lá (Mạnh)
+})
+
+// Tự động bắt lỗi từ Backend
 onMounted(() => {
     const errorMsg = route.query.error;
     if (errorMsg) {
@@ -137,6 +202,11 @@ onMounted(() => {
 const handleRegister = async () => {
     if (password.value !== confirmPassword.value) {
         showNotification("Mật khẩu không khớp! Vui lòng kiểm tra lại.", "warning")
+        return
+    }
+
+    if (strengthScore.value < 3) {
+        showNotification("Mật khẩu quá yếu! Vui lòng đặt mật khẩu mạnh hơn.", "warning")
         return
     }
 
@@ -167,7 +237,7 @@ const handleRegister = async () => {
     }
 }
 
-// 🔥 LUỒNG ĐĂNG KÝ BẰNG MẠNG XÃ HỘI (Gửi kèm mode=register qua endpoint chuẩn bị)
+// LUỒNG ĐĂNG KÝ BẰNG MẠNG XÃ HỘI
 const loginWithGoogle = () => {
     window.location.href = `${API_BASE}/api/auth/oauth2/prepare/register?provider=google`;
 }
@@ -202,15 +272,97 @@ const loginWithFacebook = () => {
     letter-spacing: 0.5px;
 }
 
-.input-wrapper,
-.input-wrapper input {
-    border-radius: 0 !important; 
+.input-wrapper {
+    position: relative; /* Cần thiết để icon con mắt đặt position absolute chuẩn */
 }
 
 .input-wrapper input {
-    padding: 12px 15px 12px 42px !important;
+    border-radius: 0 !important; 
+    padding: 12px 40px 12px 42px !important; /* Dành khoảng trống bên phải cho icon mắt */
     font-size: 14px !important;
+    width: 100%;
 }
+
+/* =========================================
+   🔥 PREMIUM PASSWORD STRENGTH UI 
+========================================= */
+.password-strength-container {
+    margin-top: 10px;
+    background: #170d08; /* Màu nền tiệp với form */
+    padding: 12px 15px;
+    border: 1px solid #333;
+    animation: fadeIn 0.3s ease;
+}
+
+.strength-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
+    margin-bottom: 8px;
+}
+
+.strength-text {
+    transition: color 0.3s ease;
+}
+
+.strength-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: #2a2a2a;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.strength-bar-fill {
+    height: 100%;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.strength-criteria {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+}
+
+.criteria-item {
+    font-size: 11px;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.3s ease;
+}
+
+.criteria-item i {
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.criteria-item.valid {
+    color: #d1aa68; /* Khi đạt tiêu chí sẽ sáng màu Vàng Gold */
+}
+
+/* Eye Toggle Icons */
+.toggle-pw-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #777;
+    cursor: pointer;
+    font-size: 14px;
+    transition: color 0.2s ease;
+}
+
+.toggle-pw-icon:hover {
+    color: #d1aa68;
+}
+
+/* ========================================= */
 
 .btn-submit {
     margin-top: 10px !important;

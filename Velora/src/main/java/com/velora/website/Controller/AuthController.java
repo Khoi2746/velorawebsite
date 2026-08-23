@@ -71,7 +71,6 @@ public class AuthController {
             String provider = registrationId != null ? registrationId.toUpperCase() : "";
 
             if ("GOOGLE".equalsIgnoreCase(provider)) {
-                // Google: Tìm theo Email trước, sau đó fallback tìm theo ProviderId (sub)
                 String email = oauth2User.getAttribute("email");
                 if (email != null && !email.isEmpty()) {
                     userOpt = nguoiDungRepository.findByEmail(email);
@@ -83,14 +82,12 @@ public class AuthController {
                     }
                 }
             } else if ("FACEBOOK".equalsIgnoreCase(provider)) {
-                // 🔥 FACEBOOK: BẮT BUỘC TÌM BẰNG PROVIDER + PROVIDER ID (Tuyệt đối không dùng email)
                 String fbId = oauth2User.getAttribute("id");
                 if (fbId != null) {
                     userOpt = nguoiDungRepository.findByProviderAndProviderId("FACEBOOK", fbId);
                 }
             }
         } else {
-            // Đăng nhập thủ công bằng Email/Password truyền thống
             String email = authentication.getName();
             if (email != null && !email.isEmpty()) {
                 userOpt = nguoiDungRepository.findByEmail(email);
@@ -98,7 +95,26 @@ public class AuthController {
         }
 
         if (userOpt.isPresent()) {
-            return ResponseEntity.ok().headers(headers).body(userOpt.get());
+            NguoiDung user = userOpt.get();
+            
+            // 🔥 ĐỒNG BỘ CẤU TRÚC JSON TRẢ VỀ GIỐNG HỆT NHƯ LÚC LOGIN ĐỂ FRONTEND DỄ KIỂM TRA QUYỀN
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("maNguoiDung", user.getMaNguoiDung());
+            responseData.put("hoTen", user.getHoTen());
+            responseData.put("email", user.getEmail());
+            responseData.put("soDienThoai", user.getSoDienThoai());
+            responseData.put("diaChi", user.getDiaChi());
+            responseData.put("trangThai", user.getTrangThai());
+            responseData.put("provider", user.getProvider());
+
+            // Rút trích quyền ra thành chuỗi phẳng (flat string)
+            String roleName = "ROLE_CUSTOMER";
+            if (user.getVaiTros() != null && !user.getVaiTros().isEmpty()) {
+                roleName = user.getVaiTros().get(0).getTenVaiTro();
+            }
+            responseData.put("vaiTro", roleName);
+
+            return ResponseEntity.ok().headers(headers).body(responseData);
         }
 
         return ResponseEntity.ok().headers(headers).body(null);
@@ -137,7 +153,7 @@ public class AuthController {
     }
 
     /**
-     * API ĐĂNG NHẬP THỦ CÔNG (TÍCH HỢP TẠO SECURITY CONTEXT & CHẶN TÀI KHOẢN XÃ HỘI)
+     * API ĐĂNG NHẬP THỦ CÔNG
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, jakarta.servlet.http.HttpServletRequest request) {
@@ -164,14 +180,14 @@ public class AuthController {
 
         NguoiDung user = userOpt.get();
 
-        // 🔥 NẾU TÀI KHOẢN NÀY ĐÃ ĐĂNG KÝ BẰNG MẠNG XÃ HỘI, CHẶN THỦ CÔNG VÀ KHÔNG TÍNH LẦN VI PHẠM
         if (user.getProvider() != null && !user.getProvider().trim().isEmpty()) {
             saveLoginLog(user.getEmail(), clientIp, userAgent, "THAT_BAI_TAI_KHOAN_SOCIAL");
-
+            
+            String providerName = user.getProvider().toUpperCase();
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("code", "SOCIAL_ACCOUNT_EXISTS");
-            errorResponse.put("message", "Tài khoản này đã được đăng ký trong một tài khoản khác! "+ ". Vui lòng sử dụng nút đăng nhập nền tảng " + " bên dưới!");
+            errorResponse.put("message", "Tài khoản này đã được đăng ký bằng " + providerName + ". Vui lòng sử dụng nút đăng nhập " + providerName + " bên dưới!");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
 
@@ -269,9 +285,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * API KIỂM TRA TRẠNG THÁI THỜI GIAN THỰC
-     */
     @GetMapping("/check-status")
     public ResponseEntity<String> checkStatus(@RequestParam String email) {
         Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(email);
@@ -285,9 +298,6 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("NOT_FOUND");
     }
 
-    /**
-     * API ĐĂNG KÝ
-     */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody NguoiDung nguoiDung) {
         if (nguoiDungRepository.findByEmail(nguoiDung.getEmail()).isPresent()) {
@@ -313,9 +323,6 @@ public class AuthController {
         return ResponseEntity.ok("Đăng ký thành công!");
     }
 
-    /**
-     * BƯỚC 1: GỬI MÃ OTP VỀ EMAIL
-     */
     @PostMapping("/forgot-password/send-otp")
     public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request) {
         String email = request.get("email");
@@ -351,9 +358,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * API CẬP NHẬT THÔNG TIN BỔ SUNG CHO TÀI KHOẢN OAUTH2
-     */
     @PutMapping("/cap-nhat-thong-tin")
     public ResponseEntity<?> capNhatThongTinOauth2(@RequestBody Map<String, String> request) {
         String originalEmail = request.get("originalEmail");
@@ -385,9 +389,6 @@ public class AuthController {
         return ResponseEntity.ok(user);
     }
 
-    /**
-     * BƯỚC 2: XÁC THỰC MÃ OTP
-     */
     @PostMapping("/forgot-password/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
         String email = request.get("email");
@@ -400,9 +401,6 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mã xác nhận không chính xác!");
     }
 
-    /**
-     * BƯỚC 3: ĐẶT LẠI MẬT KHẨU MỚI
-     */
     @PostMapping("/forgot-password/reset")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
