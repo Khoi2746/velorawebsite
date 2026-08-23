@@ -43,6 +43,23 @@
                         ĐĂNG NHẬP
                     </button>
 
+                    <!-- 🔥 KHU VỰC ĐĂNG NHẬP MÃ HÓA MẠNG XÃ HỘI -->
+                    <div class="social-login-separator">
+                        <span>Hoặc đăng nhập bằng</span>
+                    </div>
+
+                    <div class="social-login-buttons">
+                        <button type="button" class="btn-social btn-google" @click="loginWithGoogle">
+                            <i class="fab fa-google"></i>
+                            Google
+                        </button>
+                        <button type="button" class="btn-social btn-facebook" @click="loginWithFacebook">
+                            <i class="fab fa-facebook-f"></i>
+                            Facebook
+                        </button>
+                    </div>
+                    <!-- 🔥 KẾT THÚC -->
+
                     <div class="register-redirect">
                         <span>Bạn chưa có tài khoản?</span>
                         <router-link to="/dang-ky" class="register-link">Đăng ký ngay</router-link>
@@ -53,11 +70,11 @@
         <Footer />
     </div>
     <ToastPopup 
-    :visible="showToast" 
-    :message="toastMsg" 
-    :type="toastType"
-    :loading="loading" 
-/>
+        :visible="showToast" 
+        :message="toastMsg" 
+        :type="toastType"
+        :loading="loading" 
+    />
 </template>
 
 <script setup>
@@ -66,6 +83,9 @@ import { useRouter } from 'vue-router'
 import Header from '../components/Header.vue' 
 import Footer from '../components/Footer.vue'
 import ToastPopup from '../components/ToastPopup.vue'
+
+const host = window.location.hostname;
+const API_BASE = `http://${host}:8080`;
 
 const router = useRouter()
 
@@ -83,55 +103,126 @@ const togglePassword = () => {
 }
 
 const handleLogin = async () => {
-    // 1. Khởi tạo trạng thái Loading
     loading.value = true;
     showToast.value = true;
-    toastMsg.value = 'Đang xác thực...';
-    toastType.value = 'loading'; // Tùy chỉnh CSS để hiện icon xoay
+    toastMsg.value = 'Đang xác thực thông tin...';
+    toastType.value = 'loading';
 
     try {
-        const response = await fetch('http://localhost:8080/api/auth/login', {
+        const response = await fetch(`${API_BASE}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: email.value, password: password.value })
         });
 
-        // 2. Ép buộc chờ 2 giây để hiển thị hiệu ứng xoay (dù server phản hồi nhanh hay chậm)
-        await new Promise(resolve => setTimeout(resolve, 4000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const data = await response.json();
 
         if (!response.ok) {
-            // Lấy lỗi từ backend
-            const errorData = await response.json().catch(() => ({ message: 'Lỗi hệ thống!' }));
-            throw new Error(errorData.message || 'Sai email hoặc mật khẩu!');
+            throw new Error(data.message || 'Lỗi xác thực hệ thống!');
         }
 
-        // Đăng nhập thành công
-        const userData = await response.json();
-        localStorage.setItem('user', JSON.stringify(userData));
-
-        // 3. Chuyển sang trạng thái thành công (Tick xanh)
+        localStorage.setItem('user', JSON.stringify(data));
         loading.value = false;
         toastMsg.value = 'Đăng nhập thành công!';
         toastType.value = 'success';
 
-        // Đợi 1.5 giây sau khi hiện tick rồi mới chuyển trang
         setTimeout(() => {
             window.location.href = '/';
-        }, 1500);
+        }, 1200);
 
     } catch (error) {
-        // 4. Chuyển sang trạng thái thất bại (Dấu chéo X)
         loading.value = false;
         toastMsg.value = error.message;
         toastType.value = 'error';
 
-        // Tự tắt thông báo sau 3 giây
         setTimeout(() => { 
             showToast.value = false; 
-        }, 3000);
+        }, 4000);
     }
 }
+
+const loginWithGoogle = () => {
+    window.location.href = `${API_BASE}/oauth2/authorization/google`;
+}
+
+const loginWithFacebook = () => {
+    window.location.href = `${API_BASE}/oauth2/authorization/facebook`;
+}
 </script>
+
 <style scoped>
 @import "./CSS/Login.css";
+
+/* --- GỌT VUÔNG TẤT CẢ KHUNG VÀ NÚT CHO ĐỒNG BỘ LUXURY --- */
+.login-container {
+    border-radius: 0 !important;
+}
+
+.input-wrapper,
+.input-wrapper input {
+    border-radius: 0 !important;
+}
+
+.btn-submit {
+    border-radius: 0 !important;
+}
+
+/* --- CSS CHO KHU VỰC MẠNG XÃ HỘI --- */
+.social-login-separator {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 22px 0 18px 0;
+    color: #888;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.social-login-separator::before,
+.social-login-separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #333;
+}
+
+.social-login-separator span {
+    padding: 0 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.social-login-buttons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.btn-social {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 11px;
+    border-radius: 0 !important; /* Vuông vức góc cạnh */
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid #444;
+    color: #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.btn-social:hover {
+    background: #1a1a1a;
+    border-color: #d1aa68;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-google i { color: #ea4335; font-size: 16px; }
+.btn-facebook i { color: #1877f2; font-size: 16px; }
 </style>

@@ -2,6 +2,8 @@ package com.velora.website.Repository;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.lang.NonNull;
+
 import com.velora.website.Entity.NguoiDung;
 
 import java.util.List;
@@ -30,5 +32,8 @@ public interface NguoiDungRepository extends JpaRepository<NguoiDung, Integer> {
     // Sử dụng EntityGraph tự động JOIN FETCH chính xác thuộc tính vaiTros tránh lỗi Lazy Loading
     @Override
     @EntityGraph(attributePaths = {"vaiTros"})
+    @NonNull
     List<NguoiDung> findAll();
+
+    List<NguoiDung> findByTrangThaiOrThoiGianCamBinhLuanIsNotNull(String trangThai);
 }

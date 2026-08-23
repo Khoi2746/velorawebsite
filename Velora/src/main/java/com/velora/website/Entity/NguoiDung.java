@@ -14,7 +14,6 @@ public class NguoiDung {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "MaNguoiDung") 
-    // 🔥 SỬA CHỖ NÀY: Ép buộc phải là Integer để đồng bộ hóa hoàn toàn với JpaRepository<NguoiDung, Integer>
     private Integer maNguoiDung;
 
     @Column(name = "HoTen", nullable = false)
@@ -35,22 +34,18 @@ public class NguoiDung {
     @Column(name = "TrangThai")
     private String trangThai; 
 
-    // Anh đã gỡ @Temporal vì Spring Boot mới khuyên dùng luôn LocalDateTime thay cho Date, 
-    // nhưng nếu em xài Date thì chỉ cần @Column là Hibernate tự map được.
     @Column(name = "NgayTao")
     private Date ngayTao;
 
     @Column(name = "NgayCapNhat")
     private Date ngayCapNhat;
 
-    // --- ĐÃ CHUYỂN CỘT PHẠT LÊN TRÊN ---
     @Column(name = "SoLanViPham")
     private Integer soLanViPham;
 
     @Column(name = "ThoiGianCamBinhLuan")
     private LocalDateTime thoiGianCamBinhLuan;
 
-    // --- ĐÃ CHUYỂN @ManyToMany XUỐNG ĐÚNG CHỖ ---
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "NguoiDung_VaiTro",
@@ -95,6 +90,7 @@ public class NguoiDung {
     public void setSoLanViPham(Integer soLanViPham) { this.soLanViPham = soLanViPham; }
 
     public LocalDateTime getThoiGianCamBinhLuan() { return thoiGianCamBinhLuan; }
+    // 🔥 ĐÃ FIX LỖI Ở DÒNG DƯỚI NÀY (Đổi Date thành LocalDateTime)
     public void setThoiGianCamBinhLuan(LocalDateTime thoiGianCamBinhLuan) { this.thoiGianCamBinhLuan = thoiGianCamBinhLuan; }
 
     public List<VaiTro> getVaiTros() { return vaiTros; }

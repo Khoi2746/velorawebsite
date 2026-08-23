@@ -39,9 +39,30 @@
                     </div>
 
                     <div class="top-right-bottom">
-                        <div class="search-trigger" @click="openSearch">
-                            <i class="fas fa-search search-icon"></i>
-                            <span>Tìm kiếm...</span>
+                        <!-- 🔥 PREMIUM SEARCH TOGGLE UI -->
+                        <div class="search-toggle-container">
+                            <div class="premium-search" :class="{ open: isSearchOpen }">
+                                <span class="premium-icon" @click="toggleSearch">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </span>
+                                
+                                <input 
+                                    ref="searchInputRef"
+                                    type="text" 
+                                    class="premium-input" 
+                                    v-model="searchKeyword"
+                                    @keyup.enter="handleSearch"
+                                    placeholder="Tìm kiếm tuyệt tác..." 
+                                />
+
+                                <span class="close-btn" @click="closeSearch" v-if="isSearchOpen">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </span>
+                            </div>
+                            
+                            <div class="esc-hint" v-if="isSearchOpen">
+                                <span class="esc-key">Esc</span> Đóng
+                            </div>
                         </div>
                         
                         <div class="action-icons">
@@ -71,6 +92,7 @@
             </nav>
         </div>
 
+        <!-- Menu Mobile Overlay -->
         <div class="menu-overlay" :class="{ 'active': isMenuOpen }">
             <button class="close-menu" @click="isMenuOpen = false">
                 <i class="fa-solid fa-times"></i>
@@ -81,7 +103,6 @@
                 <router-link to="/thuong-hieu" @click="isMenuOpen = false">THƯƠNG HIỆU</router-link>
                 <router-link to="/dong-ho-co-san" @click="isMenuOpen = false">SẢN PHẨM</router-link>
 
-                <!-- Đã cập nhật: hiển thị Staff hoặc Admin tùy role -->
                 <router-link v-if="isAdmin || isStaff" to="/admin/dashboard" @click="isMenuOpen = false"
                     style="color: #d1aa68; font-weight: bold; border-top: 1px solid #333; padding-top: 20px; margin-top: 10px;">
                     {{ isStaff ? 'STAFF DASHBOARD' : 'ADMIN DASHBOARD' }}
@@ -89,37 +110,6 @@
             </nav>
         </div>
     </header>
-
-    <transition name="fade-luxury">
-        <!-- Phần này giữ nguyên -->
-        <div v-if="isSearchOpen" class="nike-search-overlay" @click.self="closeSearch">
-            <div class="nike-search-panel">
-                <div class="search-header-layout">
-                    <div class="search-logo-area">
-                        <img src="../img/VeloraIcon.png" alt="Logo" class="logo-img-dark" />
-                    </div>
-                    <div class="search-center-area">
-                        <div class="search-input-wrapper">
-                            <i class="fas fa-search search-icon-inside"></i>
-                            <input type="text" placeholder="Search" ref="searchInputRef" @keyup.enter="handleSearch" />
-                        </div>
-                        <div class="popular-searches">
-                            <h4>Đề Xuất Sản Phẩm</h4>
-                            <div class="search-tags">
-                                <span class="tag" @click="quickSearch('Classic Fusion')">classic fusion</span>
-                                <span class="tag" @click="quickSearch('Rolex Daytona')">rolex daytona</span>
-                                <span class="tag" @click="quickSearch('Moonphase')">moonphase</span>
-                                <span class="tag" @click="quickSearch('Noir Starlight')">noir starlight</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="search-cancel-area">
-                        <button class="btn-cancel" @click="closeSearch">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </transition>
 </template>
 
 <script setup>
@@ -131,13 +121,14 @@ const router = useRouter()
 const isLoggedIn = ref(false)
 const userName = ref('')
 const isAdmin = ref(false)
-const isStaff = ref(false) // Thêm biến isStaff
+const isStaff = ref(false)
 
 const isMenuOpen = ref(false)
 const showDropdown = ref(false)
 const userMenuRef = ref(null)
 
 const isSearchOpen = ref(false)
+const searchKeyword = ref('')
 const searchInputRef = ref(null)
 
 const cartCount = ref(0)
@@ -168,7 +159,6 @@ const checkAuth = () => {
             isLoggedIn.value = true;
             userName.value = user.hoTen;
             
-            // Cập nhật logic check Role
             const role = user.vaiTro ? user.vaiTro.toUpperCase() : '';
             isAdmin.value = (role === 'ROLE_ADMIN');
             isStaff.value = (role === 'ROLE_CHUYEN_VIEN_TU_VAN');
@@ -189,21 +179,46 @@ const logout = () => {
     localStorage.removeItem('user')
     isLoggedIn.value = false
     isAdmin.value = false
-    isStaff.value = false // Reset isStaff
+    isStaff.value = false
     cartCount.value = 0 
     alert('Đã đăng xuất!')
     window.location.href = '/'
 }
 
-// ... các hàm còn lại (toggleDropdown, handleClickOutside, toggleMenu, ...) giữ nguyên không thay đổi
 const toggleDropdown = () => { showDropdown.value = !showDropdown.value }
 const handleClickOutside = (event) => { if (userMenuRef.value && !userMenuRef.value.contains(event.target)) showDropdown.value = false }
-const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; document.body.style.overflow = isMenuOpen.value ? 'hidden' : 'auto' }
-const openSearch = () => { isSearchOpen.value = true; document.body.style.overflow = 'hidden'; nextTick(() => { if (searchInputRef.value) searchInputRef.value.focus() }) }
-const closeSearch = () => { isSearchOpen.value = false; document.body.style.overflow = 'auto' }
-const handleSearch = (e) => { const keyword = e.target.value.trim(); if (keyword) { router.push({ path: '/dong-ho-co-san', query: { search: keyword } }); e.target.value = '' }; closeSearch() }
-const quickSearch = (keyword) => { router.push({ path: '/dong-ho-co-san', query: { search: keyword } }); closeSearch() }
-const handleEsc = (e) => { if (e.key === 'Escape') { if (isMenuOpen.value) toggleMenu(); if (isSearchOpen.value) closeSearch() } }
+
+// Logic điều khiển Search Toggle
+const toggleSearch = () => {
+    isSearchOpen.value = !isSearchOpen.value
+    if (isSearchOpen.value) {
+        nextTick(() => {
+            searchInputRef.value?.focus()
+        })
+    } else {
+        searchKeyword.value = ''
+    }
+}
+
+const closeSearch = () => {
+    isSearchOpen.value = false
+    searchKeyword.value = ''
+}
+
+const handleSearch = () => {
+    const keyword = searchKeyword.value.trim()
+    if (keyword) {
+        router.push({ path: '/dong-ho-co-san', query: { search: keyword } })
+        closeSearch()
+    }
+}
+
+const handleEsc = (e) => { 
+    if (e.key === 'Escape') { 
+        if (isMenuOpen.value) isMenuOpen.value = false; 
+        if (isSearchOpen.value) closeSearch(); 
+    } 
+}
 
 onMounted(() => {
     checkAuth()
@@ -214,11 +229,144 @@ onMounted(() => {
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleEsc)
-    window.removeEventListener('click', handleClickOutside)
+    document.removeEventListener('click', handleClickOutside)
     window.removeEventListener('cart-updated', fetchCartCount) 
 })
 </script>
 
 <style scoped>
 @import "./CSS/Header.css";
+
+/* 🔥 1. Chốt cứng kích thước vùng chứa để giữ chỗ */
+.search-toggle-container {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 42px;
+}
+
+/* 🔥 2. Cho khung tìm kiếm LUÔN LUÔN là absolute và neo bên phải */
+.premium-search {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 42px;
+    height: 42px;
+    box-sizing: border-box;
+    background: #ffffff;
+    border: 2px solid #c5a880;
+    border-radius: 42px; /* Bo tròn đều các góc */
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    /* Chuyển động mượt mà tập trung vào width */
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+    display: flex;
+    align-items: center;
+    z-index: 100;
+}
+
+/* 🔥 3. Khi mở, chỉ thay đổi width, nó sẽ tự trượt qua trái cực mượt */
+.premium-search.open {
+    width: 240px;
+    padding: 0 8px; /* Thêm padding khi mở */
+    box-shadow: 0 8px 25px rgba(197, 168, 128, 0.3);
+}
+
+.premium-icon {
+    min-width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #c5a880;
+    font-size: 15px;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+
+.premium-icon:hover {
+    color: #1a1a1a;
+}
+
+.premium-input {
+    flex: 1;
+    min-width: 0; 
+    width: 100%;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    font-family: 'Montserrat', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    letter-spacing: 0.5px;
+    background: transparent;
+    color: #1a1a1a;
+    padding: 0 6px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.premium-input::placeholder {
+    color: #888;
+    font-family: 'Montserrat', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-style: normal;
+    letter-spacing: 0.5px;
+}
+
+/* Chờ khung trượt ra một chút rồi mới hiện chữ */
+.premium-search.open .premium-input {
+    opacity: 1;
+    transition-delay: 0.2s;
+}
+
+.premium-input::placeholder {
+    color: #888;
+    font-style: italic;
+}
+
+.close-btn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #777;
+    font-size: 13px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.close-btn:hover {
+    background: #f0f0f0;
+    color: #1a1a1a;
+}
+
+.esc-hint {
+    position: absolute;
+    top: -32px;
+    right: 0;
+    background: #1a1a1a;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    z-index: 101;
+    white-space: nowrap;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.esc-key {
+    background: #333;
+    border: 1px solid #555;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+    color: #c5a880;
+    font-weight: bold;
+}
 </style>

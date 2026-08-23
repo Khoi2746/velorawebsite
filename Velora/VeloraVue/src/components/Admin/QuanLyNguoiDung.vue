@@ -1,18 +1,18 @@
 <template>
   <div class="velora-admin-wrapper admin-wrapper">
-    <!-- 1. GỌI COMPONENT SIDEBAR MỚI -->
+    <!-- 1. GỌI COMPONENT SIDEBAR -->
     <AdminSidebar :isCollapsed="isCollapsed" />
 
     <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
-      <!-- 2. GỌI COMPONENT HEADER MỚI -->
+      <!-- 2. GỌI COMPONENT HEADER -->
       <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-      <!-- 3. NỘI DUNG CHÍNH (Giữ nguyên 100% logic của ku em) -->
+      <!-- 3. NỘI DUNG CHÍNH -->
       <main class="content">
         <header class="header">
           <div class="header-left">
             <h1>Quản Lý <span class="gold">Người Dùng</span></h1>
-            <p>Danh sách khách hàng và nhân viên trên hệ thống.</p>
+            <p>Danh sách khách hàng và nhân viên trên hệ thống thương mại điện tử.</p>
           </div>
           <div class="header-right">
             <button class="btn-add" @click="openAddModal">
@@ -88,16 +88,9 @@
                   </span>
                 </td>
                 <td class="actions">
+                  <!-- CHỈ GIỮ NÚT CHỈNH SỬA VÀ XÓA -->
                   <button class="btn-action edit" @click="openEditModal(user)" title="Chỉnh sửa thông tin">
                     <i class="fa-solid fa-pen"></i>
-                  </button>
-
-                  <button class="btn-action" :style="{
-                    backgroundColor: (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? '#ffebee' : '#e8f5e9',
-                    color: (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? '#c62828' : '#2e7d32'
-                  }" @click="toggleUserStatus(user)"
-                    :title="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'Khóa tài khoản' : 'Mở khóa tài khoản'">
-                    <i :class="(user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') ? 'fa-solid fa-user-lock' : 'fa-solid fa-user-check'"></i>
                   </button>
 
                   <button class="btn-action delete" @click="deleteUser(user.maNguoiDung)" title="Xóa tài khoản">
@@ -151,7 +144,7 @@
 
             <div class="form-group" v-if="!isEditMode">
               <label>Mật Khẩu Khởi Tạo *</label>
-              <input type="password" v-model="userForm.matKhauMaHoa" required placeholder="Nhập mật khẩu tối thiểu 6 ký tự" />
+              <input type="password" v-model="userForm.matKhau" required placeholder="Nhập mật khẩu tối thiểu 6 ký tự" />
             </div>
 
             <div class="form-group">
@@ -199,24 +192,24 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 
-// IMPORT COMPONENT CON VÀO ĐÂY
+// IMPORT COMPONENT CON
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
-// ================= LOGIC ĐIỀU KHIỂN LAYOUT CHUNG =================
-const isCollapsed = ref(false);
+// Tự động bắt Hostname động (hỗ trợ cả localhost lẫn IP LAN)
+const host = window.location.hostname;
+const API_BASE = `http://${host}:8080`;
 
+const isCollapsed = ref(false);
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value;
 };
 
-// ================= LOGIC DỮ LIỆU CŨ (Giữ nguyên 100%) =================
 const users = ref([]);
 const showForm = ref(false);
 const isEditMode = ref(false);
 const selectedRoleId = ref(3);
 
-// Các biến lưu giá trị Tìm Kiếm & Lọc
 const searchQuery = ref('');
 const filterRole = ref('');
 const filterStatus = ref('');
@@ -224,21 +217,17 @@ const filterStatus = ref('');
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 
-// Logic xử lý tìm kiếm và lọc dữ liệu thô
 const filteredUsers = computed(() => {
   return users.value.filter(user => {
-    // 1. Tìm kiếm theo Tên, Email hoặc Số điện thoại (Không phân biệt chữ hoa/thường)
     const query = searchQuery.value.toLowerCase().trim();
     const matchQuery = !query || 
       (user.hoTen && user.hoTen.toLowerCase().includes(query)) ||
       (user.email && user.email.toLowerCase().includes(query)) ||
       (user.soDienThoai && user.soDienThoai.toLowerCase().includes(query));
 
-    // 2. Lọc theo Vai Trò
     const matchRole = !filterRole.value || 
       (user.vaiTros && user.vaiTros.some(vt => vt.tenVaiTro === filterRole.value));
 
-    // 3. Lọc theo Trạng Thái (Tính toán linh hoạt dựa trên cả văn bản thô tiếng Việt hoặc key DB)
     let standardizedStatus = 'KHOA';
     if (user.trangThai === 'HOAT_DONG' || user.trangThai === 'ĐANG HOẠT ĐỘNG') {
       standardizedStatus = 'HOAT_DONG';
@@ -249,12 +238,10 @@ const filteredUsers = computed(() => {
   });
 });
 
-// Tính số lượng trang dựa trên mảng ĐÃ LỌC
 const totalPages = computed(() => {
   return Math.ceil(filteredUsers.value.length / itemsPerPage.value);
 });
 
-// Cắt dữ liệu hiển thị theo phân trang dựa trên mảng ĐÃ LỌC
 const paginatedUsers = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value;
   const end = start + itemsPerPage.value;
@@ -267,7 +254,6 @@ const changePage = (page) => {
   }
 };
 
-// ĐÃ SỬA: Thay đổi cấu trúc dữ liệu form từ matKhauMaHoa sang matKhau
 const userForm = ref({
   maNguoiDung: null,
   hoTen: '',
@@ -281,7 +267,7 @@ const userForm = ref({
 
 const loadUsers = async () => {
   try {
-    const res = await fetch('http://localhost:8080/api/admin/thanh-vien', {
+    const res = await fetch(`${API_BASE}/api/admin/thanh-vien`, {
       method: 'GET',
       headers: {
         'Cache-Control': 'no-cache',
@@ -301,31 +287,9 @@ const loadUsers = async () => {
   }
 };
 
-const toggleUserStatus = async (user) => {
-  try {
-    const res = await fetch(`http://localhost:8080/api/admin/${user.maNguoiDung}/doi-trang-thai`, {
-      method: 'PATCH'
-    });
-
-    if (res.ok) {
-      const updatedUser = await res.json();
-      const index = users.value.findIndex(u => u.maNguoiDung === updatedUser.maNguoiDung);
-      if (index !== -1) {
-        users.value[index] = updatedUser; 
-      }
-      alert('Thay đổi trạng thái tài khoản thành công!');
-    } else if (res.status === 403) {
-      alert('Không thể khóa tài khoản có vai trò Admin!');
-    }
-  } catch (error) {
-    alert("Lỗi kết nối Backend. Vui lòng kiểm tra lại URL máy chủ!");
-  }
-};
-
 const openAddModal = () => {
   isEditMode.value = false;
   selectedRoleId.value = 3;
-  // ĐÃ SỬA: Làm sạch trường mật khẩu mới
   userForm.value = {
     maNguoiDung: null,
     hoTen: '',
@@ -342,7 +306,6 @@ const openAddModal = () => {
 const openEditModal = (user) => {
   isEditMode.value = true;
   userForm.value = JSON.parse(JSON.stringify(user));
-  // ĐÃ SỬA: Đồng bộ reset trường mật khẩu khi tiến hành chỉnh sửa
   userForm.value.matKhau = '';
 
   if (userForm.value.trangThai === 'ĐANG HOẠT ĐỘNG') {
@@ -364,8 +327,8 @@ const closeForm = () => { showForm.value = false; };
 
 const saveUser = async () => {
   const url = isEditMode.value
-    ? `http://localhost:8080/api/admin/thanh-vien/${userForm.value.maNguoiDung}`
-    : 'http://localhost:8080/api/admin/thanh-vien';
+    ? `${API_BASE}/api/admin/thanh-vien/${userForm.value.maNguoiDung}`
+    : `${API_BASE}/api/admin/thanh-vien`;
 
   const method = isEditMode.value ? 'PUT' : 'POST';
 
@@ -399,14 +362,14 @@ const saveUser = async () => {
       alert("Lỗi hệ thống: " + errText);
     }
   } catch (error) {
-    alert("Không thể kết nối đến máy chủ Backend. Kiểm tra xem Server Java còn chạy không nhé!");
+    alert("Không thể kết nối đến máy chủ Backend.");
   }
 };
 
 const deleteUser = async (id) => {
   if (!confirm("Bạn có chắc chắn muốn XÓA tài khoản này khỏi hệ thống?")) return;
   try {
-    const res = await fetch(`http://localhost:8080/api/admin/thanh-vien/${id}`, {
+    const res = await fetch(`${API_BASE}/api/admin/thanh-vien/${id}`, {
       method: 'DELETE',
       headers: { 'Accept': 'application/json' }
     });
@@ -437,7 +400,6 @@ const updateRoleInForm = (event) => {
 onMounted(() => { loadUsers(); });
 </script>
 
-<!-- CSS CHỨA BIẾN GLOBAL ĐỂ SIDEBAR NHẬN MÀU -->
 <style>
 :root {
   --wood-dark: #362921;
@@ -455,9 +417,6 @@ onMounted(() => { loadUsers(); });
 <style scoped>
 @import "../CSS/Admin/QuanLyNguoiDung.css";
 
-/* ==============================================
-   CSS LAYOUT CHUNG BỌC BÊN NGOÀI & FIX MODAL
-   ============================================== */
 .velora-admin-wrapper { 
   display: flex; 
   height: 100vh; 
@@ -478,7 +437,6 @@ onMounted(() => { loadUsers(); });
   padding: 30px; 
 }
 
-/* Modal Overlay fix giúp nhấn ra ngoài để đóng và hiện giữa màn hình */
 .modal-overlay { 
   position: fixed; 
   inset: 0; 
@@ -490,7 +448,6 @@ onMounted(() => { loadUsers(); });
   backdrop-filter: blur(2px); 
 }
 
-/* Đảm bảo header page vẫn đẹp */
 .header {
   display: flex;
   justify-content: space-between;

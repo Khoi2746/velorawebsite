@@ -143,6 +143,10 @@ ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
+
+const host = window.location.hostname;
+const API_BASE = `http://${host}:8080`;
+
 const isCollapsed = ref(false);
 const toggleSidebar = () => { isCollapsed.value = !isCollapsed.value; };
 

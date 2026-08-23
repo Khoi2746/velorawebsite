@@ -30,7 +30,6 @@
             <h2 class="section-title">LỊCH SỬ GIAO DỊCH</h2>
 
             <div class="order-list">
-              <!-- Render mảng paginatedOrders thay vì filteredOrders -->
               <div v-for="order in paginatedOrders" :key="order.maDonHang" class="order-card"
                 :class="{ 'active': selectedOrder && selectedOrder.maDonHang === order.maDonHang }"
                 @click="selectOrder(order)">
@@ -40,7 +39,6 @@
                 </div>
 
                 <div class="order-card-body">
-                  <!-- ĐÃ SỬA: Hiển thị toàn bộ sản phẩm trong thẻ đơn hàng -->
                   <div class="order-card-footer" style="margin-top: 15px;">
                     <div class="order-total">{{ formatPrice(order.tongTien) }}</div>
                     <div class="order-status" :class="getStatusClass(order.trangThaiDonHang)">
@@ -169,7 +167,7 @@
                   <tbody>
                     <tr v-for="(item, idx) in selectedOrder.items" :key="idx">
                       <td class="td-img">
-                        <img :src="item.anh && item.anh.startsWith('http') ? item.anh : '/img/' + item.anh" alt="">
+                        <img :src="item.anh && item.anh.startsWith('http') ? item.anh : '../img/' + item.anh" alt="">
                       </td>
                       <td class="td-name">
                         <span class="p-name">{{ item.ten }}</span>
@@ -206,6 +204,137 @@
     </main>
 
     <Footer />
+
+    <!-- 🔥 BẮT ĐẦU: KHUNG BIÊN BẢN CHỈ HIỂN THỊ KHI IN -->
+    <div class="print-invoice-template" v-if="selectedOrder">
+      <div class="print-border-outer">
+        <div class="print-border-inner">
+          
+          <!-- Header Logo & Tên Công Ty -->
+          <div class="print-header">
+            <div class="print-logo">
+              <!-- Thay thế đường dẫn ảnh nếu cần (ví dụ /img/VeloraIcon.png) -->
+              <img src="/img/VeloraIcon.png" alt="Velora Logo">
+            </div>
+            <div class="print-company-titles">
+              <h2 class="company-name">VELORA CLOCK</h2>
+              <p class="company-sub">HỆ THỐNG PHÂN PHỐI ĐỒNG HỒ CAO CẤP CHÍNH HÃNG</p>
+            </div>
+          </div>
+
+          <!-- Dòng thông số phụ (Mã số / Ngày) -->
+          <div class="print-meta-top">
+            <div class="meta-left">
+              <strong>Mã số:</strong> VEL-{{ selectedOrder.maDonHangCode }}/BBBG
+            </div>
+            <div class="meta-right">
+              <strong>Ngày lập:</strong> {{ new Date().toLocaleDateString('vi-VN') }}<br>
+              <strong>Trang:</strong> 1 / 1
+            </div>
+          </div>
+
+          <!-- Tiêu đề chính -->
+          <div class="print-title-box">
+            <h2>BIÊN BẢN BÀN GIAO KIỆT TÁC</h2>
+          </div>
+
+          <!-- Phần I -->
+          <div class="print-section">
+            <h3>I. THÔNG TIN KHÁCH HÀNG:</h3>
+            <table class="no-border-table">
+              <tbody>
+              <tr>
+                <td width="130"><strong>Khách hàng</strong></td>
+                <td>: {{ selectedOrder.tenNguoiNhan }}</td>
+                <td width="100"><strong>Điện thoại</strong></td>
+                <td>: {{ selectedOrder.soDienThoai }}</td>
+              </tr>
+              <tr>
+                <td><strong>Địa chỉ bàn giao</strong></td>
+                <td colspan="3">: {{ selectedOrder.diaChi }}</td>
+              </tr>
+              <tr>
+                <td><strong>Nội dung</strong></td>
+                <td colspan="3">: Bàn giao sản phẩm đồng hồ cao cấp chính hãng theo đúng quy chuẩn thương hiệu.</td>
+              </tr>
+            </tbody>
+            </table>
+          </div>
+
+          <!-- Phần II -->
+          <div class="print-section">
+            <h3>II. CHI TIẾT SẢN PHẨM BÀN GIAO:</h3>
+            <table class="bordered-table">
+              <thead>
+                <tr>
+                  <th width="40">STT</th>
+                  <th>Mã sản phẩm</th>
+                  <th>Tên kiệt tác</th>
+                  <th width="50">SL</th>
+                  <th>Đơn giá (VNĐ)</th>
+                  <th>Thành tiền (VNĐ)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, idx) in selectedOrder.items" :key="idx">
+                  <td align="center">{{ idx + 1 }}</td>
+                  <td align="center">VEL-{{ item.maSanPham }}</td>
+                  <td>{{ item.ten }}</td>
+                  <td align="center">{{ item.soLuong }}</td>
+                  <td align="right">{{ formatPrice(item.gia).replace('₫', '') }}</td>
+                  <td align="right">{{ formatPrice(item.gia * item.soLuong).replace('₫', '') }}</td>
+                </tr>
+                <tr>
+                  <td colspan="5" align="right"><strong>TỔNG CỘNG:</strong></td>
+                  <td align="right" class="total-price"><strong>{{ formatPrice(selectedOrder.tongTien).replace('₫', '') }}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Phần III -->
+          <div class="print-section">
+            <h3>III. XÁC NHẬN TÌNH TRẠNG:</h3>
+            <table class="bordered-table">
+              <thead>
+                <tr>
+                  <th>Hạng mục kiểm tra</th>
+                  <th>Tình trạng đánh giá</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1. Tình trạng ngoại quan (Vỏ, kính, dây đeo)</td>
+                  <td align="center">Hoàn hảo / Không trầy xước</td>
+                </tr>
+                <tr>
+                  <td>2. Phụ kiện đi kèm (Hộp gỗ, Thẻ bảo hành, Sách HDSD)</td>
+                  <td align="center">Đầy đủ / Nguyên seal</td>
+                </tr>
+                <tr>
+                  <td>3. Tình trạng hoạt động (Kim, lịch, bộ máy)</td>
+                  <td align="center">Vận hành chính xác tuyệt đối</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Chữ ký -->
+          <div class="print-signatures">
+            <div class="sig-box">
+              <strong>ĐẠI DIỆN KHÁCH HÀNG</strong><br>
+              <em class="sig-note">(Ký, ghi rõ họ tên)</em>
+            </div>
+            <div class="sig-box">
+              <strong>ĐẠI DIỆN VELORA CLOCK</strong><br>
+              <em class="sig-note">(Ký, đóng dấu, ghi rõ họ tên)</em>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <!-- 🔥 KẾT THÚC KHUNG BIÊN BẢN -->
 
     <div class="stock-toast" :class="{ 'show': showToast }">
       <i class="fas fa-info-circle"></i> {{ toastMessage }}
@@ -371,7 +500,6 @@ const fetchUserOrders = async () => {
     if (response.ok) {
       const data = await response.json()
       
-      // ĐÃ XÓA CHECK 48 GIỜ - TẤT CẢ ĐƠN ĐỀU ĐƯỢC LOAD
       orders.value = data.map(order => ({
         maDonHang: order.maDonHang,
         maDonHangCode: order.maDonHangCode,
@@ -408,7 +536,6 @@ const fetchUserOrders = async () => {
   }
 }
 
-// 🔥 HÀM ĐẨY THÔNG TIN SANG TRANG BẢO HÀNH
 const goToWarrantyPage = (order) => {
   localStorage.setItem('selectedWarrantyOrder', JSON.stringify(order))
   router.push('/bao-hanh')
@@ -531,149 +658,16 @@ onMounted(() => {
   max-width: 1450px !important;
 }
 
-/* CSS PHÂN TRANG */
-.pagination-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 25px;
-  padding-bottom: 10px;
-}
-
-.page-btn {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #e5e7eb;
-  background: white;
-  border-radius: 8px;
-  cursor: pointer;
-  color: #4b5563;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  font-size: 14px;
-}
-
-.page-btn:hover:not(:disabled) {
-  border-color: #c5a880;
-  color: #c5a880;
-}
-
-.page-btn.active {
-  background: #c5a880;
-  color: white;
-  border-color: #c5a880;
-}
-
-.page-btn:disabled {
-  background: #f3f4f6;
-  color: #9ca3af;
-  cursor: not-allowed;
-  border-color: #f3f4f6;
-}
-
-/* BỔ SUNG: CSS CHO BẢNG SẢN PHẨM CHI TIẾT (Cột Phải) */
-.order-items {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px dashed #e5e7eb;
-}
-
-.item-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-}
-
-.item-table td {
-  padding: 15px 0;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.item-table tr:last-child td {
-  border-bottom: none;
-}
-
-.td-img img {
-  width: 65px;
-  height: 65px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-}
-
-.td-name {
-  padding-left: 15px;
-  vertical-align: middle;
-}
-
-.td-name .p-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.td-name .p-qty {
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.td-price {
-  text-align: right;
-  font-size: 15px;
-  font-weight: 700;
-  color: #c5a880;
-  vertical-align: middle;
-}
-
-/* Các class UI khác */
-.cancel-info-box {
-  background: #fff9e6;
-  border: 1px solid #fde68a;
-  padding: 15px 20px;
-  border-radius: 8px;
-  margin-bottom: 25px;
-  color: #b45309;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-}
-
-.order-card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.pending-cancel-badge {
-  background-color: #fffbeb;
-  color: #b45309;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid #fde68a;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.status-cancel-request {
-  background-color: #fef3c7 !important;
-  color: #b45309 !important;
-  border: 1px solid #fde68a;
-}
-
+/* =========================================
+   1. BỐ CỤC CHUNG & TABS LỌC
+========================================= */
 .order-tabs-wrapper {
   margin-bottom: 35px;
   background-color: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #f0f0f0;
   padding: 4px 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
 }
 
 .order-tabs {
@@ -686,85 +680,79 @@ onMounted(() => {
 .tab-btn {
   background: none;
   border: none;
-  padding: 20px 24px;
-  font-size: 15px;
+  padding: 18px 20px;
+  font-size: 14px;
   font-weight: 600;
-  color: #4b5563;
+  color: #666;
   cursor: pointer;
   position: relative;
   transition: all 0.3s ease;
   letter-spacing: 0.5px;
 }
 
-.tab-btn:hover {
-  color: #c5a880;
-}
-
-.tab-btn.active {
-  color: #c5a880;
-  font-weight: 700;
-}
-
+.tab-btn:hover { color: #c5a880; }
+.tab-btn.active { color: #1a1a1a; font-weight: 700; }
 .tab-btn.active::after {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
+  bottom: 0; left: 0;
+  width: 100%; height: 3px;
   background-color: #c5a880;
   border-radius: 3px 3px 0 0;
 }
 
 .tab-count {
-  font-size: 13px;
-  background-color: #f3f4f6;
-  padding: 3px 8px;
+  font-size: 12px;
+  background-color: #f5f5f5;
+  padding: 2px 8px;
   border-radius: 12px;
   margin-left: 6px;
-  color: #4b5563;
+  color: #666;
   font-weight: 600;
 }
-
 .tab-btn.active .tab-count {
-  background-color: rgba(197, 168, 128, 0.15);
+  background-color: rgba(197, 168, 128, 0.1);
   color: #c5a880;
 }
 
 .order-layout {
   display: grid;
-  grid-template-columns: 400px 1fr;
+  grid-template-columns: 420px 1fr;
   gap: 35px;
   align-items: start;
 }
 
 .section-title {
-  font-size: 14px;
-  color: #374151;
+  font-size: 13px;
+  color: #888;
   font-weight: 700;
   letter-spacing: 2px;
   margin-bottom: 20px;
 }
 
+/* =========================================
+   2. DANH SÁCH ĐƠN HÀNG (CỘT TRÁI)
+========================================= */
 .order-card {
-  padding: 24px;
-  border-radius: 6px;
+  padding: 20px;
+  border-radius: 10px;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 1px solid #f0f0f0;
   transition: all 0.2s;
   background: #ffffff;
-  margin-bottom: 15px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  margin-bottom: 12px;
 }
 
 .order-card:hover {
   border-color: #e5e7eb;
   transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
 }
 
 .order-card.active {
   border-color: #c5a880;
-  box-shadow: 0 4px 12px rgba(197, 168, 128, 0.15);
+  box-shadow: 0 4px 15px rgba(197, 168, 128, 0.15);
+  background: #fffcf8;
 }
 
 .order-card-header {
@@ -773,273 +761,405 @@ onMounted(() => {
   margin-bottom: 5px;
 }
 
-.order-code {
-  font-size: 15px;
-  font-weight: 700;
-  color: #362921;
-}
+.order-code { font-size: 14px; font-weight: 700; color: #1a1a1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+.order-date { font-size: 12px; color: #888; }
+.order-total { font-size: 15px; font-weight: 700; color: #c5a880; }
+.order-status { font-size: 11px; padding: 4px 8px; font-weight: 700; border-radius: 4px; text-transform: uppercase; }
 
-.order-date {
-  font-size: 13px;
-  color: #888;
+/* PHÂN TRANG */
+.pagination-wrapper { display: flex; justify-content: center; gap: 8px; margin-top: 25px; }
+.page-btn {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid #eaeaea; background: white; border-radius: 6px;
+  cursor: pointer; color: #555; font-weight: 600; font-size: 13px;
+  transition: all 0.2s ease;
 }
+.page-btn:hover:not(:disabled) { border-color: #c5a880; color: #c5a880; }
+.page-btn.active { background: #c5a880; color: white; border-color: #c5a880; }
+.page-btn:disabled { background: #f9f9f9; color: #ccc; cursor: not-allowed; border-color: #f0f0f0; }
 
-.order-total {
-  font-size: 16px;
-  font-weight: 700;
-  color: #c5a880;
-}
 
-.order-status {
-  font-size: 11px;
-  padding: 6px 10px;
-  font-weight: 700;
-  border-radius: 4px;
-  text-transform: uppercase;
-}
-
+/* =========================================
+   3. CHI TIẾT ĐƠN HÀNG (CỘT PHẢI)
+========================================= */
 .detail-box {
-  padding: 45px;
-  border-radius: 8px;
+  padding: 35px;
+  border-radius: 12px;
   background: #ffffff;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  border: 1px solid #eaeaea;
+  box-shadow: 0 4px 25px rgba(0,0,0,0.03);
 }
 
 .detail-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 35px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .detail-header h2 {
-  font-size: 21px;
-  color: #362921;
+  font-size: 18px;
+  color: #1a1a1a;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
 }
 
 .detail-header h2 span {
-  color: #c5a880;
+  display: block; 
+  color: #888;
+  font-size: 13px;
+  margin-top: 6px;
+  font-family: Consolas, monospace;
+  font-weight: normal;
 }
 
 .detail-actions {
   display: flex;
-  gap: 12px;
-  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.btn-print,
-.btn-cancel-order {
-  padding: 10px 18px;
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 4px;
-}
-
-.btn-print {
-  background-color: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  color: #374151;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
+.detail-actions button {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.btn-print:hover {
-  background-color: #e5e7eb;
-}
-
-.btn-cancel-order {
-  background-color: #fee2e2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-  cursor: pointer;
   transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-cancel-order:hover {
-  background-color: #f87171;
-  color: #ffffff;
-  border-color: #f87171;
-}
-
-.btn-refund-order {
-  padding: 10px 18px;
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 4px;
-  background-color: #fef3c7;
-  border: 1px solid #fde68a;
-  color: #b45309;
   cursor: pointer;
-  transition: all 0.2s;
+}
+
+.btn-print { background: #fff; border: 1px solid #e5e7eb; color: #374151; }
+.btn-print:hover { background: #f9f9f9; border-color: #d1d5db; }
+.btn-refund-order { background: #fffaf0; border: 1px solid #fde68a; color: #b45309; }
+.btn-refund-order:hover { background: #fef3c7; }
+.btn-warranty-order { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.btn-cancel-order { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+
+/* =========================================
+   4. FIX THANH TIẾN TRÌNH (TIMELINE)
+========================================= */
+.tracking-timeline {
   display: flex;
+  align-items: flex-start; 
+  justify-content: space-between;
+  margin: 10px 0 40px 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-}
-
-.btn-refund-order:hover {
-  background-color: #d97706;
-  color: #ffffff;
-  border-color: #d97706;
-}
-
-.btn-warranty-order { 
-  padding: 10px 18px; 
-  font-size: 13px; 
-  font-weight: 700; 
-  border-radius: 4px; 
-  background-color: #f0fdf4; 
-  border: 1px solid #bbf7d0; 
-  color: #166534; 
-  cursor: pointer; 
-  transition: all 0.2s; 
-  display: flex; 
-  align-items: center; 
-  gap: 6px; 
-}
-
-.btn-warranty-order:hover { 
-  background-color: #22c55e; 
-  color: #ffffff; 
-  border-color: #22c55e; 
-}
-
-.status-refund-sent {
-  background-color: #fef3c7 !important;
-  color: #b45309 !important;
-}
-
-.status-refund-rejected {
-  background-color: #fee2e2 !important;
-  color: #b91c1c !important;
-}
-
-.status-refund-approved {
-  background-color: #dcfce7 !important;
-  color: #15803d !important;
+  width: 90px;
+  position: relative;
+  z-index: 2;
 }
 
 .step-icon {
-  width: 50px;
-  height: 50px;
-  font-size: 18px;
-}
-
-.step p {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.info-panel {
-  padding: 30px;
-}
-
-.info-panel h3,
-.order-items h3 {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.info-panel p {
-  font-size: 15px;
-}
-
-.velora-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.85);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(4px);
-}
-
-.velora-modal-box {
-  width: 100%;
-  max-width: 450px;
-  background: #141414;
-  border: 1px solid rgba(197, 168, 128, 0.4);
-  border-radius: 12px;
-  padding: 30px;
-  text-align: center;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-}
-
-.velora-modal-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #c5a880;
+  font-size: 16px;
+  color: #d1d5db;
   margin-bottom: 12px;
-  letter-spacing: 1px;
+  transition: all 0.3s;
 }
 
-.velora-modal-msg {
-  color: #d1d5db;
-  font-size: 14px;
-  margin-bottom: 20px;
-  line-height: 1.5;
+.step-line {
+  flex-grow: 1;
+  height: 2px;
+  background: #e5e7eb;
+  margin-top: 21px; 
+  z-index: 1;
+  transition: background 0.3s;
 }
 
-.velora-textarea {
-  width: 100%;
-  height: 100px;
-  background: #1e1e1e;
-  border: 1px solid #374151;
-  border-radius: 8px;
-  padding: 12px;
-  color: white;
-  font-size: 14px;
-  resize: none;
-  font-family: inherit;
-}
-
-.velora-textarea:focus {
+.step.active .step-icon {
   border-color: #c5a880;
-  outline: none;
+  color: #c5a880;
+  box-shadow: 0 0 0 4px rgba(197, 168, 128, 0.1);
 }
 
-.velora-modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-}
-
-.velora-btn-secondary {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: 1px solid #4b5563;
-  background: transparent;
-  color: #d1d5db;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.velora-btn-secondary:hover {
-  background: #1f2937;
-}
-
-.velora-btn-primary {
-  padding: 10px 24px;
-  border-radius: 8px;
-  border: none;
+.step.completed .step-icon {
   background: #c5a880;
-  color: #141414;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
+  border-color: #c5a880;
+  color: #fff;
 }
 
-.velora-btn-primary:hover {
-  background: #b0936d;
+.step-line.filled { background: #c5a880; }
+
+.step p {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  text-align: center;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.step.active p, .step.completed p { color: #1a1a1a; }
+
+/* =========================================
+   5. THÔNG TIN NHẬN HÀNG & BẢN ĐỒ
+========================================= */
+.info-map-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+.info-panel {
+  background: #fbfbfb;
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  padding: 25px;
+}
+
+.info-panel h3, .order-items h3 {
+  font-size: 12px;
+  color: #888;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 15px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.info-panel p {
+  font-size: 13px;
+  margin-bottom: 10px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.info-panel p strong {
+  display: inline-block;
+  width: 95px;
+  color: #666;
+  font-weight: 600;
+}
+
+.map-panel {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+  min-height: 200px;
+  position: relative;
+}
+
+/* =========================================
+   6. BẢNG SẢN PHẨM TRONG ĐƠN
+========================================= */
+.order-items {
+  margin-top: 20px;
+}
+
+.item-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.item-table td {
+  padding: 15px 0;
+  border-bottom: 1px solid #f9f9f9;
+}
+
+.item-table tr:last-child td { border-bottom: none; }
+
+.td-img img {
+  width: 65px;
+  height: 65px;
+  object-fit: contain;
+  background: #fdfdfd;
+  border-radius: 8px;
+  padding: 4px;
+  border: 1px solid #f0f0f0;
+}
+
+.td-name { padding-left: 18px; }
+
+.td-name .p-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.td-name .p-qty { font-size: 13px; color: #888; font-weight: 500; }
+
+.td-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: right;
+}
+
+/* =========================================
+   7. CÁC TIỆN ÍCH KHÁC (Badge, Modal...)
+========================================= */
+.status-refund-sent { background-color: #fef3c7 !important; color: #b45309 !important; }
+.status-refund-rejected { background-color: #fee2e2 !important; color: #b91c1c !important; }
+.status-refund-approved { background-color: #dcfce7 !important; color: #15803d !important; }
+.cancel-info-box { background: #fff9e6; border: 1px solid #fde68a; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; color: #b45309; }
+.pending-cancel-badge { background-color: #fffbeb; color: #b45309; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid #fde68a; display: flex; align-items: center; gap: 8px; }
+.no-selection { text-align: center; color: #888; padding: 50px 0; }
+.no-selection i { font-size: 40px; margin-bottom: 15px; color: #ddd; }
+.empty-orders { text-align: center; padding: 80px 0; background: #fff; border-radius: 12px; border: 1px solid #eaeaea; }
+.empty-icon { font-size: 50px; color: #eaeaea; margin-bottom: 20px; }
+.btn-shopnow { display: inline-block; margin-top: 20px; padding: 12px 25px; background: #1a1a1a; color: #c5a880; font-weight: bold; border-radius: 6px; text-decoration: none; font-size: 13px; letter-spacing: 1px; transition: 0.3s; }
+.btn-shopnow:hover { background: #c5a880; color: #1a1a1a; }
+
+.velora-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(4px); }
+.velora-modal-box { width: 100%; max-width: 450px; background: #141414; border: 1px solid rgba(197, 168, 128, 0.4); border-radius: 12px; padding: 30px; text-align: center; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); }
+.velora-modal-title { font-size: 18px; font-weight: 600; color: #c5a880; margin-bottom: 12px; letter-spacing: 1px; }
+.velora-modal-msg { color: #d1d5db; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+.velora-textarea { width: 100%; height: 100px; background: #1e1e1e; border: 1px solid #374151; border-radius: 8px; padding: 12px; color: white; font-size: 14px; resize: none; font-family: inherit; }
+.velora-textarea:focus { border-color: #c5a880; outline: none; }
+.velora-modal-actions { display: flex; justify-content: center; gap: 15px; }
+.velora-btn-secondary { padding: 10px 20px; border-radius: 8px; border: 1px solid #4b5563; background: transparent; color: #d1d5db; font-weight: 500; cursor: pointer; transition: 0.2s; }
+.velora-btn-secondary:hover { background: #1f2937; }
+.velora-btn-primary { padding: 10px 24px; border-radius: 8px; border: none; background: #c5a880; color: #141414; font-weight: 600; cursor: pointer; transition: 0.2s; }
+.velora-btn-primary:hover { background: #b0936d; }
+
+/* =========================================
+   8. CẤU HÌNH IN ẤN CHUẨN FORM VĂN BẢN (PRINT INVOICE)
+========================================= */
+.print-invoice-template { display: none; }
+
+@media print {
+  @page { margin: 0 !important; size: A4 portrait; }
+
+  iframe, [id*="chat"], [class*="chat"], [class*="widget"], div[style*="position: fixed"], div[style*="position:fixed"] {
+    display: none !important;
+  }
+
+  .velora-header, .order-content, footer, .velora-modal-overlay, .stock-toast {
+    display: none !important;
+  }
+
+  body, html, #app, .order-page {
+    background: white !important;
+    margin: 0 !important; padding: 0 !important;
+    width: 100% !important; height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  .print-invoice-template {
+    display: block !important;
+    width: 100%; height: 100vh;
+    padding: 8mm 10mm !important; /* Gom lề hẹp lại để có không gian */
+    box-sizing: border-box;
+    font-family: "Times New Roman", Times, serif; 
+    color: #1a1a1a;
+    position: relative; z-index: 1;
+  }
+
+  /* Watermark Logo in chìm */
+  .print-invoice-template::before {
+    content: ""; position: absolute;
+    top: 35%; left: 20%; width: 60%; height: 40%;
+    background-image: url('/img/VeloraIcon.png');
+    background-repeat: no-repeat; background-position: center; background-size: contain;
+    opacity: 0.05; z-index: -1;
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+  }
+
+  /* 🔥 Đặt lại chiều cao vừa khít, không bị dư thừa */
+  .print-border-outer { 
+    border: 2px solid #c5a880; 
+    padding: 3px; 
+    height: 100%; 
+    box-sizing: border-box;
+  }
+  
+  .print-border-inner { 
+    border: 1px solid #c5a880; 
+    padding: 15px 20px; 
+    height: 100%; 
+    box-sizing: border-box;
+    display: block; /* Bỏ flex để nội dung tự xếp theo thứ tự tự nhiên, không bị kéo dãn lố */
+  }
+
+  /* Header Công ty */
+  .print-header {
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 2px solid #c5a880;
+    padding-bottom: 8px; margin-bottom: 10px;
+  }
+  .print-logo { width: 110px; text-align: left; }
+  .print-logo img { width: 80px; height: auto; }
+  
+  .print-company-titles { flex: 1; text-align: right; }
+  .company-name {
+    color: #c5a880 !important; 
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    font-size: 20px; font-weight: 700; margin: 0 0 3px 0;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .company-sub { color: #1a1a1a !important; font-size: 11px; margin: 0; font-weight: bold; text-transform: uppercase; }
+
+  /* Dòng thông số phụ */
+  .print-meta-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    font-size: 13px; margin-bottom: 8px;
+  }
+  .meta-left { line-height: 1.4; }
+  .meta-right { text-align: right; line-height: 1.4; }
+
+  /* Tiêu đề chính */
+  .print-title-box { text-align: center; margin-bottom: 15px; }
+  .print-title-box h2 {
+    font-size: 20px; font-weight: bold; color: #1a1a1a;
+    margin: 0; text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* Các Phần I, II, III */
+  .print-section { margin-bottom: 12px; }
+  .print-section h3 { font-size: 14px; font-weight: bold; margin-bottom: 6px; color: #1a1a1a !important; }
+
+  /* Bảng thông tin */
+  .no-border-table { width: 100%; font-size: 13px; line-height: 1.5; }
+  .no-border-table td { padding: 2px 0; vertical-align: top; color: #1a1a1a; }
+
+  /* Bảng sản phẩm */
+  .bordered-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .bordered-table th, .bordered-table td { border: 1px solid #1a1a1a; padding: 5px 7px; color: #1a1a1a; }
+  .bordered-table th {
+    background-color: #fbfbfb !important;
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    font-weight: bold; text-align: center; color: #c5a880 !important;
+  }
+
+  .total-price { color: #c5a880 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; font-size: 14px; }
+
+  /* Chữ ký */
+  .print-signatures { 
+    display: flex; 
+    justify-content: space-around; 
+    margin-top: 25px; 
+    text-align: center; 
+    font-size: 14px; 
+  }
+  .sig-date { font-style: italic; font-size: 13px; margin-bottom: 5px; color: #333; }
+  .sig-box strong { color: #1a1a1a; display: block; margin-top: 3px; }
+  .sig-note { font-size: 12px; color: #555; }
 }
 </style>

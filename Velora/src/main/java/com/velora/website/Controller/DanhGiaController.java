@@ -10,6 +10,8 @@ import com.velora.website.Repository.DanhGiaRepository;
 import com.velora.website.Repository.NguoiDungRepository;
 import com.velora.website.Repository.SanPhamRepository;
 import com.velora.website.Request.DanhGiaRequest;
+import com.velora.website.Service.SocService; 
+import jakarta.servlet.http.HttpServletRequest; 
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -23,19 +25,19 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "*") 
 public class DanhGiaController {
 
-    // Khai báo biến final như bình thường
     private final DanhGiaRepository danhGiaRepository;
     private final NguoiDungRepository nguoiDungRepository;
     private final SanPhamRepository sanPhamRepository;
+    private final SocService socService; 
 
-    // 🔥 TUYỆT CHIÊU CUỐI: Viết Constructor bằng tay
-    // Khỏi cần Lombok hay @Autowired, Spring tự động hiểu và tiêm data vào đây.
     public DanhGiaController(DanhGiaRepository danhGiaRepository, 
                              NguoiDungRepository nguoiDungRepository, 
-                             SanPhamRepository sanPhamRepository) {
+                             SanPhamRepository sanPhamRepository,
+                             SocService socService) {
         this.danhGiaRepository = danhGiaRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.sanPhamRepository = sanPhamRepository;
+        this.socService = socService;
     }
 
     // 1. API Lấy danh sách đánh giá của 1 sản phẩm
@@ -61,25 +63,49 @@ public class DanhGiaController {
         return ResponseEntity.ok(result);
     }
 
-    // 2. API Thêm mới đánh giá (Có tích hợp kiểm duyệt từ ngữ)
+    // 2. API Thêm mới đánh giá 
     @PostMapping("/them")
-    public ResponseEntity<?> addDanhGia(@RequestBody DanhGiaRequest payload) {
+    public ResponseEntity<?> addDanhGia(@RequestBody DanhGiaRequest payload, HttpServletRequest request) {
         try {
-            // Lúc này nguoiDungRepository chắc chắn 100% không thể null
             NguoiDung user = nguoiDungRepository.findById(payload.getMaNguoiDung())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
+            // ➔ Kiểm tra nếu tài khoản đã bị khóa vĩnh viễn
             if (user.getTrangThai() != null && "0".equals(user.getTrangThai())) {
                 return ResponseEntity.status(403).body(Map.of("message", "ACCOUNT_LOCKED"));
             }
 
+            // ➔ TÁCH BIỆT: Kiểm tra nếu tài khoản đang trong thời gian cấm tạm thời (3 phút)
             if (user.getThoiGianCamBinhLuan() != null && user.getThoiGianCamBinhLuan().isAfter(LocalDateTime.now())) {
-                return ResponseEntity.status(403).body(Map.of("message", "BANNED_3_MINS"));
+                return ResponseEntity.status(403).body(Map.of("message", "TEMPORARILY_BANNED"));
             }
 
+            String binhLuan = payload.getBinhLuan() != null ? payload.getBinhLuan() : "";
+            String binhLuanLower = binhLuan.toLowerCase();
+
+            // 🔥 PHẦN A: KIỂM TRA MÃ ĐỘC (XSS / Script Injection)
+            boolean isSecurityThreat = binhLuanLower.contains("<script>") || 
+                                       binhLuanLower.contains("javascript:") || 
+                                       binhLuanLower.contains("alert(") || 
+                                       binhLuanLower.contains("onerror=");
+            
+            if (isSecurityThreat) {
+                String clientIp = request.getRemoteAddr();
+                
+                // Ngầm ghi log và bắn báo động đỏ về SOC ngay lập tức
+                socService.createAndBroadcastAlert(
+                    clientIp, 
+                    "XSS_ATTACK", 
+                    "NGHIEM_TRONG", 
+                    "Phát hiện cố tình chèn mã độc qua form đánh giá sản phẩm: " + binhLuan
+                );
+                
+                return ResponseEntity.status(403).body(Map.of("message", "MALICIOUS_CONTENT"));
+            }
+
+            // 🔥 PHẦN B: KIỂM TRA TỪ NGỮ THÔ TỤC / SPAM THÔNG THƯỜNG
             List<String> badWords = Arrays.asList("dm", "vcl", "ngu", "chó", "lừa đảo");
-            String binhLuan = payload.getBinhLuan().toLowerCase();
-            boolean containsBadWord = badWords.stream().anyMatch(binhLuan::contains);
+            boolean containsBadWord = badWords.stream().anyMatch(binhLuanLower::contains);
 
             if (containsBadWord) {
                 int viPham = (user.getSoLanViPham() == null) ? 0 : user.getSoLanViPham();
@@ -87,22 +113,26 @@ public class DanhGiaController {
                 user.setSoLanViPham(viPham);
 
                 if (viPham == 1) {
+                    // Đặt thời gian cấm 3 phút cho lần vi phạm đầu tiên
                     user.setThoiGianCamBinhLuan(LocalDateTime.now().plusMinutes(3));
                     nguoiDungRepository.save(user);
-                    return ResponseEntity.status(403).body(Map.of("message", "BANNED_3_MINS"));
+                    
+                    // ➔ Trả về mã cảnh cáo nhẹ nhàng (Warning) để nhắc nhở chỉnh sửa
+                    return ResponseEntity.status(403).body(Map.of("message", "INAPPROPRIATE_LANGUAGE_WARNING"));
                 } else {
-                    user.setTrangThai("0"); 
+                    user.setTrangThai("0"); // Khóa tài khoản từ vi phạm thứ 2
                     nguoiDungRepository.save(user);
                     return ResponseEntity.status(403).body(Map.of("message", "ACCOUNT_LOCKED"));
                 }
             }
 
+            // ➔ NẾU NỘI DUNG SẠCH SẼ -> LƯU BÌNH LUẬN BÌNH THƯỜNG
             SanPham sanPham = sanPhamRepository.findById(payload.getMaSanPham())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy kiệt tác đồng hồ này"));
 
             DanhGia newDanhGia = new DanhGia();
             newDanhGia.setSoSao(payload.getSoSaoDanhGia());
-            newDanhGia.setBinhLuan(payload.getBinhLuan());
+            newDanhGia.setBinhLuan(binhLuan);
             newDanhGia.setNgayDanhGia(LocalDateTime.now());
             newDanhGia.setSanPham(sanPham);
             newDanhGia.setNguoiDung(user);

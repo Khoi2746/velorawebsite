@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.jdbc.core.JdbcTemplate; // Đã thêm import JdbcTemplate
+import org.springframework.jdbc.core.JdbcTemplate; 
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

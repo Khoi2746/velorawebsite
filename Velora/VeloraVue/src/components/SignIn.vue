@@ -10,7 +10,7 @@
                 </div>
 
                 <form @submit.prevent="handleRegister" class="register-form">
-
+                    
                     <div class="input-group">
                         <label for="fullName">Họ và tên</label>
                         <div class="input-wrapper">
@@ -46,6 +46,21 @@
 
                     <button type="submit" class="btn-submit">ĐĂNG KÝ NGAY</button>
 
+                    <div class="social-login-separator">
+                        <span>Hoặc tiếp tục với</span>
+                    </div>
+
+                    <div class="social-login-buttons">
+                        <button type="button" class="btn-social btn-google" @click="loginWithGoogle">
+                            <i class="fab fa-google"></i>
+                            Google
+                        </button>
+                        <button type="button" class="btn-social btn-facebook" @click="loginWithFacebook">
+                            <i class="fab fa-facebook-f"></i>
+                            Facebook
+                        </button>
+                    </div>
+
                     <div class="login-redirect">
                         <span>Đã có tài khoản?</span>
                         <router-link to="/dang-nhap" class="login-link">Đăng nhập ngay</router-link>
@@ -54,7 +69,6 @@
             </div>
         </div>
 
-        <!-- HTML KHỐI POPUP THÔNG BÁO -->
         <div class="custom-popup-overlay" v-if="popup.show" @click="closePopup">
             <div class="custom-popup-box" :class="popup.type" @click.stop>
                 <div class="popup-icon">
@@ -86,7 +100,6 @@ const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 
-// -- STATE QUẢN LÝ POPUP THÔNG BÁO --
 const popup = ref({
     show: false,
     message: '',
@@ -107,7 +120,6 @@ const closePopup = () => {
     popup.value.show = false
     if (popupTimeout) clearTimeout(popupTimeout)
 }
-// ----------------------------------
 
 const handleRegister = async () => {
     if (password.value !== confirmPassword.value) {
@@ -129,7 +141,6 @@ const handleRegister = async () => {
         if (response.ok) {
             showNotification('Đăng ký thành công! Vui lòng kiểm tra Email để nhận hướng dẫn tiếp theo.', 'success')
             
-            // Đợi 2.5 giây cho khách đọc xong rồi mới chuyển trang
             setTimeout(() => {
                 router.push('/dang-nhap')
             }, 2500)
@@ -142,12 +153,116 @@ const handleRegister = async () => {
         showNotification('Không thể kết nối đến máy chủ! Vui lòng thử lại sau.', 'error')
     }
 }
+
+// 🔥 LUỒNG ĐĂNG KÝ BẰNG MẠNG XÃ HỘI (Lưu email và chuyển sang trang cập nhật thông tin bổ sung)
+const loginWithGoogle = () => {
+    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+}
+
+const loginWithFacebook = () => {
+    window.location.href = 'http://localhost:8080/oauth2/authorization/facebook';
+}
 </script>
 
 <style scoped>
 @import "./CSS/SignIn.css";
 
-/* --- CSS CHO KHỐI POPUP (Giữ nguyên phong cách Velora) --- */
+.register-container {
+    width: 100%;
+    max-width: 480px !important; 
+    padding: 50px 40px !important;
+    border-radius: 0 !important; 
+}
+
+.register-header {
+    margin-bottom: 28px !important;
+}
+
+.input-group {
+    margin-bottom: 20px !important;
+}
+
+.input-group label {
+    margin-bottom: 6px !important;
+    font-size: 12px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.input-wrapper,
+.input-wrapper input {
+    border-radius: 0 !important; 
+}
+
+.input-wrapper input {
+    padding: 12px 15px 12px 42px !important;
+    font-size: 14px !important;
+}
+
+.btn-submit {
+    margin-top: 10px !important;
+    padding: 12px !important;
+    font-size: 14px !important;
+    border-radius: 0 !important; 
+}
+
+.social-login-separator {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 22px 0 16px 0 !important;
+    color: #888;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.social-login-separator::before,
+.social-login-separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #333;
+}
+
+.social-login-separator span {
+    padding: 0 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.social-login-buttons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 22px !important;
+}
+
+.btn-social {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 11px;
+    border-radius: 0 !important; 
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid #444;
+    color: #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.btn-social:hover {
+    background: #1a1a1a;
+    border-color: #d1aa68;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-google i { color: #ea4335; font-size: 16px; }
+.btn-facebook i { color: #1877f2; font-size: 16px; }
+
+/* CSS Popup */
 .custom-popup-overlay {
     position: fixed;
     top: 0;
@@ -166,7 +281,7 @@ const handleRegister = async () => {
 .custom-popup-box {
     background: #1e1e1e;
     border: 1px solid #d1aa68;
-    border-radius: 8px;
+    border-radius: 0 !important; 
     padding: 30px 40px;
     width: 90%;
     max-width: 420px;
@@ -179,10 +294,7 @@ const handleRegister = async () => {
     gap: 15px;
 }
 
-.popup-icon i {
-    font-size: 55px;
-}
-
+.popup-icon i { font-size: 55px; }
 .custom-popup-box.success .popup-icon i { color: #2ecc71; }
 .custom-popup-box.warning .popup-icon i { color: #f39c12; }
 .custom-popup-box.error .popup-icon i { color: #e74c3c; }
@@ -211,7 +323,7 @@ const handleRegister = async () => {
     font-size: 14px;
     font-weight: bold;
     letter-spacing: 1px;
-    border-radius: 4px;
+    border-radius: 0 !important; 
     cursor: pointer;
     transition: all 0.3s ease;
     width: 100%;
@@ -229,5 +341,11 @@ const handleRegister = async () => {
 @keyframes scaleUp {
     from { transform: scale(0.9); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 550px) {
+    .register-container {
+        padding: 30px 20px !important;
+    }
 }
 </style>

@@ -100,8 +100,8 @@
               </li>
             </ul>
 
-            <div class="action-buttons-group" style="display: flex; flex-direction: column; gap: 15px; margin-top: 25px;">
-              <div class="primary-actions-row" style="display: flex; gap: 15px; width: 100%;">
+            <div class="action-buttons-group">
+              <div class="primary-actions-row">
                 <div style="flex: 1;">
                   <!-- Component Thanh Toán -->
                   <ThanhToan :maSanPham="product.maSanPham" :soLuong="quantity" />
@@ -113,9 +113,8 @@
                 </div>
               </div>
 
-              <div class="secondary-action-row" style="display: flex; gap: 15px; width: 100%;">
-                <button @click="contactVVIP" class="btn-secondary"
-                  style="flex: 1; margin: 0; display: inline-flex; justify-content: center; align-items: center; cursor: pointer;">
+              <div class="secondary-action-row">
+                <button @click="contactVVIP" class="btn-secondary">
                   LIÊN HỆ TƯ VẤN VVIP
                 </button>
               </div>
@@ -233,7 +232,6 @@ const carouselRef = ref(null)
 
 const quantity = ref(1)
 
-// ================= PHẦN QUẢN LÝ SLIDER THỦ CÔNG (KHÔNG TỰ ĐỘNG CHẠY) =================
 const allImages = ref([])
 const currentImage = ref('')
 
@@ -250,7 +248,6 @@ const prevImage = () => {
   const prevIndex = (currentIndex - 1 + allImages.value.length) % allImages.value.length
   currentImage.value = allImages.value[prevIndex]
 }
-// ===================================================================================
 
 const formatPrice = (value) => {
   if (!value) return 'Liên hệ'
@@ -318,7 +315,6 @@ const loadProductDetail = async () => {
     if (res.ok) {
       product.value = await res.json()
 
-      // GOM ẢNH ĐẠI DIỆN VÀ THƯ VIỆN ẢNH PHỤ VÀO MẢNG SLIDER
       allImages.value = []
       if (product.value.anhDaiDien) {
         allImages.value.push(product.value.anhDaiDien)
@@ -360,6 +356,169 @@ onMounted(() => {
 <style scoped>
 @import "../CSS/User/ChiTietSanPham.css";
 
+/* Thu gọn khoảng cách và làm các phần khít, gọn gàng hơn */
+.detail-content {
+  padding: 20px 0 40px 0;
+}
+
+.section-header {
+  margin-bottom: 20px;
+}
+
+.breadcrumb {
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px; /* Thu hẹp khoảng cách giữa ảnh và thông tin */
+  align-items: start;
+  margin-bottom: 40px;
+}
+
+/* Thông tin sản phẩm bên phải thu gọn khoảng cách dòng */
+.info-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #c5a880;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.product-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.product-price {
+  font-size: 20px;
+  font-weight: 600;
+  color: #c5a880;
+  margin-bottom: 12px;
+}
+
+.title-divider {
+  width: 40px;
+  height: 2px;
+  background-color: #c5a880;
+  margin-bottom: 12px;
+}
+
+.short-description {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 15px;
+}
+
+.specs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 15px 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+}
+
+.specs-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.spec-label {
+  color: #777;
+}
+
+.spec-value {
+  font-weight: 600;
+  color: #222;
+}
+
+/* Nhóm nút bấm thao tác */
+.action-buttons-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Thu hẹp khoảng cách giữa các hàng nút */
+  margin-top: 5px;
+}
+
+.primary-actions-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.secondary-action-row {
+  display: flex;
+  width: 100%;
+}
+
+.btn-secondary {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid #1a1a1a;
+  color: #1a1a1a;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-radius: 4px;
+}
+
+.btn-secondary:hover {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+/* Accordion gọn gàng hơn */
+.accordion-group {
+  margin-top: 20px;
+  border-top: 1px solid #eaeaea;
+}
+
+.accordion-item {
+  border-bottom: 1px solid #eaeaea;
+}
+
+.accordion-header {
+  padding: 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.accordion-content {
+  padding-bottom: 10px;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* Phần sản phẩm liên quan */
+.related-products {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #eaeaea;
+}
+
 .main-image-wrapper {
   position: relative;
   width: 100%;
@@ -380,7 +539,6 @@ onMounted(() => {
   transition: opacity 0.3s ease;
 }
 
-/* NÚT MŨI TÊN TRÁI PHẢI THỦ CÔNG */
 .slider-arrow {
   position: absolute;
   top: 50%;
@@ -388,8 +546,8 @@ onMounted(() => {
   background: rgba(20, 20, 20, 0.6);
   color: #c5a880;
   border: 1px solid rgba(197, 168, 128, 0.4);
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -404,22 +562,21 @@ onMounted(() => {
   color: #141414;
 }
 
-.slider-arrow.prev { left: 15px; }
-.slider-arrow.next { right: 15px; }
+.slider-arrow.prev { left: 10px; }
+.slider-arrow.next { right: 10px; }
 
-/* DANH SÁCH THUMBNAIL PHÍA DƯỚI */
 .thumbnail-list {
   display: flex;
-  gap: 12px;
-  margin-top: 15px;
+  gap: 8px;
+  margin-top: 10px;
   overflow-x: auto;
-  padding-bottom: 5px;
+  padding-bottom: 3px;
 }
 
 .thumbnail-item {
-  width: 75px;
-  height: 75px;
-  border-radius: 6px;
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
   border: 2px solid #eaeaea;
   overflow: hidden;
   cursor: pointer;
@@ -443,6 +600,6 @@ onMounted(() => {
 .thumbnail-item.active {
   opacity: 1;
   border-color: #c5a880;
-  box-shadow: 0 0 8px rgba(197, 168, 128, 0.4);
+  box-shadow: 0 0 6px rgba(197, 168, 128, 0.4);
 }
 </style>

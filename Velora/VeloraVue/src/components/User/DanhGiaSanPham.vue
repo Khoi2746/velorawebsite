@@ -109,7 +109,7 @@ const isSubmitting = ref(false);
 
 // Cấu hình phân trang
 const currentPage = ref(1);
-const pageSize = ref(3); // Số lượng đánh giá hiển thị trên mỗi trang
+const pageSize = ref(3);
 
 const newReview = ref({
   soSao: 5,
@@ -136,7 +136,7 @@ const fetchReviews = async () => {
     if (res.ok) {
       const data = await res.json();
       reviews.value = data;
-      currentPage.value = 1; // Reset về trang 1 khi load lại
+      currentPage.value = 1;
     }
   } catch (err) {
     console.error('Lỗi tải đánh giá:', err);
@@ -183,10 +183,15 @@ const submitReview = async () => {
       newReview.value.soSao = 5; 
       fetchReviews(); 
     } else {
-      if (res.status === 403 && data?.message === 'BANNED_3_MINS') {
-        showAlert('Bình luận vi phạm tiêu chuẩn! Bạn bị cấm bình luận trong 3 phút.', 'error');
+      // ➔ XỬ LÝ CÁC THÔNG BÁO LỊCH SỰ THEO VĂN PHONG KINH DOANH
+      if (res.status === 403 && data?.message === 'MALICIOUS_CONTENT') {
+        showAlert('Bình luận của quý khách có chứa mã không rõ nguồn gốc, vui lòng kiểm tra lại nội dung!', 'warning');
+      } else if (res.status === 403 && data?.message === 'INAPPROPRIATE_LANGUAGE_WARNING') {
+        showAlert('Vui lòng chỉnh sửa lại từ ngữ phát ngôn cho phù hợp với tiêu chuẩn cộng đồng của Velora Clock.', 'warning');
+      } else if (res.status === 403 && data?.message === 'BANNED_3_MINS') {
+        showAlert('Bình luận vi phạm tiêu chuẩn! Bạn bị hạn chế tương tác trong 3 phút.', 'error');
       } else if (res.status === 403 && data?.message === 'ACCOUNT_LOCKED') {
-        showAlert('Tài khoản của bạn đã bị khóa do vi phạm nhiều lần. Vui lòng liên hệ Admin.', 'error');
+        showAlert('Tài khoản của bạn đã bị tạm khóa do vi phạm nhiều lần. Vui lòng liên hệ bộ phận hỗ trợ.', 'error');
       } else {
         showAlert(data?.message || 'Gửi đánh giá thất bại. Vui lòng thử lại.', 'error');
       }
@@ -278,7 +283,6 @@ onMounted(() => {
   color: #c5a880;
 }
 
-/* Đổi font chữ textarea và placeholder sang Times New Roman */
 .review-textarea {
   width: 100%;
   padding: 14px;
@@ -404,7 +408,6 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-/* Style cho thanh phân trang */
 .pagination-container {
   display: flex;
   justify-content: center;

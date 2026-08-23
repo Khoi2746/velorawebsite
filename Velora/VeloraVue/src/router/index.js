@@ -13,6 +13,7 @@ import BaoHanh from '../components/User/BaoHanh.vue'
 import ThongTinNguoiDung from '../components/User/ThongTinNguoiDung.vue'
 import LienHeTuVan from '../components/User/LienHeTuVan.vue'
 import QuenMatKhau from '../components/User/QuenMatKhau.vue'
+import CapNhatThongTinOauth2 from '../components/User/CapNhatThongTinOauth2.vue';
 
 // Import các file Thanh toán, Quét QR và Hoàn tiền
 import ThanhToanDonHang from '../components/User/ThanhToanDonHang.vue'
@@ -34,6 +35,7 @@ import QuanLyMaGiamGia from '../components/Admin/QuanLyMaGiamGia.vue'
 import QuanLyThongKe from '../components/Admin/QuanLyThongKe.vue'
 import AdminLichHen from '../components/Admin/AdminLichHen.vue'
 import QuanLyHoanTien from '../components/Admin/QuanLyHoanTien.vue' //
+import QuanLySOC from '../components/Admin/QuanLySOC.vue'
 
 // Các file giao diện Tư Vấn Viên
 import TuVanDashboard from '../components/ChuyenVienTuVan/TuVanDashboard.vue'
@@ -74,6 +76,18 @@ const router = createRouter({
     { path: '/admin/statistics', name: 'QuanLyThongKe', component: QuanLyThongKe, meta: { requiresAdmin: true } },
     { path: '/admin/quan-ly-bao-hanh', name: 'QuanLyBaoHanh', component: QuanLyBaoHanh, meta: { requiresAdmin: true } },
     { path: '/admin/lich-hen', name: 'QuanLyLichHen', component: AdminLichHen, meta: { requiresAdmin: true } },
+    {
+    path: '/admin/soc',
+    name: 'QuanLySOC',
+    component: QuanLySOC,
+    meta: { requiresAuth: true, requiresAdmin: true } // Nếu em có phân quyền bảo vệ route
+  },
+  {
+  path: '/cap-nhat-thong-tin',
+  name: 'CapNhatThongTin',
+  component: CapNhatThongTinOauth2,
+  meta: {requiresAuth:true}
+},
 
     // ================== TƯ VẤN VIÊN ==================
     {
