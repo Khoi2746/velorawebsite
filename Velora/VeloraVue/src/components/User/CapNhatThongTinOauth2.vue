@@ -11,23 +11,15 @@
 
                 <form @submit.prevent="handleUpdateInfo" class="update-form">
                     
-                    <div class="input-group">
-                        <label for="email">Email tài khoản</label>
+                    <!-- CHỈ HIỆN KHI ĐĂNG NHẬP BẰNG FACEBOOK -->
+                    <div class="input-group" v-if="provider === 'FACEBOOK'">
+                        <label for="realEmail">Email nhận thông báo (Email thay thế)</label>
                         <div class="input-wrapper">
                             <i class="far fa-envelope input-icon"></i>
-                            <!-- Nếu là email giả lập từ Facebook thì mở khóa cho khách tự nhập email thật -->
-                            <input 
-                                type="email" 
-                                id="email" 
-                                v-model="email" 
-                                :disabled="!isFakeFacebookEmail(originalEmail)" 
-                                :class="{'disabled-input': !isFakeFacebookEmail(originalEmail)}" 
-                                placeholder="Nhập địa chỉ email chính xác của bạn" 
-                                required 
-                            />
+                            <input type="email" id="realEmail" v-model="realEmail" placeholder="Nhập email thật của bạn (VD: khoi@gmail.com)" required />
                         </div>
-                        <small v-if="isFakeFacebookEmail(originalEmail)" class="email-note">
-                            * Tài khoản Facebook không cung cấp email công khai. Vui lòng nhập email thật để nhận thông báo đơn hàng!
+                        <small class="email-note">
+                            * Tài khoản Facebook không công khai email. Vui lòng nhập email thật để nhận thông báo đơn hàng!
                         </small>
                     </div>
 
@@ -60,80 +52,44 @@
             </div>
         </div>
 
-        <div class="custom-popup-overlay" v-if="popup.show" @click="closePopup">
-            <div class="custom-popup-box" :class="popup.type" @click.stop>
-                <div class="popup-icon">
-                    <i v-if="popup.type === 'success'" class="fas fa-check-circle"></i>
-                    <i v-else-if="popup.type === 'warning'" class="fas fa-exclamation-triangle"></i>
-                    <i v-else class="fas fa-times-circle"></i>
-                </div>
-                <div class="popup-content">
-                    <h3>{{ popup.type === 'success' ? 'THÀNH CÔNG' : popup.type === 'warning' ? 'CHÚ Ý' : 'LỖI' }}</h3>
-                    <p>{{ popup.message }}</p>
-                </div>
-                <button class="popup-close-btn" @click="closePopup">ĐÓNG</button>
-            </div>
-        </div>
-
         <Footer />
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
 
-const router = useRouter()
 const route = useRoute()
 
-const email = ref('')
-const originalEmail = ref('') // Lưu lại email gốc để Backend đối chiếu
+const originalEmail = ref('') 
+const realEmail = ref('')        
+const provider = ref('')         
 const fullName = ref('')
 const phone = ref('')
 const address = ref('')
 
-const popup = ref({
-    show: false,
-    message: '',
-    type: 'success'
-})
-
-let popupTimeout = null;
-
-const showNotification = (message, type = 'success') => {
-    popup.value = { show: true, message, type }
-    if (popupTimeout) clearTimeout(popupTimeout)
-    popupTimeout = setTimeout(() => {
-        closePopup()
-    }, 3000)
-}
-
-const closePopup = () => {
-    popup.value.show = false
-    if (popupTimeout) clearTimeout(popupTimeout)
-}
-
-// Kiểm tra xem có phải email giả lập từ Facebook không (chứa @facebook.com hoặc toàn số)
-const isFakeFacebookEmail = (emailStr) => {
-    if (!emailStr) return false;
-    return emailStr.includes('@facebook.com') || /^\d+@/.test(emailStr);
-}
-
 onMounted(() => {
     if (route.query.email) {
-        email.value = route.query.email
-        originalEmail.value = route.query.email // Lưu lại email ban đầu
+        originalEmail.value = route.query.email
+        if (route.query.provider === 'GOOGLE') {
+            realEmail.value = route.query.email
+        }
     }
     if (route.query.name) {
         fullName.value = route.query.name
     }
+    if (route.query.provider) {
+        provider.value = route.query.provider
+    }
 })
 
 const handleUpdateInfo = async () => {
-    if (!phone.value || !address.value || !email.value) {
-        showNotification("Vui lòng điền đầy đủ thông tin bắt buộc!", "warning")
+    const emailToSend = (provider.value === 'FACEBOOK') ? realEmail.value : originalEmail.value;
+
+    if (!phone.value || !address.value || (provider.value === 'FACEBOOK' && !realEmail.value)) {
         return
     }
 
@@ -142,8 +98,8 @@ const handleUpdateInfo = async () => {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                originalEmail: originalEmail.value, // Gửi email gốc để tìm user trong DB
-                email: email.value,                 // Gửi email mới (nếu khách đã sửa lại)
+                originalEmail: originalEmail.value, 
+                email: emailToSend,                 
                 hoTen: fullName.value,
                 soDienThoai: phone.value,
                 diaChi: address.value
@@ -153,19 +109,10 @@ const handleUpdateInfo = async () => {
         if (response.ok) {
             const userData = await response.json()
             localStorage.setItem('user', JSON.stringify(userData))
-            
-            showNotification('Cập nhật hồ sơ thành công! Đang chuyển hướng...', 'success')
-            
-            setTimeout(() => {
-                window.location.href = '/'
-            }, 1500)
-        } else {
-            const errorMsg = await response.text()
-            showNotification('Lỗi cập nhật: ' + errorMsg, 'error')
+            window.location.href = '/'
         }
     } catch (error) {
         console.error('Lỗi kết nối:', error)
-        showNotification('Không thể kết nối đến máy chủ! Vui lòng thử lại sau.', 'error')
     }
 }
 </script>

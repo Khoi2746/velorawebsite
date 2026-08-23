@@ -11,3 +11,7 @@ app.use(router)
 
 // 3. Đưa ứng dụng ra ngoài màn hình (Phải nằm CUỐI CÙNG)
 app.mount('#app')
+
+if (window.location.hash.includes('_=_')) {
+  window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+}

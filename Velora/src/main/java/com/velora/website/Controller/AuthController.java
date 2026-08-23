@@ -15,6 +15,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,7 +45,99 @@ public class AuthController {
     private final Map<String, String> otpStorage = new ConcurrentHashMap<>();
 
     /**
-     * API ĐĂNG NHẬP (TÍCH HỢP CHỐNG BRUTE-FORCE & LOGGING SOC)
+     * API LẤY THÔNG TIN USER HIỆN TẠI TỪ DATABASE (CHỐNG CACHE TRIỆT ĐỂ)
+     */
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+        headers.set("Pragma", "no-cache");
+        headers.set("Expires", "0");
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.ok().headers(headers).body(null);
+        }
+
+        Object principal = authentication.getPrincipal();
+        Optional<NguoiDung> userOpt = Optional.empty();
+
+        if (principal instanceof org.springframework.security.oauth2.core.user.OAuth2User) {
+            org.springframework.security.oauth2.core.user.OAuth2User oauth2User = (org.springframework.security.oauth2.core.user.OAuth2User) principal;
+            
+            String registrationId = "";
+            if (authentication instanceof org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken) {
+                registrationId = ((org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken) authentication).getAuthorizedClientRegistrationId();
+            }
+            String provider = registrationId != null ? registrationId.toUpperCase() : "";
+
+            if ("GOOGLE".equalsIgnoreCase(provider)) {
+                // Google: Tìm theo Email trước, sau đó fallback tìm theo ProviderId (sub)
+                String email = oauth2User.getAttribute("email");
+                if (email != null && !email.isEmpty()) {
+                    userOpt = nguoiDungRepository.findByEmail(email);
+                }
+                if (userOpt.isEmpty()) {
+                    String sub = oauth2User.getAttribute("sub");
+                    if (sub != null) {
+                        userOpt = nguoiDungRepository.findByProviderAndProviderId("GOOGLE", sub);
+                    }
+                }
+            } else if ("FACEBOOK".equalsIgnoreCase(provider)) {
+                // 🔥 FACEBOOK: BẮT BUỘC TÌM BẰNG PROVIDER + PROVIDER ID (Tuyệt đối không dùng email)
+                String fbId = oauth2User.getAttribute("id");
+                if (fbId != null) {
+                    userOpt = nguoiDungRepository.findByProviderAndProviderId("FACEBOOK", fbId);
+                }
+            }
+        } else {
+            // Đăng nhập thủ công bằng Email/Password truyền thống
+            String email = authentication.getName();
+            if (email != null && !email.isEmpty()) {
+                userOpt = nguoiDungRepository.findByEmail(email);
+            }
+        }
+
+        if (userOpt.isPresent()) {
+            return ResponseEntity.ok().headers(headers).body(userOpt.get());
+        }
+
+        return ResponseEntity.ok().headers(headers).body(null);
+    }
+
+    /**
+     * API ĐĂNG XUẤT (HỦY SESSION & XÓA BẢO MẬT PHÍA SERVER)
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(jakarta.servlet.http.HttpServletRequest request, 
+                                    jakarta.servlet.http.HttpServletResponse response) {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        
+        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+
+        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("JSESSIONID", null);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+
+        return ResponseEntity.ok("Đăng xuất thành công!");
+    }
+
+    @GetMapping("/oauth2/prepare/{mode}")
+    public void prepareOAuth2Mode(@PathVariable String mode, 
+                                   @RequestParam String provider, 
+                                   jakarta.servlet.http.HttpServletRequest request, 
+                                   jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        jakarta.servlet.http.HttpSession session = request.getSession(true);
+        session.setAttribute("oauth2_mode", mode);
+        response.sendRedirect("/oauth2/authorization/" + provider);
+    }
+
+    /**
+     * API ĐĂNG NHẬP THỦ CÔNG (TÍCH HỢP TẠO SECURITY CONTEXT & CHẶN TÀI KHOẢN XÃ HỘI)
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, jakarta.servlet.http.HttpServletRequest request) {
@@ -59,7 +152,6 @@ public class AuthController {
 
         Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(loginRequest.getEmail());
 
-        // 1. Không tìm thấy email trong hệ thống
         if (!userOpt.isPresent()) {
             saveLoginLog(loginRequest.getEmail(), clientIp, userAgent, "THAT_BAI_SAI_EMAIL");
 
@@ -72,7 +164,17 @@ public class AuthController {
 
         NguoiDung user = userOpt.get();
 
-        // 2. Tài khoản đã bị khóa trước đó
+        // 🔥 NẾU TÀI KHOẢN NÀY ĐÃ ĐĂNG KÝ BẰNG MẠNG XÃ HỘI, CHẶN THỦ CÔNG VÀ KHÔNG TÍNH LẦN VI PHẠM
+        if (user.getProvider() != null && !user.getProvider().trim().isEmpty()) {
+            saveLoginLog(user.getEmail(), clientIp, userAgent, "THAT_BAI_TAI_KHOAN_SOCIAL");
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("code", "SOCIAL_ACCOUNT_EXISTS");
+            errorResponse.put("message", "Tài khoản này đã được đăng ký trong một tài khoản khác! "+ ". Vui lòng sử dụng nút đăng nhập nền tảng " + " bên dưới!");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+
         String trangThai = user.getTrangThai();
         if ("KHOA".equalsIgnoreCase(trangThai) || "BI_KHOA".equalsIgnoreCase(trangThai)) {
             saveLoginLog(user.getEmail(), clientIp, userAgent, "THAT_BAI_TAI_KHOAN_BI_KHOA");
@@ -84,16 +186,27 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
 
-        // 3. Kiểm tra mật khẩu
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         boolean isMatch = encoder.matches(loginRequest.getPassword(), user.getMatKhauMaHoa());
 
         if (isMatch) {
-            // Đăng nhập thành công -> Reset số lần vi phạm về 0
             user.setSoLanViPham(0);
             nguoiDungRepository.save(user);
 
             saveLoginLog(user.getEmail(), clientIp, userAgent, "THANH_CONG");
+
+            List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = new ArrayList<>();
+            if (user.getVaiTros() != null) {
+                for (VaiTro role : user.getVaiTros()) {
+                    authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(role.getTenVaiTro()));
+                }
+            }
+            Authentication authentication = 
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(user.getEmail(), null, authorities);
+            
+            org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+            jakarta.servlet.http.HttpSession session = request.getSession(true);
+            session.setAttribute("SPRING_SECURITY_CONTEXT", org.springframework.security.core.context.SecurityContextHolder.getContext());
 
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("maNguoiDung", user.getMaNguoiDung());
@@ -108,7 +221,6 @@ public class AuthController {
 
             return ResponseEntity.ok(responseData);
         } else {
-            // Đăng nhập thất bại (Sai mật khẩu) -> Tăng bộ đếm vi phạm
             int currentViolations = (user.getSoLanViPham() != null) ? user.getSoLanViPham() + 1 : 1;
             user.setSoLanViPham(currentViolations);
 
@@ -119,7 +231,6 @@ public class AuthController {
                 user.setTrangThai("BI_KHOA");
                 message = "Bạn đã nhập sai quá 5 lần. Tài khoản đã bị khóa an toàn! Vui lòng dùng 'Quên mật khẩu' để đặt lại.";
 
-                // Gửi cảnh báo đỏ chót vào bảng CanhBaoAnNinh của SOC Dashboard
                 CanhBaoAnNinh alert = new CanhBaoAnNinh();
                 alert.setDiaChiIP(clientIp);
                 alert.setThongTinThietBi(userAgent);
@@ -239,29 +350,41 @@ public class AuthController {
         response.put("ip", clientIp);
         return ResponseEntity.ok(response);
     }
+
     /**
      * API CẬP NHẬT THÔNG TIN BỔ SUNG CHO TÀI KHOẢN OAUTH2
      */
     @PutMapping("/cap-nhat-thong-tin")
-    public ResponseEntity<?> capNhatThongTinOauth2(@RequestBody NguoiDung request) {
-        Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(request.getEmail());
+    public ResponseEntity<?> capNhatThongTinOauth2(@RequestBody Map<String, String> request) {
+        String originalEmail = request.get("originalEmail");
+        String newEmail = request.get("email");
+        String hoTen = request.get("hoTen");
+        String soDienThoai = request.get("soDienThoai");
+        String diaChi = request.get("diaChi");
+
+        Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(originalEmail);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy tài khoản!");
         }
 
         NguoiDung user = userOpt.get();
-        user.setHoTen(request.getHoTen());
-        user.setSoDienThoai(request.getSoDienThoai());
-        user.setDiaChi(request.getDiaChi());
-        
-        // Đảm bảo trạng thái hoạt động bình thường
-        if (user.getTrangThai() == null || user.getTrangThai().isEmpty()) {
-            user.setTrangThai("HOAT_DONG");
+
+        if (newEmail != null && !newEmail.isEmpty() && !newEmail.equals(originalEmail)) {
+            if (nguoiDungRepository.findByEmail(newEmail).isPresent()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email này đã được sử dụng bởi tài khoản khác!");
+            }
+            user.setEmail(newEmail);
         }
+
+        user.setHoTen(hoTen);
+        user.setSoDienThoai(soDienThoai);
+        user.setDiaChi(diaChi);
+        user.setTrangThai("HOAT_DONG");
 
         nguoiDungRepository.save(user);
         return ResponseEntity.ok(user);
     }
+
     /**
      * BƯỚC 2: XÁC THỰC MÃ OTP
      */
@@ -297,7 +420,7 @@ public class AuthController {
             BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
             
             user.setMatKhauMaHoa(encoder.encode(newPassword));
-            user.setTrangThai("HOAT_DONG"); // Reset trạng thái mở khóa nếu user đổi pass thành công
+            user.setTrangThai("HOAT_DONG");
             user.setSoLanViPham(0);
             nguoiDungRepository.save(user);
 

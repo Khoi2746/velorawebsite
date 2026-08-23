@@ -78,8 +78,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import Header from '../components/Header.vue' 
 import Footer from '../components/Footer.vue'
 import ToastPopup from '../components/ToastPopup.vue'
@@ -88,6 +88,7 @@ const host = window.location.hostname;
 const API_BASE = `http://${host}:8080`;
 
 const router = useRouter()
+const route = useRoute()
 
 const email = ref('')
 const password = ref('')
@@ -97,6 +98,20 @@ const showToast = ref(false)
 const toastMsg = ref('')
 const toastType = ref('success')
 const loading = ref(false)
+
+// 🔥 Tự động bắt lỗi từ Backend nếu OAuth2 trả về luồng không hợp lệ
+onMounted(() => {
+    const errorMsg = route.query.error;
+    if (errorMsg) {
+        showToast.value = true;
+        toastMsg.value = decodeURIComponent(errorMsg);
+        toastType.value = 'error';
+
+        setTimeout(() => {
+            showToast.value = false;
+        }, 4500);
+    }
+})
 
 const togglePassword = () => {
     showPassword.value = !showPassword.value
@@ -112,6 +127,7 @@ const handleLogin = async () => {
         const response = await fetch(`${API_BASE}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // 🔥 BẮT BUỘC CÓ ĐỂ NHẬN VÀ LƯU COOKIE SESSION TỪ SERVER
             body: JSON.stringify({ email: email.value, password: password.value })
         });
 
@@ -123,13 +139,13 @@ const handleLogin = async () => {
             throw new Error(data.message || 'Lỗi xác thực hệ thống!');
         }
 
-        localStorage.setItem('user', JSON.stringify(data));
+        // 🔥 TUYỆT ĐỐI KHÔNG LƯU LOCALSTORAGE NỮA, SESSION SERVER SẼ LO TRỌN GÓI
         loading.value = false;
         toastMsg.value = 'Đăng nhập thành công!';
         toastType.value = 'success';
 
         setTimeout(() => {
-            window.location.href = '/';
+            window.location.href = '/'; // Về trang chủ, Header sẽ tự động fetch /me từ Database
         }, 1200);
 
     } catch (error) {
@@ -143,16 +159,17 @@ const handleLogin = async () => {
     }
 }
 
+// 🔥 Chuyển hướng sang endpoint chuẩn bị mode=login của Backend
 const loginWithGoogle = () => {
-    window.location.href = `${API_BASE}/oauth2/authorization/google`;
+    window.location.href = `${API_BASE}/api/auth/oauth2/prepare/login?provider=google`;
 }
 
 const loginWithFacebook = () => {
-    window.location.href = `${API_BASE}/oauth2/authorization/facebook`;
+    window.location.href = `${API_BASE}/api/auth/oauth2/prepare/login?provider=facebook`;
 }
 </script>
 
-<style scoped>
+<style scoped> 
 @import "./CSS/Login.css";
 
 /* --- GỌT VUÔNG TẤT CẢ KHUNG VÀ NÚT CHO ĐỒNG BỘ LUXURY --- */

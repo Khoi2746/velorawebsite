@@ -36,4 +36,6 @@ public interface NguoiDungRepository extends JpaRepository<NguoiDung, Integer> {
     List<NguoiDung> findAll();
 
     List<NguoiDung> findByTrangThaiOrThoiGianCamBinhLuanIsNotNull(String trangThai);
+
+    Optional<NguoiDung> findByProviderAndProviderId(String provider, String providerId);
 }

@@ -8,12 +8,12 @@ import java.util.Date;
 import java.util.List;
 
 @Entity
-@Table(name = "NguoiDung") 
+@Table(name = "NguoiDung")
 public class NguoiDung {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "MaNguoiDung") 
+    @Column(name = "MaNguoiDung")
     private Integer maNguoiDung;
 
     @Column(name = "HoTen", nullable = false)
@@ -22,7 +22,7 @@ public class NguoiDung {
     @Column(name = "Email", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "MatKhauMaHoa", nullable = false) 
+    @Column(name = "MatKhauMaHoa", nullable = false)
     private String matKhauMaHoa;
 
     @Column(name = "SoDienThoai")
@@ -32,7 +32,7 @@ public class NguoiDung {
     private String diaChi;
 
     @Column(name = "TrangThai")
-    private String trangThai; 
+    private String trangThai;
 
     @Column(name = "NgayTao")
     private Date ngayTao;
@@ -47,52 +47,129 @@ public class NguoiDung {
     private LocalDateTime thoiGianCamBinhLuan;
 
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "NguoiDung_VaiTro",
-        joinColumns = @JoinColumn(name = "MaNguoiDung"), 
-        inverseJoinColumns = @JoinColumn(name = "MaVaiTro")
-    )
-    @JsonIgnoreProperties("nguoiDungs") 
+    @JoinTable(name = "NguoiDung_VaiTro", joinColumns = @JoinColumn(name = "MaNguoiDung"), inverseJoinColumns = @JoinColumn(name = "MaVaiTro"))
+    @JsonIgnoreProperties("nguoiDungs")
     private List<VaiTro> vaiTros;
 
+    @Column(name = "Provider")
+    private String provider;
+
+    @Column(name = "ProviderId")
+    private String providerId;
+
     // ==========================================
-    //          GETTERS & SETTERS DƯỚI NÀY
+    // GETTERS & SETTERS
     // ==========================================
 
-    public Integer getMaNguoiDung() { return maNguoiDung; }
-    public void setMaNguoiDung(Integer maNguoiDung) { this.maNguoiDung = maNguoiDung; }
+    public Integer getMaNguoiDung() {
+        return maNguoiDung;
+    }
 
-    public String getHoTen() { return hoTen; }
-    public void setHoTen(String hoTen) { this.hoTen = hoTen; }
+    public void setMaNguoiDung(Integer maNguoiDung) {
+        this.maNguoiDung = maNguoiDung;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getHoTen() {
+        return hoTen;
+    }
 
-    public String getMatKhauMaHoa() { return matKhauMaHoa; }
-    public void setMatKhauMaHoa(String matKhauMaHoa) { this.matKhauMaHoa = matKhauMaHoa; }
+    public void setHoTen(String hoTen) {
+        this.hoTen = hoTen;
+    }
 
-    public String getSoDienThoai() { return soDienThoai; }
-    public void setSoDienThoai(String soDienThoai) { this.soDienThoai = soDienThoai; }
+    public String getEmail() {
+        return email;
+    }
 
-    public String getDiaChi() { return diaChi; }
-    public void setDiaChi(String diaChi) { this.diaChi = diaChi; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-    public String getTrangThai() { return trangThai; }
-    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
+    public String getMatKhauMaHoa() {
+        return matKhauMaHoa;
+    }
 
-    public Date getNgayTao() { return ngayTao; }
-    public void setNgayTao(Date ngayTao) { this.ngayTao = ngayTao; }
+    public void setMatKhauMaHoa(String matKhauMaHoa) {
+        this.matKhauMaHoa = matKhauMaHoa;
+    }
 
-    public Date getNgayCapNhat() { return ngayCapNhat; }
-    public void setNgayCapNhat(Date ngayCapNhat) { this.ngayCapNhat = ngayCapNhat; }
+    public String getSoDienThoai() {
+        return soDienThoai;
+    }
 
-    public Integer getSoLanViPham() { return soLanViPham; }
-    public void setSoLanViPham(Integer soLanViPham) { this.soLanViPham = soLanViPham; }
+    public void setSoDienThoai(String soDienThoai) {
+        this.soDienThoai = soDienThoai;
+    }
 
-    public LocalDateTime getThoiGianCamBinhLuan() { return thoiGianCamBinhLuan; }
-    // 🔥 ĐÃ FIX LỖI Ở DÒNG DƯỚI NÀY (Đổi Date thành LocalDateTime)
-    public void setThoiGianCamBinhLuan(LocalDateTime thoiGianCamBinhLuan) { this.thoiGianCamBinhLuan = thoiGianCamBinhLuan; }
+    public String getDiaChi() {
+        return diaChi;
+    }
 
-    public List<VaiTro> getVaiTros() { return vaiTros; }
-    public void setVaiTros(List<VaiTro> vaiTros) { this.vaiTros = vaiTros; }
+    public void setDiaChi(String diaChi) {
+        this.diaChi = diaChi;
+    }
+
+    public String getTrangThai() {
+        return trangThai;
+    }
+
+    public void setTrangThai(String trangThai) {
+        this.trangThai = trangThai;
+    }
+
+    public Date getNgayTao() {
+        return ngayTao;
+    }
+
+    public void setNgayTao(Date ngayTao) {
+        this.ngayTao = ngayTao;
+    }
+
+    public Date getNgayCapNhat() {
+        return ngayCapNhat;
+    }
+
+    public void setNgayCapNhat(Date ngayCapNhat) {
+        this.ngayCapNhat = ngayCapNhat;
+    }
+
+    public Integer getSoLanViPham() {
+        return soLanViPham;
+    }
+
+    public void setSoLanViPham(Integer soLanViPham) {
+        this.soLanViPham = soLanViPham;
+    }
+
+    public LocalDateTime getThoiGianCamBinhLuan() {
+        return thoiGianCamBinhLuan;
+    }
+
+    public void setThoiGianCamBinhLuan(LocalDateTime thoiGianCamBinhLuan) {
+        this.thoiGianCamBinhLuan = thoiGianCamBinhLuan;
+    }
+
+    public List<VaiTro> getVaiTros() {
+        return vaiTros;
+    }
+
+    public void setVaiTros(List<VaiTro> vaiTros) {
+        this.vaiTros = vaiTros;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
+    }
+
+    public String getProviderId() {
+        return providerId;
+    }
+
+    public void setProviderId(String providerId) {
+        this.providerId = providerId;
+    }
 }

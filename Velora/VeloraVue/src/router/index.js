@@ -34,7 +34,7 @@ import LoaiSanPham from '../components/Admin/LoaiSanPham.vue'
 import QuanLyMaGiamGia from '../components/Admin/QuanLyMaGiamGia.vue'
 import QuanLyThongKe from '../components/Admin/QuanLyThongKe.vue'
 import AdminLichHen from '../components/Admin/AdminLichHen.vue'
-import QuanLyHoanTien from '../components/Admin/QuanLyHoanTien.vue' //
+import QuanLyHoanTien from '../components/Admin/QuanLyHoanTien.vue' 
 import QuanLySOC from '../components/Admin/QuanLySOC.vue'
 
 // Các file giao diện Tư Vấn Viên
@@ -66,7 +66,7 @@ const router = createRouter({
     { path: '/admin/products', name: 'QLSanPham', component: QuanLySanPham, meta: { requiresAdmin: true } },
     { path: '/admin/users', name: 'QLNguoiDung', component: QuanLyNguoiDung, meta: { requiresAdmin: true } },
     { path: '/admin/orders', name: 'QLDonHang', component: QuanLyDonHang, meta: { requiresAdmin: true } },
-    { path: '/admin/quan-ly-hoan-tien', name: 'QLHoanTien', component: QuanLyHoanTien, meta: { requiresAdmin: true } }, // 🔥 BỔ SUNG
+    { path: '/admin/quan-ly-hoan-tien', name: 'QLHoanTien', component: QuanLyHoanTien, meta: { requiresAdmin: true } },
     { path: '/admin/inventory', name: 'AdminInventory', component: QuanLyKho, meta: { requiresAdmin: true } },
     { path: '/admin/receipts', name: 'PhieuNhap', component: PhieuNhap, meta: { requiresAdmin: true } },
     { path: '/admin/invoices', name: 'XuatHoaDon', component: XuatHoaDon, meta: { requiresAdmin: true } },
@@ -77,17 +77,17 @@ const router = createRouter({
     { path: '/admin/quan-ly-bao-hanh', name: 'QuanLyBaoHanh', component: QuanLyBaoHanh, meta: { requiresAdmin: true } },
     { path: '/admin/lich-hen', name: 'QuanLyLichHen', component: AdminLichHen, meta: { requiresAdmin: true } },
     {
-    path: '/admin/soc',
-    name: 'QuanLySOC',
-    component: QuanLySOC,
-    meta: { requiresAuth: true, requiresAdmin: true } // Nếu em có phân quyền bảo vệ route
-  },
-  {
-  path: '/cap-nhat-thong-tin',
-  name: 'CapNhatThongTin',
-  component: CapNhatThongTinOauth2,
-  meta: {requiresAuth:true}
-},
+      path: '/admin/soc',
+      name: 'QuanLySOC',
+      component: QuanLySOC,
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/cap-nhat-thong-tin',
+      name: 'CapNhatThongTin',
+      component: CapNhatThongTinOauth2,
+      meta: { requiresAuth: true }
+    },
 
     // ================== TƯ VẤN VIÊN ==================
     {
@@ -101,6 +101,12 @@ const router = createRouter({
 
 // ================== HỆ THỐNG KIỂM SOÁT REAL-TIME ==================
 router.beforeEach(async (to, from, next) => {
+  // 🔥 Dọn sạch ký hiệu #_=_ hoặc _=_ do Facebook tự động gắn vào URL ngay khi router quét qua
+  if (window.location.hash.includes('_=_') || window.location.href.includes('_=_')) {
+    const cleanUrl = window.location.href.replace(/#?_=_/g, '');
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+
   const loggedInUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
 
   if (loggedInUser && loggedInUser.email) {

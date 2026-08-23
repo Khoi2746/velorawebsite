@@ -9,6 +9,12 @@
   </head>
   <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/main.js">
+      (function() {
+    if (window.location.hash && window.location.hash.includes('_=_')) {
+      window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+    }
+  })();
+    </script>
   </body>
 </html>

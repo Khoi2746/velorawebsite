@@ -89,12 +89,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import Header from '../components/Header.vue'
 import Footer from '../components/Footer.vue'
 
+const host = window.location.hostname;
+const API_BASE = `http://${host}:8080`;
+
 const router = useRouter()
+const route = useRoute()
+
 const fullName = ref('')
 const email = ref('')
 const password = ref('')
@@ -121,6 +126,14 @@ const closePopup = () => {
     if (popupTimeout) clearTimeout(popupTimeout)
 }
 
+// 🔥 Tự động bắt lỗi từ Backend nếu OAuth2 trả về trùng lặp tài khoản khi đang đăng ký
+onMounted(() => {
+    const errorMsg = route.query.error;
+    if (errorMsg) {
+        showNotification(decodeURIComponent(errorMsg), 'error');
+    }
+})
+
 const handleRegister = async () => {
     if (password.value !== confirmPassword.value) {
         showNotification("Mật khẩu không khớp! Vui lòng kiểm tra lại.", "warning")
@@ -128,7 +141,7 @@ const handleRegister = async () => {
     }
 
     try {
-        const response = await fetch('http://localhost:8080/api/auth/register', {
+        const response = await fetch(`${API_BASE}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -154,13 +167,13 @@ const handleRegister = async () => {
     }
 }
 
-// 🔥 LUỒNG ĐĂNG KÝ BẰNG MẠNG XÃ HỘI (Lưu email và chuyển sang trang cập nhật thông tin bổ sung)
+// 🔥 LUỒNG ĐĂNG KÝ BẰNG MẠNG XÃ HỘI (Gửi kèm mode=register qua endpoint chuẩn bị)
 const loginWithGoogle = () => {
-    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+    window.location.href = `${API_BASE}/api/auth/oauth2/prepare/register?provider=google`;
 }
 
 const loginWithFacebook = () => {
-    window.location.href = 'http://localhost:8080/oauth2/authorization/facebook';
+    window.location.href = `${API_BASE}/api/auth/oauth2/prepare/register?provider=facebook`;
 }
 </script>
 

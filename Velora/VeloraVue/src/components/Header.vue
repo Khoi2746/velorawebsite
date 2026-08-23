@@ -122,6 +122,7 @@ const isLoggedIn = ref(false)
 const userName = ref('')
 const isAdmin = ref(false)
 const isStaff = ref(false)
+const currentUserId = ref(null)
 
 const isMenuOpen = ref(false)
 const showDropdown = ref(false)
@@ -133,15 +134,15 @@ const searchInputRef = ref(null)
 
 const cartCount = ref(0)
 
-const fetchCartCount = async () => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
+const fetchCartCount = async (userId) => {
+    if (!userId) {
         cartCount.value = 0;
         return;
     }
     try {
-        const user = JSON.parse(userStr);
-        const res = await fetch(`http://localhost:8080/api/gio-hang/${user.maNguoiDung}`);
+        const res = await fetch(`http://localhost:8080/api/gio-hang/${userId}`, {
+            credentials: 'include'
+        });
         if (res.ok) {
             const cartItems = await res.json();
             cartCount.value = cartItems.length;
@@ -151,38 +152,68 @@ const fetchCartCount = async () => {
     }
 }
 
-const checkAuth = () => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-        try {
-            const user = JSON.parse(userStr);
-            isLoggedIn.value = true;
-            userName.value = user.hoTen;
-            
-            const role = user.vaiTro ? user.vaiTro.toUpperCase() : '';
-            isAdmin.value = (role === 'ROLE_ADMIN');
-            isStaff.value = (role === 'ROLE_CHUYEN_VIEN_TU_VAN');
-            
-            fetchCartCount(); 
-        } catch (e) {
-            console.error("Lỗi parse JSON:", e);
+const checkAuth = async () => {
+    try {
+        // 🔥 Lấy thông tin user trực tiếp từ Database thông qua Session bảo mật ở Backend
+        const res = await fetch('http://localhost:8080/api/auth/me', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (res.ok) {
+            const user = await res.json();
+            if (user && user.email) {
+                isLoggedIn.value = true;
+                userName.value = user.hoTen;
+                currentUserId.value = user.maNguoiDung;
+                
+                let roleName = '';
+                if (user.vaiTros && user.vaiTros.length > 0) {
+                    roleName = user.vaiTros[0].tenVaiTro ? user.vaiTros[0].tenVaiTro.toUpperCase() : '';
+                } else if (user.vaiTro) {
+                    roleName = user.vaiTro.toUpperCase();
+                }
+
+                isAdmin.value = (roleName === 'ROLE_ADMIN');
+                isStaff.value = (roleName === 'ROLE_CHUYEN_VIEN_TU_VAN');
+                
+                fetchCartCount(user.maNguoiDung);
+                return;
+            }
         }
-    } else {
-        isLoggedIn.value = false;
-        isAdmin.value = false;
-        isStaff.value = false;
-        cartCount.value = 0; 
+    } catch (e) {
+        console.error('Lỗi kiểm tra xác thực:', e);
     }
+
+    // Nếu không có session hợp lệ, reset toàn bộ về trạng thái khách
+    isLoggedIn.value = false;
+    userName.value = '';
+    isAdmin.value = false;
+    isStaff.value = false;
+    currentUserId.value = null;
+    cartCount.value = 0;
 }
 
-const logout = () => {
-    localStorage.removeItem('user')
-    isLoggedIn.value = false
-    isAdmin.value = false
-    isStaff.value = false
-    cartCount.value = 0 
-    alert('Đã đăng xuất!')
-    window.location.href = '/'
+const logout = async () => {
+    try {
+        // 🔥 Gọi API xuống backend để hủy session và xóa cookie bảo mật
+        await fetch('http://localhost:8080/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include'
+        });
+    } catch (error) {
+        console.error('Lỗi khi đăng xuất:', error);
+    }
+
+    isLoggedIn.value = false;
+    userName.value = '';
+    isAdmin.value = false;
+    isStaff.value = false;
+    currentUserId.value = null;
+    cartCount.value = 0;
+    showDropdown.value = false;
+
+    window.location.href = '/';
 }
 
 const toggleDropdown = () => { showDropdown.value = !showDropdown.value }
@@ -224,7 +255,9 @@ onMounted(() => {
     checkAuth()
     window.addEventListener('keydown', handleEsc)
     document.addEventListener('click', handleClickOutside)
-    window.addEventListener('cart-updated', fetchCartCount) 
+    window.addEventListener('cart-updated', () => {
+        if (currentUserId.value) fetchCartCount(currentUserId.value);
+    }) 
 })
 
 onUnmounted(() => {
