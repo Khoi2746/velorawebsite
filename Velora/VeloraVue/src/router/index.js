@@ -99,7 +99,6 @@ const router = createRouter({
   ]
 })
 
-// ================== HỆ THỐNG KIỂM SOÁT REAL-TIME ==================
 // ================== HỆ THỐNG KIỂM SOÁT REAL-TIME CHUẨN SESSION BACKEND ==================
 router.beforeEach(async (to, from, next) => {
   // 🔥 Dọn sạch ký hiệu #_=_ hoặc _=_ do Facebook tự động gắn vào URL ngay khi router quét qua
@@ -108,10 +107,40 @@ router.beforeEach(async (to, from, next) => {
     window.history.replaceState({}, document.title, cleanUrl);
   }
 
+  // 🔥 Hàm gom dữ liệu thông minh từ cả 2 nguồn (Ghi nhớ và Không ghi nhớ)
+  const getUserData = () => {
+    const local = localStorage.getItem('user');
+    if (local) return JSON.parse(local);
+    const session = sessionStorage.getItem('user');
+    if (session) return JSON.parse(session);
+    return null;
+  };
+
+  const loggedInUser = getUserData();
+
+  // Kiểm tra trạng thái tài khoản thời gian thực nếu đã đăng nhập
+  if (loggedInUser && loggedInUser.email) {
+    try {
+      const res = await fetch(`http://localhost:8080/api/auth/check-status?email=${loggedInUser.email}`);
+      if (res.ok) {
+        const currentStatus = await res.text();
+        if (currentStatus === 'KHOA' || currentStatus === 'BI_KHOA') {
+          alert('Tài khoản của bạn đã bị khóa! Hệ thống sẽ tự động đăng xuất.');
+          // 🔥 Phải dọn sạch cả 2 kho để tránh kẹt phiên
+          localStorage.removeItem('user');
+          sessionStorage.removeItem('user');
+          return next('/dang-nhap');
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi kiểm tra trạng thái:", error);
+    }
+  }
+
   // Nếu người dùng vào route cần quyền Admin
   if (to.meta.requiresAdmin) {
     try {
-      // BẮT BUỘC FETCH TỪ BACKEND ĐỂ CHECK QUYỀN CHÍNH XÁC (Không xài LocalStorage ảo)
+      // BẮT BUỘC FETCH TỪ BACKEND ĐỂ CHECK QUYỀN CHÍNH XÁC (Không xài Local/Session ảo)
       const res = await fetch(`http://localhost:8080/api/auth/me`, {
         credentials: 'include' // Bắt buộc để gửi cookie session lên server
       });
@@ -121,14 +150,18 @@ router.beforeEach(async (to, from, next) => {
       const text = await res.text();
       if (!text) {
         alert('Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại!');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
         return next('/dang-nhap');
       }
 
       const currentUser = JSON.parse(text);
 
-      // Check tài khoản có bị khóa không
+      // Check tài khoản có bị khóa không lần 2 từ dữ liệu Session
       if (currentUser.trangThai === 'KHOA' || currentUser.trangThai === 'BI_KHOA') {
         alert('Tài khoản của bạn đã bị khóa! Hệ thống sẽ tự động đăng xuất.');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
         return next('/dang-nhap');
       }
 
@@ -144,10 +177,12 @@ router.beforeEach(async (to, from, next) => {
 
     } catch (error) {
       alert('Vui lòng đăng nhập bằng tài khoản quản trị để truy cập!');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
       return next('/dang-nhap');
     }
   } else {
-    // Nếu vào trang thường thì thả cửa cho đi qua (Check khóa sẽ do Header.vue đảm nhận)
+    // Nếu vào trang thường thì thả cửa cho đi qua (Check khóa đã có ở trên lo)
     next();
   }
 });

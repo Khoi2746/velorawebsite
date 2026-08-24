@@ -27,7 +27,6 @@ import com.velora.website.Repository.CanhBaoAnNinhRepository;
 import com.velora.website.Repository.NguoiDungRepository;
 import com.velora.website.Repository.NhatKyDangNhapRepository;
 import com.velora.website.Repository.VaiTroRepository;
-import com.velora.website.Request.LoginRequest;
 
 import lombok.RequiredArgsConstructor;
 
@@ -45,10 +44,12 @@ public class AuthController {
     private final Map<String, String> otpStorage = new ConcurrentHashMap<>();
 
     /**
-     * API LẤY THÔNG TIN USER HIỆN TẠI TỪ DATABASE (CHỐNG CACHE TRIỆT ĐỂ)
+     * API LẤY THÔNG TIN USER (TÍCH HỢP BẬT/TẮT GHI NHỚ CHO GOOGLE VÀ FACEBOOK)
      */
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+    public ResponseEntity<?> getCurrentUser(Authentication authentication, 
+                                            jakarta.servlet.http.HttpServletRequest request, 
+                                            jakarta.servlet.http.HttpServletResponse response) {
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
         headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
         headers.set("Pragma", "no-cache");
@@ -97,7 +98,23 @@ public class AuthController {
         if (userOpt.isPresent()) {
             NguoiDung user = userOpt.get();
             
-            // 🔥 ĐỒNG BỘ CẤU TRÚC JSON TRẢ VỀ GIỐNG HỆT NHƯ LÚC LOGIN ĐỂ FRONTEND DỄ KIỂM TRA QUYỀN
+            // 🔥 ĐỒNG BỘ TUỔI THỌ COOKIE DÀNH RIÊNG CHO MẠNG XÃ HỘI
+            jakarta.servlet.http.HttpSession session = request.getSession(false);
+            if (session != null && session.getAttribute("oauth2_remember_me") != null) {
+                Boolean rememberMe = (Boolean) session.getAttribute("oauth2_remember_me");
+                jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("JSESSIONID", session.getId());
+                cookie.setPath("/");
+                cookie.setHttpOnly(true);
+                
+                if (Boolean.TRUE.equals(rememberMe)) {
+                    cookie.setMaxAge(30 * 24 * 60 * 60); // Sống 30 ngày nếu tick ghi nhớ
+                } else {
+                    cookie.setMaxAge(-1); // Tắt trình duyệt là bay màu nếu không tick
+                }
+                response.addCookie(cookie);
+                session.removeAttribute("oauth2_remember_me"); // Xóa đi sau khi đã thiết lập xong
+            }
+
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("maNguoiDung", user.getMaNguoiDung());
             responseData.put("hoTen", user.getHoTen());
@@ -107,7 +124,6 @@ public class AuthController {
             responseData.put("trangThai", user.getTrangThai());
             responseData.put("provider", user.getProvider());
 
-            // Rút trích quyền ra thành chuỗi phẳng (flat string)
             String roleName = "ROLE_CUSTOMER";
             if (user.getVaiTros() != null && !user.getVaiTros().isEmpty()) {
                 roleName = user.getVaiTros().get(0).getTenVaiTro();
@@ -120,9 +136,6 @@ public class AuthController {
         return ResponseEntity.ok().headers(headers).body(null);
     }
 
-    /**
-     * API ĐĂNG XUẤT (HỦY SESSION & XÓA BẢO MẬT PHÍA SERVER)
-     */
     @PostMapping("/logout")
     public ResponseEntity<?> logout(jakarta.servlet.http.HttpServletRequest request, 
                                     jakarta.servlet.http.HttpServletResponse response) {
@@ -142,22 +155,34 @@ public class AuthController {
         return ResponseEntity.ok("Đăng xuất thành công!");
     }
 
+    /**
+     * 🔥 NHẬN VÀ LƯU TRẠNG THÁI GHI NHỚ TỪ NÚT GOOGLE/FACEBOOK CỦA FRONTEND
+     */
     @GetMapping("/oauth2/prepare/{mode}")
     public void prepareOAuth2Mode(@PathVariable String mode, 
                                    @RequestParam String provider, 
+                                   @RequestParam(required = false, defaultValue = "false") boolean rememberMe,
                                    jakarta.servlet.http.HttpServletRequest request, 
                                    jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
         jakarta.servlet.http.HttpSession session = request.getSession(true);
         session.setAttribute("oauth2_mode", mode);
+        session.setAttribute("oauth2_remember_me", rememberMe); // Cất trạng thái ghi nhớ vào kho
         response.sendRedirect("/oauth2/authorization/" + provider);
     }
 
     /**
-     * API ĐĂNG NHẬP THỦ CÔNG
+     * API ĐĂNG NHẬP THỦ CÔNG (TÍCH HỢP BẬT/TẮT GHI NHỚ)
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, jakarta.servlet.http.HttpServletRequest request) {
+    public ResponseEntity<?> login(@RequestBody Map<String, Object> payload, 
+                                   jakarta.servlet.http.HttpServletRequest request, 
+                                   jakarta.servlet.http.HttpServletResponse response) {
         System.out.println("--- ĐANG DEBUG LOGIN & AN NINH SOC ---");
+
+        String email = (String) payload.get("email");
+        String password = (String) payload.get("password");
+        Boolean rememberMe = (Boolean) payload.get("rememberMe");
+        if (rememberMe == null) rememberMe = false;
 
         String clientIp = request.getHeader("X-Forwarded-For");
         if (clientIp == null || clientIp.isEmpty()) {
@@ -166,11 +191,10 @@ public class AuthController {
         String userAgent = request.getHeader("User-Agent");
         if (userAgent == null) userAgent = "Unknown Device";
 
-        Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(loginRequest.getEmail());
+        Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(email);
 
         if (!userOpt.isPresent()) {
-            saveLoginLog(loginRequest.getEmail(), clientIp, userAgent, "THAT_BAI_SAI_EMAIL");
-
+            saveLoginLog(email, clientIp, userAgent, "THAT_BAI_SAI_EMAIL");
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("code", "INVALID_CREDENTIALS");
@@ -182,7 +206,6 @@ public class AuthController {
 
         if (user.getProvider() != null && !user.getProvider().trim().isEmpty()) {
             saveLoginLog(user.getEmail(), clientIp, userAgent, "THAT_BAI_TAI_KHOAN_SOCIAL");
-            
             String providerName = user.getProvider().toUpperCase();
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
@@ -194,7 +217,6 @@ public class AuthController {
         String trangThai = user.getTrangThai();
         if ("KHOA".equalsIgnoreCase(trangThai) || "BI_KHOA".equalsIgnoreCase(trangThai)) {
             saveLoginLog(user.getEmail(), clientIp, userAgent, "THAT_BAI_TAI_KHOAN_BI_KHOA");
-
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("code", "ACCOUNT_LOCKED");
@@ -203,7 +225,7 @@ public class AuthController {
         }
 
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        boolean isMatch = encoder.matches(loginRequest.getPassword(), user.getMatKhauMaHoa());
+        boolean isMatch = encoder.matches(password, user.getMatKhauMaHoa());
 
         if (isMatch) {
             user.setSoLanViPham(0);
@@ -217,12 +239,22 @@ public class AuthController {
                     authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(role.getTenVaiTro()));
                 }
             }
-            Authentication authentication = 
-                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(user.getEmail(), null, authorities);
-            
+            Authentication authentication = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(user.getEmail(), null, authorities);
             org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+            
             jakarta.servlet.http.HttpSession session = request.getSession(true);
             session.setAttribute("SPRING_SECURITY_CONTEXT", org.springframework.security.core.context.SecurityContextHolder.getContext());
+
+            // 🔥 ĐIỀU CHỈNH TUỔI THỌ COOKIE CHO ĐĂNG NHẬP THỦ CÔNG
+            jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("JSESSIONID", session.getId());
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+            if (rememberMe) {
+                cookie.setMaxAge(30 * 24 * 60 * 60); // Sống 30 ngày
+            } else {
+                cookie.setMaxAge(-1); // Tắt trình duyệt là tự hủy
+            }
+            response.addCookie(cookie);
 
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("maNguoiDung", user.getMaNguoiDung());

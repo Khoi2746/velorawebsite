@@ -14,16 +14,16 @@
           <p class="sub-title">Báo cáo hoạt động kinh doanh và chỉ số hệ thống theo thời gian thực từ cơ sở dữ liệu.</p>
         </header>
 
-        <!-- HÀNG 1: CÁC THẺ THỐNG KÊ (METRICS - DỮ LIỆU THẬT TỪ DB) -->
+        <!-- HÀNG 1: CÁC THẺ THỐNG KÊ -->
         <section class="metrics-grid">
           <div class="metric-card">
             <div class="metric-icon" style="background-color: #fcf4e6; color: var(--gold-matte);">
               <i class="fa-solid fa-wallet"></i>
             </div>
             <div class="metric-info">
-              <p class="metric-title">Tổng Doanh Thu Hệ Thống</p>
-              <h3 class="metric-value">{{ formatPrice(stats.tongDoanhThu) }}</h3>
-              <span class="metric-trend positive"><i class="fa-solid fa-chart-line"></i> Dữ liệu thời gian thực</span>
+              <p class="metric-title">Doanh Thu (Tháng {{ currentMonth }}/{{ currentYear }})</p>
+              <h3 class="metric-value">{{ formatPrice(animatedStats.tongDoanhThu) }}</h3>
+              <span class="metric-trend positive"><i class="fa-solid fa-chart-line"></i> Đồng bộ từ DB Thống kê</span>
             </div>
           </div>
 
@@ -32,9 +32,9 @@
               <i class="fa-solid fa-file-invoice"></i>
             </div>
             <div class="metric-info">
-              <p class="metric-title">Tổng Đơn Hàng</p>
-              <h3 class="metric-value">{{ stats.tongDonHang }} Đơn</h3>
-              <span class="metric-trend positive"><i class="fa-solid fa-arrow-trend-up"></i> Đã cập nhật từ DB</span>
+              <p class="metric-title">Đơn Hàng (Tháng {{ currentMonth }}/{{ currentYear }})</p>
+              <h3 class="metric-value">{{ Math.round(animatedStats.tongDonHang) }} Đơn</h3>
+              <span class="metric-trend positive"><i class="fa-solid fa-arrow-trend-up"></i> Khớp 100% dữ liệu</span>
             </div>
           </div>
 
@@ -44,19 +44,20 @@
             </div>
             <div class="metric-info">
               <p class="metric-title">Tổng Khách Hàng</p>
-              <h3 class="metric-value">{{ stats.tongKhachHang }} Tài khoản</h3>
+              <h3 class="metric-value">{{ Math.round(animatedStats.tongKhachHang) }} Tài khoản</h3>
               <span class="metric-trend neutral"><i class="fa-solid fa-shield-halved"></i> Hoạt động ổn định</span>
             </div>
           </div>
 
+          <!-- 🔥 Ô SỐ 4 ĐÃ ĐƯỢC ĐỔI THÀNH TỔNG SẢN PHẨM -->
           <div class="metric-card">
-            <div class="metric-icon" style="background-color: #fff1f0; color: #f5222d;">
-              <i class="fa-solid fa-triangle-exclamation"></i>
+            <div class="metric-icon" style="background-color: #f3e8ff; color: #9333ea;">
+              <i class="fa-solid fa-box-open"></i>
             </div>
             <div class="metric-info">
-              <p class="metric-title">Sản Phẩm Sắp Hết Kho</p>
-              <h3 class="metric-value">{{ stats.sanPhamSapHet }} Sản phẩm</h3>
-              <span class="metric-trend negative"><i class="fa-solid fa-boxes-stacked"></i> Tồn kho &lt; 5 chiếc</span>
+              <p class="metric-title">Tổng Sản Phẩm</p>
+              <h3 class="metric-value">{{ Math.round(animatedStats.tongSanPham) }} Mẫu</h3>
+              <span class="metric-trend positive"><i class="fa-solid fa-boxes-stacked"></i> Đang bán trên hệ thống</span>
             </div>
           </div>
         </section>
@@ -76,7 +77,7 @@
 
         <!-- HÀNG 3: DANH SÁCH HOẠT ĐỘNG & ĐƠN HÀNG -->
         <section class="dashboard-bottom-grid">
-          <!-- Bảng Đơn Hàng Gần Đây (Lấy từ DB) -->
+          <!-- Bảng Đơn Hàng Gần Đây -->
           <div class="box recent-orders-box">
             <div class="box-header">
               <h3>Đơn Hàng Mới Nhất</h3>
@@ -139,10 +140,8 @@ import { Bar } from 'vue-chartjs';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
-// Gọi Component
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
-
 
 const host = window.location.hostname;
 const API_BASE = `http://${host}:8080`;
@@ -150,16 +149,48 @@ const API_BASE = `http://${host}:8080`;
 const isCollapsed = ref(false);
 const toggleSidebar = () => { isCollapsed.value = !isCollapsed.value; };
 
-// --- STATE DỮ LIỆU THẬT TỪ DATABASE ---
+const today = new Date();
+const currentMonth = ref(String(today.getMonth() + 1).padStart(2, '0'));
+const currentYear = ref(today.getFullYear());
+
+// 🔥 ĐỔI BIẾN sanPhamSapHet THÀNH tongSanPham
 const stats = ref({
   tongDoanhThu: 0,
   tongDonHang: 0,
   tongKhachHang: 0,
-  sanPhamSapHet: 0
+  tongSanPham: 0 
+});
+
+const animatedStats = ref({
+  tongDoanhThu: 0,
+  tongDonHang: 0,
+  tongKhachHang: 0,
+  tongSanPham: 0 
 });
 
 const recentOrders = ref([]);
 const chartData = ref(null);
+
+const animateValue = (key, endValue) => {
+  const startValue = 0;
+  const duration = 1500;
+  let startTime = null;
+
+  const step = (currentTime) => {
+    if (!startTime) startTime = currentTime;
+    const progress = Math.min((currentTime - startTime) / duration, 1);
+    const easeProgress = 1 - Math.pow(1 - progress, 4); 
+    
+    animatedStats.value[key] = startValue + (endValue - startValue) * easeProgress;
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      animatedStats.value[key] = endValue;
+    }
+  };
+  requestAnimationFrame(step);
+};
 
 const chartOptions = {
   responsive: true,
@@ -191,7 +222,6 @@ const formatPrice = (value) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
-// Phân quyền truy cập nhanh
 const userRole = computed(() => {
   try {
     const userStr = localStorage.getItem('user');
@@ -200,7 +230,7 @@ const userRole = computed(() => {
       return user?.vaiTro || '';
     }
   } catch (e) {
-    console.error("Lỗi parse user từ localStorage:", e);
+    console.error(e);
   }
   return '';
 });
@@ -215,12 +245,11 @@ const allCards = [
 ];
 
 const filteredCards = computed(() => {
-  if (!userRole.value) return allCards; // Fallback nếu chưa lưu user vào local
+  if (!userRole.value) return allCards; 
   if (userRole.value === 'ROLE_ADMIN' || userRole.value === 1) return allCards;
   return allCards.filter(card => !card.requiresAdmin);
 });
 
-// Map trạng thái đơn hàng
 const getStatusText = (status) => {
   const map = {
     'CHO_XU_LY': 'Chờ xử lý',
@@ -241,46 +270,21 @@ const getStatusClass = (status) => {
   return map[status] || 'status-pending';
 };
 
-// --- GỌI API LẤY DỮ LIỆU THỰC TỪ SPRING BOOT ---
 const fetchDashboardData = async () => {
   try {
-    // 1. Lấy danh sách đơn hàng để hiển thị đơn mới nhất & tính tổng doanh thu
-    const resOrders = await axios.get('http://localhost:8080/api/don-hang');
-    if (resOrders.data) {
-      const orders = resOrders.data;
-      stats.value.tongDonHang = orders.length;
-      stats.value.tongDoanhThu = orders
-        .filter(o => o.trangThaiDonHang === 'DA_GIAO')
-        .reduce((sum, o) => sum + (o.tongTien || 0), 0);
+    const axiosConfig = { withCredentials: true };
+    const timestamp = new Date().getTime();
 
-      // Lấy 5 đơn mới nhất
-      recentOrders.value = orders.slice(0, 5);
-    }
-
-    // 2. Lấy danh sách người dùng để đếm tổng khách hàng
-    const resUsers = await axios.get('http://localhost:8080/api/admin/thanh-vien');
-    if (resUsers.data) {
-      stats.value.tongKhachHang = resUsers.data.length;
-    }
-
-    // 3. Lấy danh sách sản phẩm để đếm sản phẩm sắp hết kho (< 5 chiếc)
-    const resProducts = await axios.get('http://localhost:8080/api/san-pham');
-    if (resProducts.data) {
-      const products = resProducts.data;
-      stats.value.sanPhamSapHet = products.filter(p => (p.soLuongTonKho ?? 0) < 5).length;
-    }
-
-    // 4. Lấy dữ liệu doanh thu thống kê biểu đồ theo ngày
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-    const resChart = await axios.get(`http://localhost:8080/api/thong-ke/ngay?thang=${month}&nam=${year}`);
+    // 1. ĐỒNG BỘ DOANH THU & ĐƠN HÀNG TỪ BẢNG THỐNG KÊ
+    const resChart = await axios.get(`${API_BASE}/api/thong-ke/ngay?thang=${currentMonth.value}&nam=${currentYear.value}&t=${timestamp}`, axiosConfig);
+    
     if (resChart.data && resChart.data.length > 0) {
       const dataDB = resChart.data;
-      const labels = dataDB.map(row => {
-        const d = new Date(row.ngay);
-        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-      });
+      
+      stats.value.tongDoanhThu = dataDB.reduce((sum, row) => sum + (Number(row.tongDoanhThu) || 0), 0);
+      stats.value.tongDonHang = dataDB.reduce((sum, row) => sum + (Number(row.soDonHangThanhCong) || 0), 0);
+
+      const labels = dataDB.map(row => `${String(new Date(row.ngay).getDate()).padStart(2, '0')}/${String(new Date(row.ngay).getMonth() + 1).padStart(2, '0')}`);
       const values = dataDB.map(row => row.tongDoanhThu);
 
       chartData.value = {
@@ -293,20 +297,43 @@ const fetchDashboardData = async () => {
         }]
       };
     } else {
-      // Fallback nếu chưa có dữ liệu tháng này
-      chartData.value = {
-        labels: ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'],
-        datasets: [{
-          label: 'Doanh thu (VNĐ)',
-          backgroundColor: '#d1aa68',
-          borderRadius: 6,
-          data: [0, 0, 0, 0, 0, 0, 0]
-        }]
-      };
+        stats.value.tongDoanhThu = 0;
+        stats.value.tongDonHang = 0;
     }
 
+    // 2. LẤY DANH SÁCH ĐƠN MỚI NHẤT 
+    const resOrders = await axios.get(`${API_BASE}/api/don-hang?t=${timestamp}`, axiosConfig);
+    if (resOrders.data) {
+      const sortedOrders = resOrders.data.sort((a, b) => b.maDonHang - a.maDonHang);
+      recentOrders.value = sortedOrders.slice(0, 5);
+    }
+
+    // 3. ĐẾM KHÁCH HÀNG 
+    const resUsers = await axios.get(`${API_BASE}/api/admin/thanh-vien?t=${timestamp}`, axiosConfig);
+    if (resUsers.data) {
+      const users = resUsers.data;
+      stats.value.tongKhachHang = users.filter(u => {
+        if (u.vaiTros && u.vaiTros.length > 0) {
+            return u.vaiTros.some(role => role.tenVaiTro === 'ROLE_CUSTOMER');
+        }
+        return false;
+      }).length;
+    }
+
+    // 4. ĐẾM TỔNG SẢN PHẨM HIỆN CÓ TRONG KHO (Thay vì lọc < 5 thì lấy hết độ dài mảng)
+    const resProducts = await axios.get(`${API_BASE}/api/san-pham?t=${timestamp}`, axiosConfig);
+    if (resProducts.data) {
+      stats.value.tongSanPham = resProducts.data.length;
+    }
+
+    // KÍCH HOẠT HIỆU ỨNG CHẠY SỐ
+    animateValue('tongDoanhThu', stats.value.tongDoanhThu);
+    animateValue('tongDonHang', stats.value.tongDonHang);
+    animateValue('tongKhachHang', stats.value.tongKhachHang);
+    animateValue('tongSanPham', stats.value.tongSanPham); // Đã đổi biến
+
   } catch (error) {
-    console.error('Lỗi khi tải dữ liệu Dashboard từ Backend:', error);
+    console.error('Lỗi tải dữ liệu Dashboard:', error);
   }
 };
 
@@ -338,7 +365,6 @@ onMounted(() => {
   overflow: hidden;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-
 .content-wrapper {
   flex: 1;
   min-width: 0;
@@ -348,7 +374,6 @@ onMounted(() => {
   overflow-x: hidden;
   background-color: var(--bg-page);
 }
-
 .content {
   flex: 1;
   padding: 30px;
@@ -356,37 +381,30 @@ onMounted(() => {
   width: 100%;
   box-sizing: border-box;
 }
-
 .content-header {
   margin-bottom: 25px;
   width: 100%;
 }
-
 .content-header h1 {
   font-size: 26px;
   font-weight: bold;
   color: var(--wood-dark);
   margin: 0 0 5px 0;
 }
-
 .content-header .sub-title {
   font-size: 14px;
   color: var(--text-muted);
   margin: 0;
 }
-
 .gold-text {
   color: var(--gold-matte);
 }
-
 .fw-bold {
   font-weight: bold;
 }
-
 .mt-4 {
   margin-top: 24px;
 }
-
 .box {
   background: #fff;
   border: 1px solid var(--border-light);
@@ -396,40 +414,33 @@ onMounted(() => {
   box-sizing: border-box;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
-
 .box-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
-
 .box-header h3 {
   font-size: 18px;
   color: var(--wood-dark);
   font-weight: 600;
   margin: 0;
 }
-
 .view-all {
   color: var(--gold-matte);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
 }
-
 .view-all:hover {
   text-decoration: underline;
 }
-
-/* METRICS CARDS */
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
   width: 100%;
 }
-
 .metric-card {
   background: #fff;
   border: 1px solid var(--border-light);
@@ -443,12 +454,10 @@ onMounted(() => {
   width: 100%;
   box-sizing: border-box;
 }
-
 .metric-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
-
 .metric-icon {
   width: 56px;
   height: 56px;
@@ -459,13 +468,11 @@ onMounted(() => {
   font-size: 24px;
   flex-shrink: 0;
 }
-
 .metric-info {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-
 .metric-title {
   font-size: 14px;
   color: #6b7280;
@@ -473,56 +480,35 @@ onMounted(() => {
   font-weight: 500;
   white-space: nowrap;
 }
-
 .metric-value {
   font-size: 22px;
   color: var(--wood-dark);
   margin: 0 0 5px 0;
   font-weight: 700;
 }
-
 .metric-trend {
   font-size: 12px;
   font-weight: 500;
 }
+.metric-trend.positive { color: #52c41a; }
+.metric-trend.negative { color: #f5222d; }
+.metric-trend.neutral { color: #8c8c8c; }
 
-.metric-trend.positive {
-  color: #52c41a;
-}
-
-.metric-trend.negative {
-  color: #f5222d;
-}
-
-.metric-trend.neutral {
-  color: #8c8c8c;
-}
-
-/* HÀNG DƯỚI: BẢNG & TRUY CẬP NHANH */
 .dashboard-bottom-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 20px;
   width: 100%;
 }
-
 @media (max-width: 1024px) {
-  .dashboard-bottom-grid {
-    grid-template-columns: 1fr;
-  }
+  .dashboard-bottom-grid { grid-template-columns: 1fr; }
 }
-
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-}
-
+.table-responsive { width: 100%; overflow-x: auto; }
 .dashboard-table {
   width: 100%;
   border-collapse: collapse;
   min-width: 450px;
 }
-
 .dashboard-table th {
   text-align: left;
   padding: 12px;
@@ -532,18 +518,13 @@ onMounted(() => {
   border-bottom: 2px solid var(--border-light);
   white-space: nowrap;
 }
-
 .dashboard-table td {
   padding: 14px 12px;
   font-size: 14px;
   color: var(--text-main);
   border-bottom: 1px solid var(--border-light);
 }
-
-.dashboard-table tbody tr:hover {
-  background-color: #faf9f6;
-}
-
+.dashboard-table tbody tr:hover { background-color: #faf9f6; }
 .badge-status {
   padding: 5px 10px;
   border-radius: 20px;
@@ -551,39 +532,17 @@ onMounted(() => {
   font-weight: 600;
   white-space: nowrap;
 }
+.status-pending { background-color: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+.status-processing { background-color: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+.status-success { background-color: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+.status-danger { background-color: #fff1f0; color: #f5222d; border: 1px solid #ffa39e; }
 
-.status-pending {
-  background-color: #fffbe6;
-  color: #faad14;
-  border: 1px solid #ffe58f;
-}
-
-.status-processing {
-  background-color: #e6f7ff;
-  color: #1890ff;
-  border: 1px solid #91d5ff;
-}
-
-.status-success {
-  background-color: #f6ffed;
-  color: #52c41a;
-  border: 1px solid #b7eb8f;
-}
-
-.status-danger {
-  background-color: #fff1f0;
-  color: #f5222d;
-  border: 1px solid #ffa39e;
-}
-
-/* Quick Links Box */
 .quick-links {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   width: 100%;
 }
-
 .quick-link-item {
   display: flex;
   flex-direction: column;
@@ -599,13 +558,11 @@ onMounted(() => {
   background-color: #faf9f6;
   text-align: center;
 }
-
 .quick-link-item i {
   font-size: 24px;
   color: var(--gold-matte);
   margin-bottom: 10px;
 }
-
 .quick-link-item:hover {
   background-color: var(--wood-dark);
   color: #fff;

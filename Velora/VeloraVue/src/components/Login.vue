@@ -31,12 +31,11 @@
                         </div>
                     </div>
 
-                    <!-- 🔥 THAY THẾ KHU VỰC GHI NHỚ ĐĂNG NHẬP THÀNH PREMIUM CHECKBOX KÈM SVG -->
+                    <!-- 🔥 KHU VỰC GHI NHỚ ĐĂNG NHẬP (PREMIUM CHECKBOX) -->
                     <div class="form-actions premium-actions">
                         <label class="premium">
                             <input type="checkbox" v-model="rememberMe" />
                             <div class="checkmark">
-                                <!-- Dùng SVG để tạo hiệu ứng vẽ nét từ trái sang phải -->
                                 <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="4 12 9 17 20 6"></polyline>
                                 </svg>
@@ -135,7 +134,12 @@ const handleLogin = async () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include', 
-            body: JSON.stringify({ email: email.value, password: password.value })
+            // 🔥 GỬI KÈM TRẠNG THÁI GHI NHỚ LÊN BACKEND
+            body: JSON.stringify({ 
+                email: email.value, 
+                password: password.value,
+                rememberMe: rememberMe.value
+            })
         });
 
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -144,6 +148,24 @@ const handleLogin = async () => {
 
         if (!response.ok) {
             throw new Error(data.message || 'Lỗi xác thực hệ thống!');
+        }
+
+        // 🔥 LOGIC LƯU TRỮ DỮ LIỆU THÔNG MINH
+        const userData = {
+            maNguoiDung: data.maNguoiDung,
+            hoTen: data.hoTen,
+            email: data.email,
+            vaiTro: data.vaiTro
+        };
+
+        if (rememberMe.value) {
+            // Nếu tick "Ghi nhớ": Lưu vào LocalStorage (Tắt trình duyệt mở lại vẫn còn)
+            localStorage.setItem('user', JSON.stringify(userData));
+            sessionStorage.removeItem('user');
+        } else {
+            // Nếu KHÔNG tick: Lưu vào SessionStorage (Đóng trình duyệt là mất)
+            sessionStorage.setItem('user', JSON.stringify(userData));
+            localStorage.removeItem('user');
         }
 
         loading.value = false;
@@ -165,12 +187,13 @@ const handleLogin = async () => {
     }
 }
 
+// 🔥 TRUYỀN THÊM BIẾN rememberMe VÀO URL ĐỂ BACKEND SETUP SESSION CHO OAUTH2
 const loginWithGoogle = () => {
-    window.location.href = `${API_BASE}/api/auth/oauth2/prepare/login?provider=google`;
+    window.location.href = `${API_BASE}/api/auth/oauth2/prepare/login?provider=google&rememberMe=${rememberMe.value}`;
 }
 
 const loginWithFacebook = () => {
-    window.location.href = `${API_BASE}/api/auth/oauth2/prepare/login?provider=facebook`;
+    window.location.href = `${API_BASE}/api/auth/oauth2/prepare/login?provider=facebook&rememberMe=${rememberMe.value}`;
 }
 </script>
 
@@ -191,9 +214,6 @@ const loginWithFacebook = () => {
     border-radius: 0 !important;
 }
 
-/* =========================================
-   🔥 PREMIUM CHECKBOX UI (MÀU VÀNG VELORA KÈM HIỆU ỨNG VẼ SVG) 
-========================================= */
 /* =========================================
    🔥 PREMIUM CHECKBOX UI (TINH CHỈNH CHO NỀN TỐI LUXURY) 
 ========================================= */
