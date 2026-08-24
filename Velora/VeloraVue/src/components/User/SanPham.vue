@@ -5,11 +5,11 @@
     <main class="shop-content">
       <div class="container">
         <div class="title-wrapper">
-                    <h1 class="page-title">SẢN PHẨM</h1>
-                    <div class="title-divider">
-                        <span class="diamond"></span>
-                    </div>
-                </div>
+          <h1 class="page-title">SẢN PHẨM</h1>
+          <div class="title-divider">
+            <span class="diamond"></span>
+          </div>
+        </div>
 
         <div class="filter-bar">
           <div class="custom-dropdown" :class="{ active: activeDropdown === 'price' }" @click="toggleDropdown('price')">
@@ -60,7 +60,6 @@
           </div>
         </div>
 
-        <!-- DANH SÁCH SẢN PHẨM PHÂN TRANG -->
         <template v-if="filteredProducts.length > 0">
           <div class="product-grid">
             <div class="product-card" v-for="product in paginatedProducts" :key="product.maSanPham">
@@ -92,7 +91,6 @@
             </div>
           </div>
 
-          <!-- THANH PHÂN TRANG -->
           <div class="pagination-container" v-if="totalPages > 1">
             <button 
               class="page-btn" 
@@ -124,9 +122,23 @@
           </div>
         </template>
 
-        <div v-else class="empty-state">
-          <p>Không tìm thấy sản phẩm nào phù hợp hoặc đang tải dữ liệu...</p>
+        <div class="empty-product-state" v-else>
+          <div class="empty-icon-wrapper">
+            <i class="fa-regular fa-hourglass-half"></i>
+          </div>
+          <h3 class="empty-title">Tuyệt Tác Đang Được Tuyển Chọn</h3>
+          <p class="empty-desc">
+            Những cỗ máy thời gian đến từ thương hiệu này hiện đang trong quá trình cập bến Velora Boutique. 
+            <br/>
+            Quý khách có thể liên hệ với chuyên viên để đặt trước mẫu đồng hồ yêu thích, hoặc tiếp tục khám phá các bộ sưu tập danh giá khác của chúng tôi.
+          </p>
+          <div class="empty-actions">
+            <router-link to="/lien-he-tu-van" class="btn-vvip">
+              LIÊN HỆ TƯ VẤN VVIP
+            </router-link>
+          </div>
         </div>
+
       </div>
     </main>
 
@@ -136,12 +148,12 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
-import Info from '../info.vue'
 
 const route = useRoute()
+const router = useRouter()
 
 const products = ref([])
 const filteredProducts = ref([])
@@ -149,9 +161,8 @@ const brands = ref([])
 const categories = ref([])
 const activeDropdown = ref(null)
 
-// Cấu hình phân trang: 3 dòng sản phẩm (4 cột x 3 dòng = 12 sản phẩm)
 const currentPage = ref(1)
-const pageSize = ref(12)
+const pageSize = ref(9)
 
 const filters = ref({
   search: '', 
@@ -161,12 +172,10 @@ const filters = ref({
   gender: '', genderText: ''
 })
 
-// Tính tổng số trang
 const totalPages = computed(() => {
   return Math.ceil(filteredProducts.value.length / pageSize.value) || 1
 })
 
-// Cắt danh sách sản phẩm theo trang hiện tại
 const paginatedProducts = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
@@ -212,6 +221,18 @@ const applyFilters = () => {
 
   filteredProducts.value = result
   currentPage.value = 1 
+}
+
+const clearFilter = () => {
+  filters.value = {
+    search: '', 
+    price: '', priceText: '',
+    brand: '', brandText: '',
+    category: '', categoryText: '',
+    gender: '', genderText: ''
+  }
+  router.replace({ query: {} })
+  applyFilters()
 }
 
 const selectOption = (type, value, text) => {
@@ -353,5 +374,80 @@ onUnmounted(() => {
   border-color: #c5a880;
   color: #fff;
   font-weight: 600;
+}
+
+.empty-product-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 70px 20px;
+  background-color: #fcfbf9; 
+  border: 1px solid rgba(197, 168, 128, 0.3);
+  border-radius: 8px;
+  margin: 50px auto;
+  max-width: 750px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+}
+
+.empty-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(197, 168, 128, 0.15);
+  margin-bottom: 24px;
+}
+
+.empty-icon-wrapper i {
+  font-size: 24px;
+  color: #c5a880; 
+}
+
+.empty-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.8;
+  max-width: 600px;
+  margin-bottom: 35px;
+}
+
+.empty-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-vvip {
+  display: inline-block;
+  background-color: #1a1a1a;
+  color: #fff;
+  padding: 14px 36px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  border: 1px solid #1a1a1a;
+}
+
+.btn-vvip:hover {
+  background-color: #c5a880;
+  border-color: #c5a880;
+  color: #fff;
 }
 </style>
