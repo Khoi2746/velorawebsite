@@ -7,7 +7,7 @@
       <!-- 2. GỌI COMPONENT HEADER MỚI -->
       <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-      <!-- 3. NỘI DUNG CHÍNH (Giữ nguyên 100% logic của ku em) -->
+      <!-- 3. NỘI DUNG CHÍNH -->
       <main class="content">
         <header class="header-section">
           <div class="header-titles">
@@ -174,14 +174,39 @@
         </div>
       </div>
 
+      <!-- 🔥 CUSTOM POPUP XÁC NHẬN (THAY THẾ CONFIRM) -->
+      <div class="modal-overlay" v-if="confirmDialog.show" @click.self="handleConfirmCancel">
+        <div class="modal-box custom-dialog-box">
+          <div class="dialog-icon-wrapper" :class="confirmDialog.type">
+            <i class="fa-solid" :class="confirmDialog.type === 'danger' ? 'fa-triangle-exclamation' : 'fa-circle-question'"></i>
+          </div>
+          <h3 class="dialog-title">{{ confirmDialog.title }}</h3>
+          <p class="dialog-message">{{ confirmDialog.message }}</p>
+          <div class="dialog-actions">
+            <button class="btn-dialog-cancel" @click="handleConfirmCancel">Hủy bỏ</button>
+            <button 
+              class="btn-dialog-confirm" 
+              :class="confirmDialog.type === 'danger' ? 'btn-danger-confirm' : 'btn-gold-confirm'"
+              @click="handleConfirmOk"
+            >
+              Xác nhận
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🔥 CUSTOM TOAST THÔNG BÁO (THAY THẾ ALERT) -->
+      <div class="custom-alert-toast" :class="[alertToast.type, { 'show': alertToast.show }]">
+        <i class="fa-solid" :class="alertToast.type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'"></i>
+        <span>{{ alertToast.message }}</span>
+      </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-
-// IMPORT COMPONENT CON VÀO ĐÂY
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
@@ -192,7 +217,7 @@ const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value;
 };
 
-// ================= LOGIC DỮ LIỆU CŨ =================
+// ================= LOGIC DỮ LIỆU HOÀN TIỀN =================
 const requests = ref([])
 const customerStats = ref([])
 const currentTab = ref('CHO_DUYET')
@@ -204,6 +229,53 @@ const adminNote = ref('')
 
 const showImageModal = ref(false)
 const selectedImageItem = ref(null)
+
+// 🔥 QUẢN LÝ POPUP VÀ TOAST
+const confirmDialog = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'gold', // 'gold' | 'danger'
+  resolve: null
+})
+
+const alertToast = ref({
+  show: false,
+  message: '',
+  type: 'success'
+})
+let toastTimer = null
+
+const showToast = (message, type = 'success') => {
+  alertToast.value = { show: true, message, type }
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    alertToast.value.show = false
+  }, 3000)
+}
+
+const openConfirm = (title, message, type = 'gold') => {
+  confirmDialog.value = {
+    show: true,
+    title,
+    message,
+    type,
+    resolve: null
+  }
+  return new Promise((resolve) => {
+    confirmDialog.value.resolve = resolve
+  })
+}
+
+const handleConfirmOk = () => {
+  confirmDialog.value.show = false
+  if (confirmDialog.value.resolve) confirmDialog.value.resolve(true)
+}
+
+const handleConfirmCancel = () => {
+  confirmDialog.value.show = false
+  if (confirmDialog.value.resolve) confirmDialog.value.resolve(false)
+}
 
 // 2. Logic Tabs & Filtering
 const tabs = [
@@ -281,9 +353,19 @@ const openActionModal = (item, action) => {
 
 const submitAdminAction = async () => {
   if (currentAction.value === 'KHONG_DUYET' && !adminNote.value.trim()) {
-    alert('BẮT BUỘC phải nhập ghi chú lý do khi KHÔNG DUYỆT hoàn tiền!')
+    showToast('BẮT BUỘC phải nhập ghi chú lý do khi KHÔNG DUYỆT hoàn tiền!', 'error')
     return
   }
+
+  const actionName = currentAction.value === 'XAC_NHAN' ? 'xác nhận hoàn tiền' : 'từ chối bồi hoàn'
+  const isDanger = currentAction.value === 'KHONG_DUYET'
+  
+  const confirmed = await openConfirm(
+    'Xác nhận quyết định',
+    `Bạn có chắc chắn muốn ${actionName} cho đơn hàng #${selectedItem.value?.maDonHangCode}?`,
+    isDanger ? 'danger' : 'gold'
+  )
+  if (!confirmed) return
 
   try {
     const res = await fetch('http://localhost:8080/api/hoan-tien/admin/xu-ly', {
@@ -297,15 +379,16 @@ const submitAdminAction = async () => {
     })
 
     if (res.ok) {
-      alert('Đã lưu quyết định bồi hoàn thành công!')
+      showToast('Đã lưu quyết định bồi hoàn thành công!', 'success')
       showModal.value = false
       fetchRequests()
       fetchCustomerStats()
     } else {
-      alert(await res.text())
+      const errText = await res.text()
+      showToast(errText || 'Không thể xử lý yêu cầu!', 'error')
     }
   } catch (e) {
-    alert('Lỗi kết nối Backend!')
+    showToast('Lỗi kết nối đến máy chủ Backend!', 'error')
   }
 }
 
@@ -315,7 +398,6 @@ onMounted(() => {
 })
 </script>
 
-<!-- CSS CHỨA BIẾN GLOBAL ĐỂ SIDEBAR NHẬN MÀU -->
 <style>
 :root {
   --wood-dark: #362921;
@@ -333,9 +415,6 @@ onMounted(() => {
 <style scoped>
 @import "../CSS/Admin/AdminDashboard.css";
 
-/* ==============================================
-   CSS LAYOUT CHUNG BỌC BÊN NGOÀI
-   ============================================== */
 .velora-admin-wrapper { 
   display: flex; 
   height: 100vh; 
@@ -356,9 +435,6 @@ onMounted(() => {
   padding: 30px; 
 }
 
-/* ==============================================
-   CSS RIÊNG CỦA TRANG HOÀN TIỀN (Giữ nguyên)
-   ============================================== */
 .header-section { margin-bottom: 25px; }
 .header-section h1 { font-size: 24px; color: var(--wood-dark); letter-spacing: 1px; font-weight: bold;}
 .gold { color: var(--gold-matte); }
@@ -425,4 +501,127 @@ onMounted(() => {
 .gallery-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
 .btn-close-modal { width: 100%; padding: 12px; background: #3e332e; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
 .empty-cell { text-align: center; color: #888; padding: 30px 0; }
+
+/* =========================================
+   🔥 CUSTOM DIALOG & TOAST (VELORA STYLE)
+========================================= */
+.custom-dialog-box {
+  width: 420px !important;
+  padding: 30px 25px;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  animation: scaleIn 0.25s ease;
+}
+
+.dialog-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 26px;
+}
+.dialog-icon-wrapper.gold {
+  background-color: #fcf6eb;
+  color: var(--gold-matte);
+}
+.dialog-icon-wrapper.danger {
+  background-color: #fde8e8;
+  color: #dc3545;
+}
+
+.dialog-title {
+  margin: 0 0 10px 0;
+  font-size: 19px;
+  color: var(--wood-dark);
+  font-weight: 700;
+}
+
+.dialog-message {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-dialog-cancel {
+  background: #f1f1f1;
+  border: 1px solid #ddd;
+  color: #555;
+  padding: 9px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-dialog-cancel:hover {
+  background: #e4e4e4;
+}
+
+.btn-dialog-confirm {
+  padding: 9px 22px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  color: #fff;
+  transition: 0.2s;
+}
+.btn-gold-confirm {
+  background-color: var(--gold-matte);
+}
+.btn-gold-confirm:hover {
+  background-color: #b88d4c;
+}
+.btn-danger-confirm {
+  background-color: #dc3545;
+}
+.btn-danger-confirm:hover {
+  background-color: #bd2130;
+}
+
+/* CUSTOM TOAST */
+.custom-alert-toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  padding: 14px 22px;
+  border-radius: 6px;
+  background: #333;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+.custom-alert-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+.custom-alert-toast.success {
+  background: #198754;
+}
+.custom-alert-toast.error {
+  background: #dc3545;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
 </style>

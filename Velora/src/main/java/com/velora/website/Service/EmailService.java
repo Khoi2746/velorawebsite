@@ -1,7 +1,8 @@
 package com.velora.website.Service;
 
-import org.springframework.mail.SimpleMailMessage;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,12 +30,16 @@ public class EmailService {
         // Chạy luồng ngầm (Async) để gửi mail không làm đơ/treo giao dịch chính
         new Thread(() -> {
             try {
-                SimpleMailMessage message = new SimpleMailMessage();
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
                 // BẮT BUỘC: Khai báo đúng Email gửi trùng với spring.mail.username
-                message.setFrom("veloraclock@gmail.com");
-                message.setTo(to.trim());
-                message.setSubject(subject);
-                message.setText(body);
+                helper.setFrom("veloraclock@gmail.com", "VELORA CLOCK");
+                helper.setTo(to.trim());
+                helper.setSubject(subject);
+                
+                // 🔥 ĐỔI SANG HTML: Bật true để Gmail render giao diện thiệp Card Luxury
+                helper.setText(body, true);
 
                 mailSender.send(message);
                 System.out.println("✅ Đã gửi email thành công tới: " + to);
