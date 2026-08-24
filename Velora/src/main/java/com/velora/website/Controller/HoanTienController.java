@@ -29,6 +29,32 @@ public class HoanTienController {
 
     private final Map<String, String> otpStorage = new ConcurrentHashMap<>();
 
+    // ================= KHUNG TEMPLATE EMAIL VELORA LUXURY =================
+    private String taoEmailHtmlVelora(String tieuDeChinh, String loiChao, String noiDungChiTiet, String ghiChuFooter) {
+        return "<!DOCTYPE html>"
+            + "<html><head><meta charset='UTF-8'></head>"
+            + "<body style='margin: 0; padding: 35px 15px; background-color: #0d0805; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;'>"
+            + "  <div style='max-width: 540px; margin: 0 auto; background-color: #1a0f0a; border: 1px solid #4a3423; border-top: 4px solid #cca15e; box-shadow: 0 15px 40px rgba(0,0,0,0.85);'>"
+            + "    <div style='padding: 35px 25px 20px; text-align: center; border-bottom: 1px solid #2d1c12;'>"
+            + "      <h1 style='margin: 0; color: #cca15e; font-size: 24px; letter-spacing: 4px; font-weight: 700; text-transform: uppercase;'>VELORA CLOCK</h1>"
+            + "      <p style='margin: 6px 0 0; color: #b5a99a; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;'>Thế giới kiệt tác thời gian</p>"
+            + "    </div>"
+            + "    <div style='padding: 30px 32px; color: #dedede;'>"
+            + "      <h2 style='margin-top: 0; color: #cca15e; font-size: 17px; letter-spacing: 1.5px; text-transform: uppercase; border-bottom: 1px solid #2d1c12; padding-bottom: 12px; text-align: center;'>" + tieuDeChinh + "</h2>"
+            + "      <p style='font-size: 14px; line-height: 1.6; color: #ffffff;'><strong>" + loiChao + "</strong></p>"
+            + "      <div style='background-color: #24140d; border: 1px solid #3d2417; padding: 20px; margin: 20px 0; font-size: 14px; line-height: 1.8; color: #d6d0c7;'>"
+            +          noiDungChiTiet
+            + "      </div>"
+            + "      <p style='font-size: 13px; line-height: 1.6; color: #a39686; margin-top: 20px;'>" + ghiChuFooter + "</p>"
+            + "    </div>"
+            + "    <div style='padding: 20px; text-align: center; background-color: #120905; border-top: 1px solid #24140c; font-size: 11px; color: #706354; letter-spacing: 0.5px;'>"
+            + "      <p style='margin: 0;'>© 2026 VELORA BOUTIQUE. MỌI QUYỀN ĐƯỢC BẢO LƯU.</p>"
+            + "      <p style='margin: 4px 0 0;'>Hotline hỗ trợ: 1900 xxxx | TP. Hồ Chí Minh</p>"
+            + "    </div>"
+            + "  </div>"
+            + "</body></html>";
+    }
+
     // 1. GỬI MÃ OTP XÁC THỰC
     @PostMapping("/gui-otp")
     public ResponseEntity<?> guiOtpXacNhan(@RequestParam String email) {
@@ -40,12 +66,19 @@ public class HoanTienController {
         otpStorage.put(email.trim().toLowerCase(), otp);
 
         String subject = "[VELORA BOUTIQUE] MÃ OTP XÁC NHẬN YÊU CẦU HOÀN TIỀN";
-        String body = "Mã xác nhận OTP của quý khách là: " + otp 
-                    + "\n\n⚠️ LƯU Ý QUY ĐỊNH HOÀN HÀNG VELORA:\n"
-                    + "- Sản phẩm chỉ được hoàn trong tình trạng nguyên vẹn hoặc có lỗi trực tiếp từ Nhà Sản Xuất.\n"
-                    + "- Nếu quý khách hoàn hàng quá 6 lần trong 1 năm, tài khoản sẽ tự động bị KHÓA và đưa vào Danh sách đen.";
+        String content = "<p style='margin:0 0 10px 0;'>Mã xác thực OTP của quý khách là:</p>"
+            + "<div style='text-align: center; margin: 15px 0;'><span style='font-size: 28px; font-weight: bold; letter-spacing: 8px; color: #cca15e; background: #120905; padding: 10px 24px; border: 1px dashed #cca15e;'>" + otp + "</span></div>"
+            + "<p style='margin: 15px 0 5px 0; color: #e6a200; font-weight: bold;'>⚠️ QUY ĐỊNH HOÀN HÀNG VELORA:</p>"
+            + "<p style='margin: 0; font-size: 12px; color: #bbb;'>- Sản phẩm chỉ được hoàn trong tình trạng nguyên vẹn hoặc lỗi do NSX.<br>- Hoàn hàng quá 6 lần/năm tài khoản sẽ bị khóa.</p>";
 
-        emailService.sendEmail(email.trim(), subject, body);
+        String htmlBody = taoEmailHtmlVelora(
+            "XÁC THỰC MÃ OTP HOÀN TIỀN", 
+            "Kính chào quý khách,", 
+            content, 
+            "Vui lòng không cung cấp mã OTP này cho bất kỳ ai để đảm bảo an toàn bảo mật."
+        );
+
+        emailService.sendEmail(email.trim(), subject, htmlBody);
         return ResponseEntity.ok("Mã OTP xác thực đã được gửi về Gmail!");
     }
 
@@ -87,7 +120,6 @@ public class HoanTienController {
             yc.setDanhSachAnh("");
         }
 
-        // CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG TRONG DB
         String cleanCode = request.getMaDonHangCode().replace("#", "").trim();
         List<DonHang> allOrders = donHangRepository.findAll();
         for (DonHang dh : allOrders) {
@@ -102,17 +134,20 @@ public class HoanTienController {
 
         yeuCauHoanTienRepository.save(yc);
 
-        String subject = "[VELORA BOUTIQUE] XÁC NHẬN ĐÃ TIẾP NHẬN YÊU CẦU HOÀN TIỀN #" + request.getMaDonHangCode();
-        String body = "Kính chào " + request.getHoTen() + ",\n\n"
-                + "Velora Boutique đã nhận được yêu cầu hoàn tiền cho đơn hàng #" + request.getMaDonHangCode() + ".\n"
-                + "Trạng thái đơn hàng hiện tại: Yêu cầu hoàn tiền đã được gửi.\n"
-                + "Bộ phận CSKH sẽ tiến hành đối soát và xử lý trong thời gian sớm nhất.\n\n"
-                + "📌 QUY ĐỊNH HOÀN HÀNG VELORA:\n"
-                + "1. Sản phẩm chỉ được hoàn trong tình trạng nguyên vẹn hoặc có lỗi từ Nhà Sản Xuất.\n"
-                + "2. Nếu quý khách hoàn hàng quá 6 lần trong 1 năm, tài khoản sẽ tự động bị khóa và đưa vào Danh sách đen.\n\n"
-                + "Trân trọng,\nĐội ngũ Velora.";
+        String subject = "[VELORA BOUTIQUE] TIẾP NHẬN YÊU CẦU HOÀN TIỀN #" + request.getMaDonHangCode();
+        String content = "<p style='margin:0 0 8px 0;'>Velora Boutique đã nhận được hồ sơ yêu cầu hoàn tiền cho đơn hàng <strong>#" + request.getMaDonHangCode() + "</strong>.</p>"
+            + "<p style='margin:0 0 6px 0;'><strong>• Trạng thái:</strong> <span style='color: #e6a200;'>Đang chờ đối soát</span></p>"
+            + "<p style='margin:0 0 6px 0;'><strong>• Ngân hàng nhận:</strong> " + request.getTenNganHang() + "</p>"
+            + "<p style='margin:0;'><strong>• Số tài khoản:</strong> " + request.getSoTaiKhoan() + " (" + request.getTenChuTaiKhoan() + ")</p>";
 
-        emailService.sendEmail(emailClean, subject, body);
+        String htmlBody = taoEmailHtmlVelora(
+            "TIẾP NHẬN YÊU CẦU HOÀN TIỀN", 
+            "Kính chào quý khách " + request.getHoTen() + ",", 
+            content, 
+            "Bộ phận CSKH sẽ kiểm tra minh chứng và hoàn tất thủ tục trong thời gian sớm nhất."
+        );
+
+        emailService.sendEmail(emailClean, subject, htmlBody);
 
         return ResponseEntity.ok("Yêu cầu hoàn tiền đã gửi thành công!");
     }
@@ -177,7 +212,7 @@ public class HoanTienController {
         return ResponseEntity.ok(result.values());
     }
 
-    // 5. ADMIN: XỬ LÝ DUYỆT HOẶC TỪ CHỐI HOÀN TIỀN (CẬP NHẬT TRỰC TIẾP CHUẨN XÁC)
+    // 5. ADMIN: XỬ LÝ DUYỆT HOẶC TỪ CHỐI HOÀN TIỀN
     @PostMapping("/admin/xu-ly")
     @Transactional
     public ResponseEntity<?> xuLyHoanTienAdmin(@RequestBody XuLyHoanTienAdminRequest req) {
@@ -204,46 +239,55 @@ public class HoanTienController {
             yc.setGhiChuAdmin(req.getGhiChuNote().trim());
             yeuCauHoanTienRepository.save(yc);
 
-            // Cập nhật bảng DonHang trong DB thành TU_CHOI_HOAN_TIEN
             List<DonHang> allOrders = donHangRepository.findAll();
             for (DonHang dh : allOrders) {
                 if (dh.getMaDonHangCode() != null && dh.getMaDonHangCode().contains(cleanCode)) {
                     dh.setTrangThaiDonHang("TU_CHOI_HOAN_TIEN");
                     donHangRepository.save(dh);
-                    System.out.println("✅ Đã đổi trạng thái DonHang thành TU_CHOI_HOAN_TIEN cho đơn #" + dh.getMaDonHangCode());
                     break;
                 }
             }
 
             String subject = "[VELORA BOUTIQUE] THÔNG BÁO TỪ CHỐI HOÀN TIỀN #" + yc.getMaDonHangCode();
-            String body = "Kính chào " + yc.getHoTen() + ",\n\n"
-                    + "Yêu cầu hoàn tiền cho đơn hàng #" + yc.getMaDonHangCode() + " đã BỊ TỪ CHỐI.\n"
-                    + "Lý do từ chối: " + req.getGhiChuNote().trim() + "\n\n"
-                    + "📌 QUY ĐỊNH HOÀN HÀNG VELORA: Sản phẩm chỉ được hoàn trong tình trạng nguyên vẹn hoặc nếu có lỗi từ NSX.";
-            emailService.sendEmail(yc.getEmail(), subject, body);
+            String content = "<p style='margin:0 0 8px 0;'>Yêu cầu hoàn tiền cho đơn hàng <strong>#" + yc.getMaDonHangCode() + "</strong> đã <span style='color: #e74c3c; font-weight: bold;'>BỊ TỪ CHỐI</span>.</p>"
+                + "<p style='margin:0; color: #ff7675;'><strong>• Lý do từ chối:</strong> " + req.getGhiChuNote().trim() + "</p>";
+
+            String htmlBody = taoEmailHtmlVelora(
+                "TỪ CHỐI YÊU CẦU HOÀN TIỀN", 
+                "Kính chào quý khách " + yc.getHoTen() + ",", 
+                content, 
+                "📌 QUY ĐỊNH HOÀN HÀNG: Sản phẩm chỉ được hoàn trong tình trạng nguyên vẹn hoặc có lỗi trực tiếp từ Nhà Sản Xuất."
+            );
+
+            emailService.sendEmail(yc.getEmail(), subject, htmlBody);
 
         } else if ("XAC_NHAN".equalsIgnoreCase(req.getHanhDong())) {
             yc.setTrangThai("DA_HOAN_TIEN");
             yc.setGhiChuAdmin(req.getGhiChuNote() != null ? req.getGhiChuNote().trim() : "");
             yeuCauHoanTienRepository.save(yc);
 
-            // Cập nhật bảng DonHang trong DB thành DA_DUYET_HOAN_TIEN
             List<DonHang> allOrders = donHangRepository.findAll();
             for (DonHang dh : allOrders) {
                 if (dh.getMaDonHangCode() != null && dh.getMaDonHangCode().contains(cleanCode)) {
                     dh.setTrangThaiDonHang("DA_DUYET_HOAN_TIEN");
                     donHangRepository.save(dh);
-                    System.out.println("✅ Đã đổi trạng thái DonHang thành DA_DUYET_HOAN_TIEN cho đơn #" + dh.getMaDonHangCode());
                     break;
                 }
             }
 
             String subject = "[VELORA BOUTIQUE] THÔNG BÁO HOÀN TIỀN THÀNH CÔNG #" + yc.getMaDonHangCode();
-            String bodyApprove = "Kính chào " + yc.getHoTen() + ",\n\n"
-                    + "Yêu cầu hoàn tiền đơn hàng #" + yc.getMaDonHangCode() + " đã ĐƯỢC PHÊ DUYỆT.\n"
-                    + "Số tiền sẽ được chuyển về tài khoản: " + yc.getSoTaiKhoan() + " (" + yc.getTenNganHang() + ").\n\n"
-                    + "Cảm ơn quý khách đã đồng hành cùng Velora Boutique.";
-            emailService.sendEmail(yc.getEmail(), subject, bodyApprove);
+            String contentApprove = "<p style='margin:0 0 8px 0;'>Yêu cầu hoàn tiền cho đơn hàng <strong>#" + yc.getMaDonHangCode() + "</strong> đã <span style='color: #2ecc71; font-weight: bold;'>ĐƯỢC PHÊ DUYỆT</span>.</p>"
+                + "<p style='margin:0 0 6px 0;'><strong>• Ngân hàng thụ hưởng:</strong> " + yc.getTenNganHang() + "</p>"
+                + "<p style='margin:0;'><strong>• Số tài khoản nhận tiền:</strong> " + yc.getSoTaiKhoan() + "</p>";
+
+            String htmlApprove = taoEmailHtmlVelora(
+                "PHÊ DUYỆT HOÀN TIỀN THÀNH CÔNG", 
+                "Kính chào quý khách " + yc.getHoTen() + ",", 
+                contentApprove, 
+                "Số tiền đã được chuyển lệnh thanh toán về tài khoản của bạn. Cảm ơn đã đồng hành cùng Velora Clock."
+            );
+
+            emailService.sendEmail(yc.getEmail(), subject, htmlApprove);
 
             long soLanHoan = yeuCauHoanTienRepository.findByEmailIgnoreCase(yc.getEmail()).stream()
                     .filter(y -> "DA_HOAN_TIEN".equals(y.getTrangThai()))
@@ -256,11 +300,18 @@ public class HoanTienController {
                     nd.setTrangThai("BI_KHOA");
                     nguoiDungRepository.save(nd);
 
-                    String subjectBlock = "[CẢNH BÁO BẢO MẬT] TÀI KHOẢN VELORA CỦA BẠN ĐÃ BỊ KHÓA";
-                    String bodyBlock = "Kính chào " + yc.getHoTen() + ",\n\n"
-                            + "Tài khoản của bạn đã vi phạm chính sách hoàn hàng quá 6 lần/năm.\n"
-                            + "Hệ thống Velora đã tự động KHÓA TÀI KHOẢN và đưa địa chỉ Gmail này vào Danh sách đen (Blacklist).";
-                    emailService.sendEmail(yc.getEmail(), subjectBlock, bodyBlock);
+                    String subjectBlock = "[CẢNH BÁO BẢO MẬT] TÀI KHOẢN VELORA ĐÃ BỊ KHÓA";
+                    String contentBlock = "<p style='margin:0 0 8px 0; color: #e74c3c;'>Tài khoản của quý khách đã thực hiện hoàn trả vượt quá giới hạn <strong>6 lần / năm</strong>.</p>"
+                        + "<p style='margin:0;'>Hệ thống đã tự động <span style='color: #e74c3c; font-weight: bold;'>KHÓA TÀI KHOẢN</span> và đưa địa chỉ Gmail này vào Danh sách đen (Blacklist).</p>";
+
+                    String htmlBlock = taoEmailHtmlVelora(
+                        "KHÓA TÀI KHOẢN VI PHẠM CHÍNH SÁCH", 
+                        "Kính chào quý khách " + yc.getHoTen() + ",", 
+                        contentBlock, 
+                        "Mọi thắc mắc và khiếu nại vui lòng liên hệ Hotline ban quản trị Velora."
+                    );
+
+                    emailService.sendEmail(yc.getEmail(), subjectBlock, htmlBlock);
                 }
             }
         }

@@ -73,7 +73,6 @@
                         {{ getPaymentMethodLabel(method) }}
                       </option>
                     </select>
-                    <!-- Nút cộng thêm phương thức thanh toán -->
                     <button class="btn-add-payment-method" title="Tạo thêm hình thức mới" @click="openAddPaymentModal">+</button>
                   </div>
                   <div style="margin-top: 6px;">
@@ -83,13 +82,11 @@
                   </div>
                 </td>
                 <td>
-                  <!-- GỌI ĐỘNG LABEL VÀ CLASS TỪ OBJECT CẤU HÌNH -->
                   <span class="status-badge" :class="getStatusClass(order.trangThaiDonHang)">
                     {{ getStatusLabel(order.trangThaiDonHang) }}
                   </span>
                 </td>
                 <td>
-                  <!-- DANH SÁCH LỆNH ĐƯỢC RENDER ĐỘNG DỰA THEO TRẠNG THÁI -->
                   <select 
                     class="action-select" 
                     @change="handleActionSelect(order, $event)"
@@ -114,7 +111,7 @@
         </section>
       </main>
 
-      <!-- MODAL XEM CHI TIẾT (ĐÃ BỔ SUNG KHUNG HIỂN THỊ LÝ DO HỦY) -->
+      <!-- MODAL XEM CHI TIẾT -->
       <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
         <div class="modal-box modal-lg">
           <div class="modal-header">
@@ -122,8 +119,6 @@
             <button class="btn-close" @click="closeDetailModal">&#10005;</button>
           </div>
           <div class="modal-body">
-            
-            <!-- HIỂN THỊ LÝ DO HỦY ĐƠN TỪ KHÁCH HÀNG NẾU Ở TRẠNG THÁI ĐÃ HỦY HOẶC YÊU CẦU HỦY -->
             <div v-if="selectedOrder?.trangThaiDonHang === 'DA_HUY' || selectedOrder?.trangThaiDonHang === 'YEU_CAU_HUY'" class="cancel-reason-box" style="background: #fdf2f2; border: 1px solid #f8d7da; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
               <h4 style="color: #dc3545; margin: 0 0 5px 0;"><i class="fa-solid fa-triangle-exclamation"></i> Thông Tin Hủy Đơn Từ Khách Hàng</h4>
               <p style="margin: 0; color: #721c24; font-size: 14px;">
@@ -175,7 +170,7 @@
         </div>
       </div>
 
-      <!-- MODAL XÁC NHẬN HỦY ĐƠN (DÀNH CHO ADMIN CHỦ ĐỘNG HỦY NẾU CẦN) -->
+      <!-- MODAL XÁC NHẬN HỦY ĐƠN -->
       <div class="modal-overlay" v-if="showCancelModal" @click.self="closeCancelModal">
         <div class="modal-box" style="width: 500px;">
           <div class="modal-header">
@@ -224,6 +219,33 @@
         </div>
       </div>
 
+      <!-- 🔥 CUSTOM MODAL XÁC NHẬN (THAY THẾ CONFIRM MẶC ĐỊNH) -->
+      <div class="modal-overlay" v-if="confirmDialog.show" @click.self="handleConfirmCancel">
+        <div class="modal-box custom-dialog-box">
+          <div class="dialog-icon-wrapper" :class="confirmDialog.type">
+            <i class="fa-solid" :class="confirmDialog.type === 'danger' ? 'fa-triangle-exclamation' : 'fa-circle-question'"></i>
+          </div>
+          <h3 class="dialog-title">{{ confirmDialog.title }}</h3>
+          <p class="dialog-message">{{ confirmDialog.message }}</p>
+          <div class="dialog-actions">
+            <button class="btn-dialog-cancel" @click="handleConfirmCancel">Hủy bỏ</button>
+            <button 
+              class="btn-dialog-confirm" 
+              :class="confirmDialog.type === 'danger' ? 'btn-danger-confirm' : 'btn-gold-confirm'"
+              @click="handleConfirmOk"
+            >
+              Xác nhận
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🔥 CUSTOM TOAST / ALERT THÔNG BÁO KẾT QUẢ -->
+      <div class="custom-alert-toast" :class="[alertToast.type, { 'show': alertToast.show }]">
+        <i class="fa-solid" :class="alertToast.type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'"></i>
+        <span>{{ alertToast.message }}</span>
+      </div>
+
     </div>
   </div>
 </template>
@@ -232,12 +254,9 @@
 import { ref, onMounted, computed } from 'vue';
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
-
-// 🔥 IMPORT THƯ VIỆN WEBSOCKET
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
-// CẤU HÌNH TRUNG TÂM TRẠNG THÁI
 const ORDER_STATUSES = {
   'CHO_XU_LY': { label: 'Chờ Xử Lý', cssClass: 'status-pending' },
   'CHUAN_BI_HANG': { label: 'Chuẩn Bị Hàng', cssClass: 'status-preparing' },
@@ -292,6 +311,53 @@ const searchQuery = ref('');
 const filterDate = ref('');
 const paymentMethods = ref(['COD', 'CHUYEN_KHOAN_QR', 'VNPAY', 'THE_TIN_DUNG']);
 
+// 🔥 KHỞI TẠO POPUP CONFIRM VÀ TOAST THÔNG BÁO
+const confirmDialog = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'gold', // 'gold' | 'danger'
+  resolve: null
+});
+
+const alertToast = ref({
+  show: false,
+  message: '',
+  type: 'success'
+});
+let toastTimer = null;
+
+const showToast = (message, type = 'success') => {
+  alertToast.value = { show: true, message, type };
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    alertToast.value.show = false;
+  }, 3000);
+};
+
+const openConfirm = (title, message, type = 'gold') => {
+  confirmDialog.value = {
+    show: true,
+    title,
+    message,
+    type,
+    resolve: null
+  };
+  return new Promise((resolve) => {
+    confirmDialog.value.resolve = resolve;
+  });
+};
+
+const handleConfirmOk = () => {
+  confirmDialog.value.show = false;
+  if (confirmDialog.value.resolve) confirmDialog.value.resolve(true);
+};
+
+const handleConfirmCancel = () => {
+  confirmDialog.value.show = false;
+  if (confirmDialog.value.resolve) confirmDialog.value.resolve(false);
+};
+
 const filteredOrders = computed(() => {
   return orders.value.filter(order => {
     const query = searchQuery.value.trim().toLowerCase();
@@ -325,15 +391,15 @@ const closeAddPaymentModal = () => {
 const submitNewPaymentMethod = async () => {
   const method = newPaymentMethodName.value.trim();
   if (!method) {
-    alert("Vui lòng nhập tên phương thức thanh toán!");
+    showToast("Vui lòng nhập tên phương thức thanh toán!", "error");
     return;
   }
   if (paymentMethods.value.includes(method)) {
-    alert("Phương thức thanh toán này đã tồn tại!");
+    showToast("Phương thức thanh toán này đã tồn tại!", "error");
     return;
   }
   paymentMethods.value.push(method);
-  alert(`Đã thêm thành công: ${method}`);
+  showToast(`Đã thêm thành công: ${method}`, "success");
   closeAddPaymentModal();
 };
 
@@ -377,17 +443,15 @@ const loadOrders = async () => {
   }
 };
 
-// 🔥 HÀM WEBSOCKET LẮNG NGHE ĐƠN HÀNG THAY ĐỔI
 const connectWebSocket = () => {
   const socket = new SockJS('http://localhost:8080/ws'); 
   const stompClient = new Client({
     webSocketFactory: () => socket,
     reconnectDelay: 5000,
     onConnect: () => {
-      console.log('⚡ Admin: Đã kết nối WebSocket Đơn Hàng!');
       stompClient.subscribe('/topic/orders', (message) => {
         if (message.body === 'RELOAD_ORDERS') {
-          loadOrders(); // Khách hàng tác động -> Admin tự load lại
+          loadOrders();
         }
       });
     }
@@ -395,8 +459,9 @@ const connectWebSocket = () => {
   stompClient.activate();
 };
 
-const handleActionSelect = (order, event) => {
+const handleActionSelect = async (order, event) => {
   const selectedAction = event.target.value;
+  event.target.value = "";
   if (!selectedAction) return;
 
   switch (selectedAction) {
@@ -418,17 +483,16 @@ const handleActionSelect = (order, event) => {
       showCancelModal.value = true;
       break;
     case 'APPROVE_CANCEL':
-      if (confirm(`Xác nhận đồng ý hủy đơn hàng #${order.maDonHangCode}?`)) {
+      if (await openConfirm("Đồng ý hủy đơn", `Xác nhận đồng ý hủy đơn hàng #${order.maDonHangCode}?`, 'danger')) {
         changeOrderStatus(order.maDonHang, 'DA_HUY');
       }
       break;
     case 'REJECT_CANCEL':
-      if (confirm(`Từ chối yêu cầu hủy và đưa đơn hàng #${order.maDonHangCode} về lại trạng thái Chờ xử lý?`)) {
+      if (await openConfirm("Từ chối hủy đơn", `Từ chối yêu cầu hủy và đưa đơn hàng #${order.maDonHangCode} về lại trạng thái Chờ xử lý?`, 'gold')) {
         changeOrderStatus(order.maDonHang, 'CHO_XU_LY');
       }
       break;
   }
-  event.target.value = "";
 };
 
 const changeOrderStatus = async (id, statusMoi) => {
@@ -436,27 +500,29 @@ const changeOrderStatus = async (id, statusMoi) => {
   let url = `http://localhost:8080/api/don-hang/${id}/trang-thai?trangThaiMoi=${statusMoi}`;
 
   if (statusMoi === 'DA_GIAO') {
-    thongBao = "Xác nhận đã giao hàng thành công?\nHệ thống sẽ tự động cập nhật trạng thái tiền thành [Đã thanh toán].";
+    thongBao = "Xác nhận đã giao hàng thành công? Hệ thống sẽ tự động cập nhật trạng thái tiền thành [Đã thanh toán].";
     url += `&trangThaiThanhToanMoi=DA_THANH_TOAN`;
   }
 
-  if (!confirm(thongBao)) return;
+  const confirmed = await openConfirm("Xác nhận cập nhật", thongBao, statusMoi === 'DA_HUY' ? 'danger' : 'gold');
+  if (!confirmed) return;
 
   try {
     const res = await fetch(url, { method: 'PATCH' });
     if (res.ok) {
+      showToast("Cập nhật trạng thái thành công!", "success");
       loadOrders(); 
     } else {
-      alert("Lỗi từ hệ thống: " + await res.text());
+      showToast("Lỗi: " + await res.text(), "error");
     }
   } catch (error) {
-    alert("Không thể kết nối đến máy chủ Backend.");
+    showToast("Không thể kết nối đến máy chủ Backend.", "error");
   }
 };
 
 const submitCancelOrder = async () => {
   if (!cancelReason.value.trim()) {
-    alert("Vui lòng nhập lý do hủy đơn để lưu vết hệ thống.");
+    showToast("Vui lòng nhập lý do hủy đơn để lưu vết hệ thống.", "error");
     return;
   }
   
@@ -466,12 +532,13 @@ const submitCancelOrder = async () => {
     const res = await fetch(url, { method: 'PATCH' });
     if (res.ok) {
       closeCancelModal();
+      showToast("Hủy đơn hàng thành công!", "success");
       loadOrders(); 
     } else {
-      alert("Lỗi khi hủy đơn: " + await res.text());
+      showToast("Lỗi khi hủy đơn: " + await res.text(), "error");
     }
   } catch (error) {
-    alert("Không thể kết nối đến máy chủ Backend.");
+    showToast("Không thể kết nối đến máy chủ Backend.", "error");
   }
 };
 
@@ -503,7 +570,7 @@ const closeCancelModal = () => {
 
 const changePaymentMethod = async (orderId, newMethod) => {
   try {
-    console.log(`Đã đổi phương thức thanh toán đơn ${orderId} thành ${newMethod}`);
+    showToast(`Đã đổi phương thức thanh toán thành ${getPaymentMethodLabel(newMethod)}`, "success");
   } catch (error) {
     console.error('Lỗi', error);
   }
@@ -511,7 +578,7 @@ const changePaymentMethod = async (orderId, newMethod) => {
 
 onMounted(() => { 
   loadOrders(); 
-  connectWebSocket(); // 🔥 BẬT ĂNG-TEN KHI VÀO TRANG ADMIN
+  connectWebSocket();
 });
 </script>
 
@@ -579,7 +646,7 @@ onMounted(() => {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -686,5 +753,128 @@ onMounted(() => {
   outline: none;
   border-color: var(--gold-matte);
   box-shadow: 0 0 0 2px rgba(204, 161, 94, 0.2);
+}
+
+/* =========================================
+   🔥 CUSTOM POPUP DIALOG & TOAST (VELORA STYLE)
+========================================= */
+.custom-dialog-box {
+  width: 420px !important;
+  padding: 30px 25px;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  animation: scaleIn 0.25s ease;
+}
+
+.dialog-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 26px;
+}
+.dialog-icon-wrapper.gold {
+  background-color: #fcf6eb;
+  color: var(--gold-matte);
+}
+.dialog-icon-wrapper.danger {
+  background-color: #fde8e8;
+  color: #dc3545;
+}
+
+.dialog-title {
+  margin: 0 0 10px 0;
+  font-size: 19px;
+  color: var(--wood-dark);
+  font-weight: 700;
+}
+
+.dialog-message {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-dialog-cancel {
+  background: #f1f1f1;
+  border: 1px solid #ddd;
+  color: #555;
+  padding: 9px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-dialog-cancel:hover {
+  background: #e4e4e4;
+}
+
+.btn-dialog-confirm {
+  padding: 9px 22px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  color: #fff;
+  transition: 0.2s;
+}
+.btn-gold-confirm {
+  background-color: var(--gold-matte);
+}
+.btn-gold-confirm:hover {
+  background-color: #b88d4c;
+}
+.btn-danger-confirm {
+  background-color: #dc3545;
+}
+.btn-danger-confirm:hover {
+  background-color: #bd2130;
+}
+
+/* CUSTOM TOAST */
+.custom-alert-toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  padding: 14px 22px;
+  border-radius: 6px;
+  background: #333;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+.custom-alert-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+.custom-alert-toast.success {
+  background: #198754;
+}
+.custom-alert-toast.error {
+  background: #dc3545;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 </style>
