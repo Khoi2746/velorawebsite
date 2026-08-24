@@ -9,6 +9,7 @@
 
       <!-- Nội dung chính -->
       <main class="content">
+        <!-- Tiêu đề trang -->
         <header class="header">
           <div class="header-left">
             <h1>Quản Lý <span class="gold">Bảo Hành</span></h1>
@@ -16,9 +17,23 @@
           </div>
         </header>
 
-        <div v-if="message" :class="['notice', message.type]">
-          {{ message.text }}
-        </div>
+        <!-- Modal thông báo chuẩn phong cách Velora Dark -->
+<div v-if="message" class="velora-modal-overlay" @click.self="message = null">
+  <div class="velora-modal-card">
+    <!-- Icon trạng thái -->
+    <div class="modal-icon-wrapper" :class="message.type">
+      <span v-if="message.type === 'success'" class="icon-check">✓</span>
+      <span v-else class="icon-error">✕</span>
+    </div>
+
+    <!-- Tiêu đề & Nội dung -->
+    <h3 class="modal-title">{{ message.type === 'success' ? 'THÀNH CÔNG' : 'LỖI' }}</h3>
+    <p class="modal-desc">{{ message.text }}</p>
+
+    <!-- Nút đóng -->
+    <button class="modal-btn-close" @click="message = null">ĐÓNG</button>
+  </div>
+</div>
 
         <section class="table-container">
           <table class="admin-table">
@@ -255,15 +270,21 @@ const updateStatus = async (item) => {
       thoiGianHen: item.thoiGianHenInput ? item.thoiGianHenInput : null
     }
 
-    // Đã sửa thành item.maBaoHanh
     await axios.put(`http://localhost:8080/api/bao-hanh/${item.maBaoHanh}/status`, payload)
     
-    alert("Cập nhật trạng thái và lịch hẹn thành công!")
-    // Gọi lại danh sách để cập nhật giao diện ngay lập tức
+    // Thay alert thành thông báo nổi giữa màn hình
+    message.value = {
+      type: "success",
+      text: `Đã cập nhật đơn #${item.maBaoHanh} và gửi thông báo thành công!`
+    }
+    
     await fetchWarrantyRequests()
   } catch (err) {
-    console.error(err) // Thêm dòng này để lỡ có lỗi thì mở F12 Console lên xem cho dễ
-    alert("Cập nhật thất bại, vui lòng thử lại.")
+    console.error(err)
+    message.value = {
+      type: "error",
+      text: "Cập nhật thất bại, vui lòng thử lại."
+    }
   }
 }
 
@@ -363,5 +384,113 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+/* --- CSS THÔNG BÁO NỔI GIỮA MÀN HÌNH --- */
+/* --- VELORA DARK MODAL POPUP --- */
+.velora-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.65); /* Phủ mờ nền tối */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.velora-modal-card {
+  background-color: #1a1614; /* Nền tối sang trọng */
+  border: 1px solid #cca15e; /* Viền màu vàng gold đặc trưng */
+  border-radius: 14px;
+  padding: 35px 40px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+  animation: scaleUp 0.2s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Khung icon tròn */
+.modal-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-icon-wrapper.success {
+  background-color: #2ebd59; /* Xanh lá đặc trưng */
+  color: #fff;
+}
+
+.modal-icon-wrapper.error {
+  background-color: #e74c3c; /* Đỏ báo lỗi */
+  color: #fff;
+}
+
+.icon-check, .icon-error {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+/* Chữ tiêu đề */
+.modal-title {
+  color: #cca15e; /* Màu vàng gold */
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+/* Mô tả ngắn */
+.modal-desc {
+  color: #e0d8cc;
+  font-size: 0.95rem;
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+
+/* Nút Đóng */
+.modal-btn-close {
+  background-color: #cca15e;
+  color: #1a1614;
+  border: none;
+  border-radius: 8px;
+  width: 100%;
+  padding: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.modal-btn-close:hover {
+  background-color: #b88f4e;
+}
+
+.modal-btn-close:active {
+  transform: scale(0.98);
+}
+
+/* Hiệu ứng chuyển động */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 </style>

@@ -92,7 +92,7 @@
             <div class="form-group">
               <label>MÔ TẢ TÌNH TRẠNG LỖI CHI TIẾT</label>
               <textarea v-model="form.moTa" rows="3"
-                placeholder="Ví dụ: Đồng hồ chạy chậm, hấp hơi nước mặt kính, lệch kim..." required></textarea>
+                placeholder="Ví dụ: Đồng hồ chạy chậm, hấp hơi nước mặt kính, lệch kim" required></textarea>
             </div>
 
             <button class="btn-submit" type="submit">
