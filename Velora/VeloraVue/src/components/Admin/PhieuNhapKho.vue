@@ -133,6 +133,36 @@
                     </div>
                 </div>
             </div>
+
+            <!-- MODAL POPUP XÁC NHẬN Ở GIỮA MÀN HÌNH -->
+            <div v-if="showConfirmModal" class="confirm-modal-overlay" @click.self="showConfirmModal = false">
+                <div class="confirm-modal-card">
+                    <div class="modal-icon-header">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </div>
+                    <h3 class="modal-title">XÁC NHẬN THAO TÁC</h3>
+                    <p class="modal-desc">{{ confirmModalText }}</p>
+                    <div class="modal-actions-group">
+                        <button type="button" class="btn-modal-cancel" @click="showConfirmModal = false">HỦY BỎ</button>
+                        <button type="button" class="btn-modal-submit" @click="handleExecuteConfirm">XÁC NHẬN</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL POPUP THÔNG BÁO Ở GIỮA MÀN HÌNH -->
+            <div v-if="showAlertModal" class="confirm-modal-overlay" @click.self="showAlertModal = false">
+                <div class="confirm-modal-card">
+                    <div class="modal-icon-header">
+                        <i :class="alertModalIcon" :style="{ color: alertModalTitleColor }"></i>
+                    </div>
+                    <h3 class="modal-title" :style="{ color: alertModalTitleColor }">{{ alertModalTitle }}</h3>
+                    <p class="modal-desc">{{ alertModalMessage }}</p>
+                    <div class="modal-actions-group">
+                        <button type="button" class="btn-modal-submit" @click="showAlertModal = false">ĐỒNG Ý</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </template>
@@ -246,32 +276,65 @@ const loadMockData = () => {
     ];
 };
 
-const processReceipt = async (id, trangThaiMoi) => {
+// --- MODAL POPUP THÔNG BÁO Ở GIỮA MÀN HÌNH CHUẨN VELORA ---
+const showConfirmModal = ref(false);
+const confirmModalText = ref('');
+const pendingConfirmAction = ref(null);
+
+const showAlertModal = ref(false);
+const alertModalTitle = ref('THÔNG BÁO');
+const alertModalMessage = ref('');
+const alertModalIcon = ref('fa-solid fa-circle-check');
+const alertModalTitleColor = ref('#4CAF50');
+
+const showCustomAlert = (message, title = 'THÔNG BÁO', isSuccess = true) => {
+  alertModalMessage.value = message;
+  alertModalTitle.value = title;
+  alertModalIcon.value = isSuccess ? 'fa-solid fa-circle-check' : 'fa-solid fa-triangle-exclamation';
+  alertModalTitleColor.value = isSuccess ? '#4CAF50' : '#ff4444';
+  showAlertModal.value = true;
+};
+
+const triggerConfirmModal = (text, actionFn) => {
+  confirmModalText.value = text;
+  pendingConfirmAction.value = actionFn;
+  showConfirmModal.value = true;
+};
+
+const handleExecuteConfirm = async () => {
+  showConfirmModal.value = false;
+  if (pendingConfirmAction.value) {
+    await pendingConfirmAction.value();
+    pendingConfirmAction.value = null;
+  }
+};
+
+const processReceipt = (id, trangThaiMoi) => {
     const isApprove = trangThaiMoi === 'DA_DUYET';
     const message = isApprove
         ? "XÁC NHẬN DUYỆT: Số lượng sản phẩm trong phiếu này sẽ được cộng thẳng vào kho. Bạn có chắc chắn?"
         : "TỪ CHỐI: Hủy bỏ yêu cầu nhập kho này?";
 
-    if (!confirm(message)) return;
+    triggerConfirmModal(message, async () => {
+        try {
+            const res = await fetch(`http://localhost:8080/api/phieu-nhap/${id}/trang-thai?trangThai=${trangThaiMoi}`, {
+                method: 'PATCH'
+            });
 
-    try {
-        const res = await fetch(`http://localhost:8080/api/phieu-nhap/${id}/trang-thai?trangThai=${trangThaiMoi}`, {
-            method: 'PATCH'
-        });
-
-        if (res.ok) {
-            alert(isApprove ? "Đã duyệt phiếu và cộng kho thành công!" : "Đã từ chối phiếu nhập!");
-            loadReceipts();
-        } else {
+            if (res.ok) {
+                showCustomAlert(isApprove ? "Đã duyệt phiếu và cộng kho thành công!" : "Đã từ chối phiếu nhập!", "THÀNH CÔNG", true);
+                loadReceipts();
+            } else {
+                processMockReceipt(id, trangThaiMoi);
+            }
+        } catch (error) {
             processMockReceipt(id, trangThaiMoi);
         }
-    } catch (error) {
-        processMockReceipt(id, trangThaiMoi);
-    }
+    });
 };
 
 const processMockReceipt = (id, trangThaiMoi) => {
-    alert(trangThaiMoi === 'DA_DUYET' ? "[Demo] Đã duyệt và cộng kho thành công!" : "[Demo] Đã từ chối phiếu nhập!");
+    showCustomAlert(trangThaiMoi === 'DA_DUYET' ? "Đã duyệt và cộng kho thành công!" : "Đã từ chối phiếu nhập!", "THÀNH CÔNG", true);
     const idx = receipts.value.findIndex(r => r.maPhieuNhap === id);
     if (idx !== -1) {
         receipts.value[idx].trangThai = trangThaiMoi;
@@ -298,8 +361,8 @@ const viewDetails = async (receipt) => {
 
 const loadMockDetails = () => {
     receiptDetails.value = [
-        { maChiTietPhieuNhap: 1, maSanPham: 1, soLuongNhap: 10, giaNhap: 10000000 },
-        { maChiTietPhieuNhap: 2, maSanPham: 2, soLuongNhap: 5, giaNhap: 8000000 }
+        { maChiTietPhieuNhap: 101, maSanPham: 1, tenSanPham: 'Velora Noir Starlight Edition', soLuongNhap: 20, giaNhap: 15000000 },
+        { maChiTietPhieuNhap: 102, maSanPham: 2, tenSanPham: 'Rolex Daytona Gold Master', soLuongNhap: 5, giaNhap: 450000000 }
     ];
 };
 
@@ -413,5 +476,102 @@ onMounted(() => {
 }
 .btn-cancel:hover {
     background: #e4e4e4;
+}
+
+/* CSS Custom Modal Popup ở giữa màn hình chuẩn Velora Theme */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.confirm-modal-card {
+  background-color: #1a1918;
+  border: 1px solid #d1aa68;
+  border-radius: 8px;
+  padding: 30px 25px;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
+  animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPopIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-icon-header i {
+  font-size: 44px;
+  color: #d1aa68;
+  margin-bottom: 12px;
+}
+
+.modal-title {
+  color: #d1aa68;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.modal-desc {
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+.modal-actions-group {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.btn-modal-cancel {
+  background-color: #2e2b27;
+  color: #cccccc;
+  border: 1px solid #444444;
+  padding: 10px 25px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-modal-cancel:hover {
+  background-color: #444444;
+  color: #ffffff;
+}
+
+.btn-modal-submit {
+  background-color: #d1aa68;
+  color: #1a1918;
+  border: none;
+  padding: 10px 30px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(209, 170, 104, 0.3);
+}
+
+.btn-modal-submit:hover {
+  background-color: #e5be7a;
+  color: #000000;
 }
 </style>

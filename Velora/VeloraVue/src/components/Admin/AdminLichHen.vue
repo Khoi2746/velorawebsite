@@ -178,27 +178,27 @@
       </main>
 
       <!-- MODAL 1: CẬP NHẬT TRẠNG THÁI CHUNG -->
-      <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
-        <div class="modal-box">
-          <div class="modal-header">
-            <h3>Cập Nhật Lịch Hẹn #{{ selectedLichHen.id }}</h3>
-            <button class="close-btn" @click="showModal = false">&times;</button>
+      <div v-if="showModal" class="confirm-modal-overlay" @click.self="showModal = false">
+        <div class="confirm-modal-card" style="text-align: left; max-width: 480px;">
+          <div class="modal-header-luxury">
+            <h3 class="modal-title" style="margin: 0; text-align: left;">CẬP NHẬT LỊCH HẸN #{{ selectedLichHen.id }}</h3>
+            <button type="button" class="close-btn-luxury" @click="showModal = false">&times;</button>
           </div>
           
-          <form @submit.prevent="submitUpdateStatus">
-            <div class="form-group">
+          <form @submit.prevent="submitUpdateStatus" style="margin-top: 15px;">
+            <div class="form-group-dark">
               <label>Tên khách hàng</label>
-              <input type="text" :value="selectedLichHen.tenKhachHang" disabled style="background: #f9f9f9;" />
+              <input type="text" :value="selectedLichHen.tenKhachHang" disabled class="input-dark-disabled" />
             </div>
             
-            <div class="form-group">
+            <div class="form-group-dark">
               <label>Ghi chú của khách hàng</label>
-              <textarea rows="3" disabled style="background: #f9f9f9;">{{ selectedLichHen.ghiChu || 'Không có ghi chú' }}</textarea>
+              <textarea rows="3" disabled class="input-dark-disabled">{{ selectedLichHen.ghiChu || 'Không có ghi chú' }}</textarea>
             </div>
 
-            <div class="form-group">
+            <div class="form-group-dark">
               <label>Cập nhật trạng thái</label>
-              <select v-model="selectedLichHen.trangThai" class="filter-input" style="width: 100%;">
+              <select v-model="selectedLichHen.trangThai" class="select-dark">
                 <option :value="0">Chờ xác nhận</option>
                 <option :value="1">Đã xác nhận</option>
                 <option :value="2">Hoàn thành</option>
@@ -206,43 +206,83 @@
               </select>
             </div>
 
-            <div class="modal-actions">
-              <button type="button" class="btn-cancel" @click="showModal = false">Hủy Bỏ</button>
-              <button type="submit" class="btn-submit">Lưu Thay Đổi</button>
+            <div class="modal-actions-group" style="margin-top: 20px; justify-content: flex-end;">
+              <button type="button" class="btn-modal-cancel" @click="showModal = false">HỦY BỎ</button>
+              <button type="submit" class="btn-modal-submit">LƯU THAY ĐỔI</button>
             </div>
           </form>
         </div>
       </div>
 
       <!-- MODAL 2: NHẬP LÝ DO HỦY LỊCH HẸN VÀ GỬI EMAIL KHÁCH HÀNG -->
-      <div v-if="showCancelModal" class="modal-overlay" @click.self="closeCancelModal">
-        <div class="modal-box">
-          <div class="modal-header">
-            <h3>HỦY LỊCH HẸN #{{ selectedCancelItem?.id }}</h3>
-            <button class="close-btn" @click="closeCancelModal">&times;</button>
+      <div v-if="showCancelModal" class="confirm-modal-overlay" @click.self="closeCancelModal">
+        <div class="confirm-modal-card" style="text-align: left; max-width: 480px;">
+          <div class="modal-header-luxury">
+            <h3 class="modal-title" style="margin: 0; text-align: left; color: #ff4444;">HỦY LỊCH HẸN #{{ selectedCancelItem?.id }}</h3>
+            <button type="button" class="close-btn-luxury" @click="closeCancelModal">&times;</button>
           </div>
           
-          <div class="modal-body">
-            <div class="form-group" style="padding: 0 0 15px 0;">
-              <label style="color: #666; font-weight: normal;">Khách hàng:</label>
-              <strong>{{ selectedCancelItem?.tenKhachHang }}</strong> ({{ selectedCancelItem?.email || 'Chưa đăng ký email' }})
+          <div class="modal-body-dark" style="margin-top: 15px;">
+            <div class="form-group-dark" style="margin-bottom: 15px;">
+              <label style="color: #aaa; font-weight: normal;">Khách hàng:</label>
+              <strong style="color: #ffffff; font-size: 15px;">{{ selectedCancelItem?.tenKhachHang }}</strong> 
+              <span style="color: #d1aa68; font-size: 13px;"> ({{ selectedCancelItem?.email || 'Chưa đăng ký email' }})</span>
             </div>
 
-            <div class="form-group" style="padding: 0;">
+            <div class="form-group-dark">
               <label>Lý do hủy lịch <span style="color: #ff4444;">*</span></label>
               <textarea 
                 v-model="cancelReason" 
                 rows="4" 
                 placeholder="Nhập chi tiết lý do hủy lịch hẹn (Sẽ tự động gửi Gmail cho khách)..." 
-                style="width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 10px; font-size: 14px; outline: none;"
+                class="textarea-dark"
               ></textarea>
             </div>
           </div>
 
-          <div class="modal-actions">
-            <button type="button" class="btn-cancel" @click="closeCancelModal" :disabled="isSubmittingCancel">Hủy Bỏ</button>
-            <button type="button" class="btn-submit" style="background-color: #ff4444;" @click="submitCancelAppointment" :disabled="isSubmittingCancel">
+          <div class="modal-actions-group" style="margin-top: 20px; justify-content: flex-end;">
+            <button type="button" class="btn-modal-cancel" @click="closeCancelModal" :disabled="isSubmittingCancel">HỦY BỎ</button>
+            <button type="button" class="btn-modal-submit" style="background-color: #ff4444; color: #ffffff;" @click="submitCancelAppointment" :disabled="isSubmittingCancel">
               {{ isSubmittingCancel ? 'ĐANG GỬI EMAIL...' : 'XÁC NHẬN HỦY & GỬI EMAIL' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL 3: XÁC NHẬN THAO TÁC Ở GIỮA MÀN HÌNH -->
+      <div v-if="showConfirmModal" class="confirm-modal-overlay" @click.self="showConfirmModal = false">
+        <div class="confirm-modal-card">
+          <div class="modal-icon-header">
+            <i class="fa-solid fa-circle-question"></i>
+          </div>
+          <h3 class="modal-title">XÁC NHẬN THAO TÁC</h3>
+          <p class="modal-desc">
+            {{ confirmModalText || 'Bạn có chắc chắn muốn cập nhật trạng thái lịch hẹn này?' }}
+          </p>
+          <div class="modal-actions-group">
+            <button type="button" class="btn-modal-cancel" @click="showConfirmModal = false">
+              HỦY BỎ
+            </button>
+            <button type="button" class="btn-modal-submit" @click="handleExecuteConfirm">
+              XÁC NHẬN
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL 4: THÔNG BÁO KẾT QUẢ Ở GIỮA MÀN HÌNH -->
+      <div v-if="showAlertModal" class="confirm-modal-overlay" @click.self="showAlertModal = false">
+        <div class="confirm-modal-card">
+          <div class="modal-icon-header">
+            <i :class="alertModalIcon" :style="{ color: alertModalTitleColor }"></i>
+          </div>
+          <h3 class="modal-title" :style="{ color: alertModalTitleColor }">{{ alertModalTitle }}</h3>
+          <p class="modal-desc">
+            {{ alertModalMessage }}
+          </p>
+          <div class="modal-actions-group">
+            <button type="button" class="btn-modal-submit" @click="showAlertModal = false">
+              ĐỒNG Ý
             </button>
           </div>
         </div>
@@ -358,25 +398,61 @@ const changePage = (page) => {
   }
 };
 
-// ================= LOGIC CẬP NHẬT NHANH (XÁC NHẬN / HOÀN THÀNH) =================
-const quickUpdateStatus = async (id, newTrangThai) => {
-  const confirmMessage = "Bạn có chắc chắn muốn cập nhật trạng thái lịch hẹn này?";
-  if (!confirm(confirmMessage)) return;
+// ================= LOGIC MODAL XÁC NHẬN & THÔNG BÁO Ở GIỮA MÀN HÌNH =================
+const showConfirmModal = ref(false);
+const confirmModalText = ref('');
+const pendingConfirmAction = ref(null);
 
-  try {
-    const response = await fetch(`http://localhost:8080/api/lich-hen/admin/cap-nhat-trang-thai/${id}?trangThai=${newTrangThai}`, {
-      method: 'PUT'
-    });
-    
-    if (response.ok) {
-      fetchLichHen();
-    } else {
-      alert('Cập nhật trạng thái thất bại từ Server.');
-    }
-  } catch (error) {
-    console.error("Lỗi cập nhật nhanh:", error);
-    alert('Không thể kết nối đến server.');
+const showAlertModal = ref(false);
+const alertModalTitle = ref('THÔNG BÁO');
+const alertModalMessage = ref('');
+const alertModalIcon = ref('fa-solid fa-circle-check');
+const alertModalTitleColor = ref('#4CAF50');
+
+const showCustomAlert = (message, title = 'THÔNG BÁO', isSuccess = true) => {
+  alertModalMessage.value = message;
+  alertModalTitle.value = title;
+  alertModalIcon.value = isSuccess ? 'fa-solid fa-circle-check' : 'fa-solid fa-triangle-exclamation';
+  alertModalTitleColor.value = isSuccess ? '#4CAF50' : '#ff4444';
+  showAlertModal.value = true;
+};
+
+const triggerConfirmModal = (text, actionFn) => {
+  confirmModalText.value = text;
+  pendingConfirmAction.value = actionFn;
+  showConfirmModal.value = true;
+};
+
+const handleExecuteConfirm = async () => {
+  showConfirmModal.value = false;
+  if (pendingConfirmAction.value) {
+    await pendingConfirmAction.value();
+    pendingConfirmAction.value = null;
   }
+};
+
+// ================= LOGIC CẬP NHẬT NHANH (XÁC NHẬN / HOÀN THÀNH) =================
+const quickUpdateStatus = (id, newTrangThai) => {
+  const statusTitle = newTrangThai === 1 ? 'XÁC NHẬN' : (newTrangThai === 2 ? 'HOÀN THÀNH' : 'CẬP NHẬT');
+  const confirmMsg = `Bạn có chắc chắn muốn chuyển trạng thái lịch hẹn #${id} sang "${statusTitle}"?`;
+
+  triggerConfirmModal(confirmMsg, async () => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/lich-hen/admin/cap-nhat-trang-thai/${id}?trangThai=${newTrangThai}`, {
+        method: 'PUT'
+      });
+      
+      if (response.ok) {
+        showCustomAlert(`Đã cập nhật trạng thái lịch hẹn #${id} sang "${statusTitle}" thành công!`, 'CẬP NHẬT THÀNH CÔNG', true);
+        fetchLichHen();
+      } else {
+        showCustomAlert('Cập nhật trạng thái thất bại từ Server.', 'LỖI MÁY CHỦ', false);
+      }
+    } catch (error) {
+      console.error("Lỗi cập nhật nhanh:", error);
+      showCustomAlert('Không thể kết nối đến server.', 'LỖI KẾT NỐI', false);
+    }
+  });
 };
 
 // ================= LOGIC MODAL HỦY LỊCH HẸN KÈM LÝ DO & GỬI EMAIL =================
@@ -399,7 +475,7 @@ const closeCancelModal = () => {
 
 const submitCancelAppointment = async () => {
   if (!cancelReason.value.trim()) {
-    alert('Vui lòng nhập lý do hủy lịch hẹn!');
+    showCustomAlert('Vui lòng nhập lý do hủy lịch hẹn!', 'CẢNH BÁO', false);
     return;
   }
 
@@ -416,16 +492,16 @@ const submitCancelAppointment = async () => {
     });
 
     if (response.ok) {
-      alert('Đã hủy lịch hẹn và gửi email thông báo thành công tới khách hàng!');
       closeCancelModal();
+      showCustomAlert('Đã hủy lịch hẹn và gửi Email thông báo thành công tới khách hàng!', 'HỦY LỊCH THÀNH CÔNG', true);
       fetchLichHen();
     } else {
       const errText = await response.text();
-      alert('Lỗi: ' + errText);
+      showCustomAlert('Lỗi: ' + errText, 'LỖI HỦY LỊCH', false);
     }
   } catch (error) {
     console.error("Lỗi khi gửi yêu cầu hủy lịch:", error);
-    alert('Không thể kết nối đến máy chủ!');
+    showCustomAlert('Không thể kết nối đến máy chủ!', 'LỖI KẾT NỐI', false);
   } finally {
     isSubmittingCancel.value = false;
   }
@@ -447,15 +523,15 @@ const submitUpdateStatus = async () => {
     });
     
     if (response.ok) {
-      alert('Cập nhật trạng thái thành công!');
       showModal.value = false;
+      showCustomAlert('Cập nhật trạng thái thành công!', 'THÀNH CÔNG', true);
       fetchLichHen();
     } else {
-      alert('Cập nhật thất bại từ Server.');
+      showCustomAlert('Cập nhật thất bại từ Server.', 'LỖI MÁY CHỦ', false);
     }
   } catch (error) {
     console.error("Lỗi cập nhật:", error);
-    alert('Không thể kết nối đến server.');
+    showCustomAlert('Không thể kết nối đến server.', 'LỖI KẾT NỐI', false);
   }
 };
 
@@ -828,5 +904,173 @@ const getStatusClass = (status) => {
 }
 .btn-submit:disabled, .btn-cancel:disabled {
   opacity: 0.6; cursor: not-allowed;
+}
+
+/* CSS Modal Popup Xác Nhận ở Giữa Màn Hình (Theme Velora) */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.confirm-modal-card {
+  background-color: #1a1918;
+  border: 1px solid #d1aa68;
+  border-radius: 8px;
+  padding: 30px 25px;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
+  animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPopIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-icon-header i {
+  font-size: 44px;
+  color: #d1aa68;
+  margin-bottom: 12px;
+}
+
+.modal-title {
+  color: #d1aa68;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.modal-desc {
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+.modal-actions-group {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.btn-modal-cancel {
+  background-color: #2e2b27;
+  color: #cccccc;
+  border: 1px solid #444444;
+  padding: 10px 25px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-modal-cancel:hover {
+  background-color: #444444;
+  color: #ffffff;
+}
+
+.btn-modal-submit {
+  background-color: #d1aa68;
+  color: #1a1918;
+  border: none;
+  padding: 10px 30px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(209, 170, 104, 0.3);
+}
+
+.btn-modal-submit:hover {
+  background-color: #e5be7a;
+  color: #000000;
+}
+
+/* CSS Giao diện Modal Hủy/Cập Nhật Lịch Hẹn Tone Đen Viền Vàng Kim Velora */
+.modal-header-luxury {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #333333;
+  padding-bottom: 12px;
+}
+
+.close-btn-luxury {
+  background: none;
+  border: none;
+  color: #aaaaaa;
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.close-btn-luxury:hover {
+  color: #d1aa68;
+}
+
+.form-group-dark {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 15px;
+}
+
+.form-group-dark label {
+  color: #cccccc;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.input-dark-disabled {
+  background-color: #11100f;
+  border: 1px solid #333333;
+  color: #888888;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.select-dark, .textarea-dark {
+  background-color: #11100f;
+  border: 1px solid #d1aa68;
+  color: #ffffff;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.select-dark option {
+  background-color: #1a1918;
+  color: #ffffff;
+}
+
+.textarea-dark:focus, .select-dark:focus {
+  border-color: #e5be7a;
+  box-shadow: 0 0 5px rgba(209, 170, 104, 0.4);
 }
 </style>

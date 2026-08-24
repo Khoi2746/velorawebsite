@@ -100,14 +100,6 @@
                 </button>
               </div>
 
-              <!-- Khu vực hiển thị thông báo phản hồi và Nút Xuất PDF -->
-              <div v-if="successMsg" class="msg-container success-box">
-                <p class="msg success"><i class="fas fa-check-circle"></i> {{ successMsg }}</p>
-                <button type="button" @click="downloadPDF" class="btn-pdf">
-                  <i class="fas fa-file-pdf"></i> TẢI XÁC NHẬN PDF
-                </button>
-              </div>
-
               <p v-if="errorMsg" class="msg error"><i class="fas fa-exclamation-circle"></i> {{ errorMsg }}</p>
             </form>
           </div>
@@ -117,74 +109,25 @@
 
     <Footer />
 
-    <!-- Ẩn khung thiết kế PDF (Dùng để render ra file PDF) -->
-    <div style="display: none;">
-      <div id="pdf-template" class="pdf-wrapper">
-        <div class="pdf-header">
-          <h1 class="pdf-brand">VELORA</h1>
-          <p class="pdf-subbrand">LUXURY & ADVISORY SERVICES</p>
+    <!-- Modal Thông Báo Đặt Lịch Thành Công Ở Giữa Màn Hình -->
+    <div v-if="showSuccessModal" class="booking-modal-overlay" @click.self="showSuccessModal = false">
+      <div class="booking-modal-card">
+        <div class="modal-icon">
+          <i class="fas fa-check-circle"></i>
         </div>
-
-        <div class="pdf-title">
-          <h2>XÁC NHẬN ĐĂNG KÝ TƯ VẤN</h2>
-          <div class="pdf-divider"><span class="pdf-diamond"></span></div>
-          <p class="pdf-meta">Mã lịch hẹn: <strong>#{{ lastCreatedId || 'VELORA-BOOKING' }}</strong></p>
+        <h3 class="modal-title">ĐĂNG KÝ THÀNH CÔNG</h3>
+        <p class="modal-desc">
+          Đăng ký lịch hẹn xem đồng hồ thành công!<br />
+          Mã lịch hẹn của bạn là: <strong>#{{ lastCreatedId || 'VELORA' }}</strong>
+        </p>
+        <div class="modal-subdesc">
+          <p><i class="fas fa-envelope"></i> Email xác nhận kèm <strong>tệp tin PDF xác nhận</strong> đã được gửi tới <strong>{{ bookedDetails.email }}</strong>.</p>
+          <p style="margin-top: 6px; color: #aaa; font-size: 12px;">Vui lòng kiểm tra hộp thư (bao gồm cả Hòm thư rác/Spam) của bạn.</p>
         </div>
-
-        <div class="pdf-section">
-          <div class="pdf-section-title">THÔNG TIN KHÁCH HÀNG</div>
-          <table class="pdf-table">
-            <tbody>
-              <tr>
-                <td class="lbl">Họ và tên:</td>
-                <td><strong>{{ bookedDetails.tenKhachHang }}</strong></td>
-              </tr>
-              <tr>
-                <td class="lbl">Số điện thoại:</td>
-                <td>{{ bookedDetails.soDienThoai }}</td>
-              </tr>
-              <tr>
-                <td class="lbl">Email:</td>
-                <td>{{ bookedDetails.email }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pdf-section">
-          <div class="pdf-section-title">THÔNG TIN LỊCH HẸN</div>
-          <table class="pdf-table">
-            <tbody>
-              <tr>
-                <td class="lbl">Ngày hẹn:</td>
-                <td><strong style="color: #c5a059;">{{ bookedDetails.ngayHen }}</strong></td>
-              </tr>
-              <tr>
-                <td class="lbl">Khung giờ:</td>
-                <td><strong>{{ bookedDetails.thoiGian }}</strong></td>
-              </tr>
-              <tr>
-                <td class="lbl">Sản phẩm quan tâm:</td>
-                <td>{{ getTenSanPham(bookedDetails.idSanPham) }}</td>
-              </tr>
-              <tr>
-                <td class="lbl">Ghi chú / Yêu cầu:</td>
-                <td>{{ bookedDetails.ghiChu || 'Không có' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pdf-notes">
-          <p><strong>LƯU Ý DÀNH CHO KHÁCH HÀNG:</strong></p>
-          <ul>
-            <li>Vui lòng đến đúng giờ hẹn để Velora chuẩn bị không gian tư vấn tốt nhất.</li>
-            <li>Nếu có thay đổi lịch trình, vui lòng liên hệ hotline Velora trước 2 giờ.</li>
-          </ul>
-        </div>
-
-        <div class="pdf-footer">
-          <p>Cảm ơn quý khách đã lựa chọn dịch vụ tư vấn cao cấp của Velora Services.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-confirm" @click="showSuccessModal = false">
+            ĐỒNG Ý
+          </button>
         </div>
       </div>
     </div>
@@ -192,7 +135,6 @@
 </template>
 
 <script setup>
-import html2pdf from 'html2pdf.js'
 import { ref, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router' // 1. Bổ sung useRoute
 
@@ -219,6 +161,7 @@ const isSubmitting = ref(false)
 const successMsg = ref('')
 const errorMsg = ref('')
 const minDate = ref('')
+const showSuccessModal = ref(false)
 
 onMounted(async () => {
   const today = new Date()
@@ -290,12 +233,14 @@ const bookAppointment = async () => {
 
         if (appointmentId !== null && appointmentId !== undefined) {
           lastCreatedId.value = appointmentId
-          successMsg.value = `Đặt lịch thành công! Mã lịch hẹn của bạn là: #${appointmentId}`
+          successMsg.value = `Đăng ký lịch hẹn thành công! Mã lịch hẹn của bạn là: #${appointmentId}`
         } else {
-          successMsg.value = `Đặt lịch thành công! Yêu cầu của bạn đang được hệ thống xử lý.`
+          successMsg.value = `Đăng ký lịch hẹn thành công! Yêu cầu của bạn đã được ghi nhận.`
         }
+        showSuccessModal.value = true
       } catch (parseError) {
-        successMsg.value = `Đặt lịch thành công!`
+        successMsg.value = `Đăng ký lịch hẹn thành công!`
+        showSuccessModal.value = true
       }
       resetForm()
     } else {
@@ -306,27 +251,6 @@ const bookAppointment = async () => {
     errorMsg.value = 'Không thể kết nối tới server Spring Boot. Vui lòng thử lại!'
   } finally {
     isSubmitting.value = false
-  }
-}
-
-const downloadPDF = async () => {
-  await nextTick()
-  const element = document.getElementById('pdf-template')
-  
-  try {
-    const html2pdf = (await import('html2pdf.js')).default
-
-    const opt = {
-      margin: [10, 10, 10, 10],
-      filename: `Velora_LichHen_${lastCreatedId.value || 'XacNhan'}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }
-
-    html2pdf().set(opt).from(element).save()
-  } catch (err) {
-    console.error('Lỗi khi tải file PDF:', err)
   }
 }
 
@@ -387,6 +311,13 @@ const resetForm = () => {
   align-items: flex-start;
 }
 
+.email-note {
+  font-size: 13px;
+  color: #1b4332;
+  margin: 0;
+  line-height: 1.5;
+}
+
 .btn-pdf {
   background-color: #24201D;
   color: #d1aa68;
@@ -405,6 +336,102 @@ const resetForm = () => {
 .btn-pdf:hover {
   background-color: #d1aa68;
   color: #ffffff;
+}
+
+/* CSS Modal Popup Thông báo Đặt Lịch Thành Công ở Giữa Màn Hình */
+.booking-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.booking-modal-card {
+  background-color: #1a1918;
+  border: 1px solid #d1aa68;
+  border-radius: 8px;
+  padding: 35px 30px;
+  max-width: 460px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
+  animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPopIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-icon i {
+  font-size: 48px;
+  color: #4CAF50;
+  margin-bottom: 15px;
+}
+
+.modal-title {
+  color: #d1aa68;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+}
+
+.modal-desc {
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.modal-subdesc {
+  color: #dddddd;
+  font-size: 13px;
+  line-height: 1.5;
+  background-color: #11100f;
+  padding: 12px 15px;
+  border-radius: 4px;
+  border: 1px dashed #d1aa68;
+  margin-bottom: 25px;
+  text-align: left;
+}
+
+.modal-subdesc i {
+  color: #d1aa68;
+  margin-right: 6px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-modal-confirm {
+  background-color: #d1aa68;
+  color: #1a1918;
+  border: none;
+  padding: 12px 45px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(209, 170, 104, 0.3);
+}
+
+.btn-modal-confirm:hover {
+  background-color: #e5be7a;
+  color: #000000;
+  transform: translateY(-1px);
 }
 
 /* CSS Template PDF xuất ra */

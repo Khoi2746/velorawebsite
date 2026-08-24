@@ -158,6 +158,36 @@
                     </form>
                 </div>
             </div>
+
+            <!-- MODAL POPUP XÁC NHẬN Ở GIỮA MÀN HÌNH -->
+            <div v-if="showConfirmModal" class="confirm-modal-overlay" @click.self="showConfirmModal = false">
+                <div class="confirm-modal-card">
+                    <div class="modal-icon-header">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </div>
+                    <h3 class="modal-title">XÁC NHẬN THAO TÁC</h3>
+                    <p class="modal-desc">{{ confirmModalText }}</p>
+                    <div class="modal-actions-group">
+                        <button type="button" class="btn-modal-cancel" @click="showConfirmModal = false">HỦY BỎ</button>
+                        <button type="button" class="btn-modal-submit" @click="handleExecuteConfirm">XÁC NHẬN</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL POPUP THÔNG BÁO Ở GIỮA MÀN HÌNH -->
+            <div v-if="showAlertModal" class="confirm-modal-overlay" @click.self="showAlertModal = false">
+                <div class="confirm-modal-card">
+                    <div class="modal-icon-header">
+                        <i :class="alertModalIcon" :style="{ color: alertModalTitleColor }"></i>
+                    </div>
+                    <h3 class="modal-title" :style="{ color: alertModalTitleColor }">{{ alertModalTitle }}</h3>
+                    <p class="modal-desc">{{ alertModalMessage }}</p>
+                    <div class="modal-actions-group">
+                        <button type="button" class="btn-modal-submit" @click="showAlertModal = false">ĐỒNG Ý</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </template>
@@ -300,6 +330,39 @@ const moModal = (item = null) => {
     hienThiModal.value = true;
 };
 
+// --- MODAL POPUP THÔNG BÁO Ở GIỮA MÀN HÌNH CHUẨN VELORA ---
+const showConfirmModal = ref(false);
+const confirmModalText = ref('');
+const pendingConfirmAction = ref(null);
+
+const showAlertModal = ref(false);
+const alertModalTitle = ref('THÔNG BÁO');
+const alertModalMessage = ref('');
+const alertModalIcon = ref('fa-solid fa-circle-check');
+const alertModalTitleColor = ref('#4CAF50');
+
+const showCustomAlert = (message, title = 'THÔNG BÁO', isSuccess = true) => {
+  alertModalMessage.value = message;
+  alertModalTitle.value = title;
+  alertModalIcon.value = isSuccess ? 'fa-solid fa-circle-check' : 'fa-solid fa-triangle-exclamation';
+  alertModalTitleColor.value = isSuccess ? '#4CAF50' : '#ff4444';
+  showAlertModal.value = true;
+};
+
+const triggerConfirmModal = (text, actionFn) => {
+  confirmModalText.value = text;
+  pendingConfirmAction.value = actionFn;
+  showConfirmModal.value = true;
+};
+
+const handleExecuteConfirm = async () => {
+  showConfirmModal.value = false;
+  if (pendingConfirmAction.value) {
+    await pendingConfirmAction.value();
+    pendingConfirmAction.value = null;
+  }
+};
+
 const luuMaGiamGia = async () => {
     try {
         const payload = { ...formData.value };
@@ -308,7 +371,7 @@ const luuMaGiamGia = async () => {
             payload.ngayHetHan = null;
         } else if (loaiHanSuDung.value === 'custom') {
             if (!payload.ngayHetHan) {
-                alert("Vui lòng chọn ngày hết hạn cụ thể!");
+                showCustomAlert("Vui lòng chọn ngày hết hạn cụ thể!", "CẢNH BÁO", false);
                 return;
             }
             if (payload.ngayHetHan.length === 10) {
@@ -326,35 +389,38 @@ const luuMaGiamGia = async () => {
 
         if (dangSua.value) {
             await axios.put(`/api/admin/ma-giam-gia/${payload.id}`, payload);
+            showCustomAlert("Đã cập nhật thông tin mã giảm giá thành công!", "THÀNH CÔNG", true);
         } else {
             await axios.post('/api/admin/ma-giam-gia', payload);
+            showCustomAlert("Đã tạo mới mã giảm giá thành công!", "THÀNH CÔNG", true);
         }
         hienThiModal.value = false;
         layDanhSach();
     } catch (error) {
         if (error.response && error.response.data) {
-            alert("Lỗi: " + (typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data)));
+            const err = typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data);
+            showCustomAlert("Lỗi: " + err, "LỖI TẠO MÃ", false);
         } else {
-            alert("Có lỗi xảy ra, vui lòng thử lại!");
+            showCustomAlert("Có lỗi xảy ra, vui lòng thử lại!", "LỖI MÁY CHỦ", false);
         }
     }
 };
 
-const xoaMa = async (id) => {
-    if (confirm("Bạn có chắc chắn muốn xóa mã giảm giá này?")) {
+const xoaMa = (id) => {
+    triggerConfirmModal("Bạn có chắc chắn muốn xóa mã giảm giá này?", async () => {
         try {
             await axios.delete(`/api/admin/ma-giam-gia/${id}`);
-            // Lùi về trang trước nếu xóa phần tử cuối cùng của trang hiện tại
             if (paginatedDanhSach.value.length === 1 && currentPage.value > 1) {
                 currentPage.value--;
             }
+            showCustomAlert("Đã xóa mã giảm giá thành công!", "THÀNH CÔNG", true);
             layDanhSach();
         } catch (error) {
             if (error.response && error.response.data) {
-                alert("Lỗi: " + error.response.data);
+                showCustomAlert("Lỗi: " + error.response.data, "LỖI XÓA MÃ", false);
             }
         }
-    }
+    });
 };
 
 onMounted(() => {
@@ -749,4 +815,101 @@ td strong {
     transition: 0.2s;
 }
 .btn-save:hover { background: #d1aa68; }
+
+/* CSS Custom Modal Popup ở giữa màn hình chuẩn Velora Theme */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.confirm-modal-card {
+  background-color: #1a1918;
+  border: 1px solid #d1aa68;
+  border-radius: 8px;
+  padding: 30px 25px;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
+  animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPopIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-icon-header i {
+  font-size: 44px;
+  color: #d1aa68;
+  margin-bottom: 12px;
+}
+
+.modal-title {
+  color: #d1aa68;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.modal-desc {
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+.modal-actions-group {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.btn-modal-cancel {
+  background-color: #2e2b27;
+  color: #cccccc;
+  border: 1px solid #444444;
+  padding: 10px 25px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-modal-cancel:hover {
+  background-color: #444444;
+  color: #ffffff;
+}
+
+.btn-modal-submit {
+  background-color: #d1aa68;
+  color: #1a1918;
+  border: none;
+  padding: 10px 30px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(209, 170, 104, 0.3);
+}
+
+.btn-modal-submit:hover {
+  background-color: #e5be7a;
+  color: #000000;
+}
 </style>

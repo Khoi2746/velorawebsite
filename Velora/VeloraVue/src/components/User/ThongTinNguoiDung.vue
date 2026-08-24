@@ -202,23 +202,51 @@ const selectedStatus = ref('ALL')
 const isLoadingAppointments = ref(false)
 
 // Khởi tạo thông tin người dùng khi Mounted
-onMounted(() => {
-  const userStr = localStorage.getItem('user')
-  if (!userStr) {
+onMounted(async () => {
+  let userStr = localStorage.getItem('user')
+  let user = null
+
+  if (userStr) {
+    try {
+      user = JSON.parse(userStr)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  if (!user || !user.email) {
+    try {
+      const res = await axios.get('http://localhost:8080/api/auth/me', { withCredentials: true })
+      if (res.data && res.data.email) {
+        user = res.data
+        localStorage.setItem('user', JSON.stringify(user))
+      }
+    } catch (err) {
+      console.error('Lỗi khi tải thông tin người dùng từ Backend:', err)
+    }
+  }
+
+  if (!user || (!user.email && !user.hoTen)) {
     router.push('/dang-nhap')
     return
   }
 
-  const user = JSON.parse(userStr)
   userInfo.value = {
     maNguoiDung: user.maNguoiDung || user.id,
-    hoTen: user.hoTen,
-    email: user.email,
+    hoTen: user.hoTen || user.name || '',
+    email: user.email || '',
     soDienThoai: user.soDienThoai || user.sdt || '',
     diaChi: user.diaChi || ''
   }
 
-  isAdmin.value = (user.vaiTro && user.vaiTro.toUpperCase() === 'ROLE_ADMIN') || (user.vaiTro === 'ADMIN')
+  let roleName = ''
+  if (user.vaiTros && user.vaiTros.length > 0) {
+    roleName = user.vaiTros[0].tenVaiTro ? user.vaiTros[0].tenVaiTro.toUpperCase() : ''
+  } else if (user.vaiTro) {
+    roleName = user.vaiTro.toUpperCase()
+  }
+
+  isAdmin.value = (roleName === 'ROLE_ADMIN' || roleName === 'ADMIN')
   loadHistoryOrders(userInfo.value.maNguoiDung)
 })
 

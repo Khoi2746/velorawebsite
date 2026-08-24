@@ -68,6 +68,19 @@ public class LichHenController {
                 tenSanPham
             );
 
+            // Gọi hàm gửi Email xác nhận ĐĂNG KÝ THÀNH CÔNG cho Khách hàng (kèm PDF đính kèm)
+            if (ketQua.getEmail() != null && !ketQua.getEmail().trim().isEmpty()) {
+                emailLichHen.sendBookingConfirmationToCustomer(
+                    ketQua.getEmail(),
+                    ketQua.getTenKhachHang(),
+                    ketQua.getNgayHen(),
+                    ketQua.getThoiGian(),
+                    ketQua.getSoDienThoai(),
+                    tenSanPham,
+                    ketQua.getId()
+                );
+            }
+
             // Đóng gói JSON phản hồi chứa thuộc tính id
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Đặt lịch thành công");
@@ -85,6 +98,15 @@ public class LichHenController {
     @GetMapping("/admin/danh-sach")
     public ResponseEntity<List<LichHen>> getAllLichHen() {
         return ResponseEntity.ok(lichHenRepository.findAll());
+    }
+
+    // API Admin đếm số lượng lịch hẹn mới (Chờ xác nhận - trangThai = 0)
+    @GetMapping("/admin/dem-cho-xac-nhan")
+    public ResponseEntity<?> countChoXacNhan() {
+        long count = lichHenRepository.countByTrangThai(0);
+        Map<String, Object> res = new HashMap<>();
+        res.put("count", count);
+        return ResponseEntity.ok(res);
     }
 
     // API Admin cập nhật trạng thái chung (Xác nhận/Hoàn thành)

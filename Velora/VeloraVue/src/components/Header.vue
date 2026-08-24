@@ -163,6 +163,7 @@ const checkAuth = async () => {
         if (res.ok) {
             const user = await res.json();
             if (user && user.email) {
+                localStorage.setItem('user', JSON.stringify(user));
                 isLoggedIn.value = true;
                 userName.value = user.hoTen;
                 currentUserId.value = user.maNguoiDung;
