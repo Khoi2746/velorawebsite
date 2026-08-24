@@ -36,7 +36,6 @@
                 {{ product.loaiSanPham.tenLoai }}
               </div>
 
-              <!-- NÚT BẤM CHUYỂN ẢNH TRÁI / PHẢI THỦ CÔNG -->
               <button class="slider-arrow prev" @click="prevImage" v-if="allImages.length > 1">
                 <i class="fas fa-chevron-left"></i>
               </button>
@@ -52,7 +51,6 @@
               </button>
             </div>
 
-            <!-- DANH SÁCH THUMBNAIL (ẢNH NHỎ CÁC GÓC ĐỘ) -->
             <div class="thumbnail-list" v-if="allImages.length > 1">
               <div 
                 v-for="(img, idx) in allImages" 
@@ -101,12 +99,11 @@
             </ul>
 
             <div class="action-buttons-group">
-              <div class="primary-actions-row">
+              <div class="primary-actions-row" v-if="product.giaBan && product.giaBan <= 400000000">
                 <div style="flex: 1;">
-                  <!-- Component Thanh Toán -->
                   <ThanhToan :maSanPham="product.maSanPham" :soLuong="quantity" />
                 </div>
-                <div style="flex: 1;" v-if="product.giaBan && product.giaBan <= 400000000">
+                <div style="flex: 1;">
                   <button class="btn-primary" @click="addToCart" style="width: 100%; margin: 0; height: 100%;">
                     THÊM VÀO GIỎ HÀNG
                   </button>
@@ -114,7 +111,11 @@
               </div>
 
               <div class="secondary-action-row">
-                <button @click="contactVVIP" class="btn-secondary">
+                <button 
+                  @click="contactVVIP" 
+                  :class="product.giaBan > 400000000 ? 'btn-primary' : 'btn-secondary'"
+                  :style="product.giaBan > 400000000 ? 'width: 100%; padding: 14px; font-size: 13px; font-weight: 600; letter-spacing: 1px;' : 'width: 100%;'"
+                >
                   LIÊN HỆ TƯ VẤN VVIP
                 </button>
               </div>
@@ -191,7 +192,7 @@
             </button>
           </div>
         </div>
-         <DanhGiaSanPham :maSanPham="product.maSanPham" />
+        <DanhGiaSanPham :maSanPham="product.maSanPham" />
       </div>
     </main>
 
@@ -356,7 +357,6 @@ onMounted(() => {
 <style scoped>
 @import "../CSS/User/ChiTietSanPham.css";
 
-/* Thu gọn khoảng cách và làm các phần khít, gọn gàng hơn */
 .detail-content {
   padding: 20px 0 40px 0;
 }
@@ -373,12 +373,11 @@ onMounted(() => {
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px; /* Thu hẹp khoảng cách giữa ảnh và thông tin */
+  gap: 30px; 
   align-items: start;
   margin-bottom: 40px;
 }
 
-/* Thông tin sản phẩm bên phải thu gọn khoảng cách dòng */
 .info-section {
   display: flex;
   flex-direction: column;
@@ -446,11 +445,10 @@ onMounted(() => {
   color: #222;
 }
 
-/* Nhóm nút bấm thao tác */
 .action-buttons-group {
   display: flex;
   flex-direction: column;
-  gap: 10px; /* Thu hẹp khoảng cách giữa các hàng nút */
+  gap: 10px; 
   margin-top: 5px;
 }
 
@@ -466,7 +464,6 @@ onMounted(() => {
 }
 
 .btn-secondary {
-  width: 100%;
   padding: 12px;
   background: transparent;
   border: 1px solid #1a1a1a;
@@ -484,7 +481,6 @@ onMounted(() => {
   color: #fff;
 }
 
-/* Accordion gọn gàng hơn */
 .accordion-group {
   margin-top: 20px;
   border-top: 1px solid #eaeaea;
@@ -512,7 +508,6 @@ onMounted(() => {
   line-height: 1.5;
 }
 
-/* Phần sản phẩm liên quan */
 .related-products {
   margin-top: 40px;
   padding-top: 20px;
