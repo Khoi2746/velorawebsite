@@ -63,7 +63,24 @@
                 </option>
               </select>
             </div>
+<!-- Modal thông báo xác nhận lịch hẹn thành công (VVIP Dark Mode) -->
+    <div v-if="scheduleSuccessMessage" class="velora-modal-overlay" @click.self="scheduleSuccessMessage = null">
+      <div class="velora-modal-card">
+        <!-- Icon trạng thái tròn -->
+        <div class="modal-icon-wrapper success">
+          <span class="icon-symbol">✓</span>
+        </div>
 
+        <!-- Tiêu đề -->
+        <h3 class="modal-title">XÁC NHẬN THÀNH CÔNG</h3>
+        
+        <!-- Nội dung thông báo -->
+        <p class="modal-desc">{{ scheduleSuccessMessage }}</p>
+
+        <!-- Nút đóng vuông vức -->
+        <button class="modal-btn-close" @click="scheduleSuccessMessage = null">ĐÓNG</button>
+      </div>
+    </div>
             <div class="form-group" v-else>
               <label>DÒNG SẢN PHẨM BẢO HÀNH</label>
               <select v-model="form.loaiSanPham" required>
@@ -99,9 +116,25 @@
               GỬI YÊU CẦU BẢO HÀNH
             </button>
 
-            <div v-if="message" :class="['alert-box', message.type]">
-              {{ message.text }}
-            </div>
+            <!-- MODAL POPUP THÔNG BÁO VVIP (DARK MODE) -->
+    <div v-if="message" class="velora-modal-overlay" @click.self="message = null">
+      <div class="velora-modal-card">
+        <!-- Icon trạng thái tròn -->
+        <div class="modal-icon-wrapper" :class="message.type">
+          <span v-if="message.type === 'success'" class="icon-symbol">✓</span>
+          <span v-else class="icon-symbol">✕</span>
+        </div>
+
+        <!-- Tiêu đề -->
+        <h3 class="modal-title">{{ message.type === 'success' ? 'THÀNH CÔNG' : 'LỖI HỆ THỐNG' }}</h3>
+        
+        <!-- Nội dung thông báo -->
+        <p class="modal-desc">{{ message.text }}</p>
+
+        <!-- Nút đóng vuông vức -->
+        <button class="modal-btn-close" @click="message = null">ĐÓNG</button>
+      </div>
+    </div>
           </form>
         </section>
 
@@ -133,7 +166,27 @@
                   'MANG_TRUC_TIEP' ? 'KHÁCH MANG TỚI SHOP' : 'GỬI QUA VẬN CHUYỂN' }}</span></div>
                 <div class="info-row"><span class="lbl">LỖI GHI NHẬN:</span> <span class="val">{{ item.moTaLoi }}</span>
                 </div>
+<!-- Modal xác nhận hủy yêu cầu bảo hành (VVIP Dark Mode) -->
+    <div v-if="showCancelConfirmModal" class="velora-modal-overlay" @click.self="showCancelConfirmModal = false">
+      <div class="velora-modal-card">
+        <!-- Icon cảnh báo hoặc dấu hỏi sang trọng -->
+        <div class="modal-icon-wrapper error">
+          <span class="icon-symbol">✕</span>
+        </div>
 
+        <!-- Tiêu đề -->
+        <h3 class="modal-title">XÁC NHẬN HỦY</h3>
+        
+        <!-- Nội dung thông báo -->
+        <p class="modal-desc">BẠN CÓ CHẮC CHẮN MUỐN HỦY YÊU CẦU BẢO HÀNH NÀY KHÔNG?</p>
+
+        <!-- Các nút bấm hành động vuông vức -->
+        <div style="display: flex; gap: 10px; width: 100%;">
+          <button class="modal-btn-close" style="background: transparent; border: 1px solid #cca15e; color: #cca15e;" @click="showCancelConfirmModal = false">GIỮ LẠI</button>
+          <button class="modal-btn-close" @click="executeCancelWarranty">XÁC NHẬN HỦY</button>
+        </div>
+      </div>
+    </div>
                 <div v-if="item.thoiGianHen" class="appointment-proposal-box">
                   <div class="appointment-title">LỊCH HẸN TRUNG TÂM ĐỀ XUẤT:</div>
                   <div class="appointment-time">{{ new Date(item.thoiGianHen).toLocaleString('vi-VN') }}</div>
@@ -259,12 +312,18 @@ const submitForm = async () => {
   }
 }
 
+// Thêm biến ref để bật/tắt modal thông báo xác nhận lịch hẹn
+const scheduleSuccessMessage = ref(null)
+
 const confirmAppointment = async (id) => {
   try {
     await axios.put(`${API}/${id}/confirm-schedule`)
-    alert("XÁC NHẬN LỊCH HẸN THÀNH CÔNG. HẸN GẶP QUÝ KHÁCH TẠI TRUNG TÂM.")
+    // Dùng modal VVIP chung
+    message.value = { type: "success", text: "XÁC NHẬN LỊCH HẸN THÀNH CÔNG. HẸN GẶP QUÝ KHÁCH TẠI TRUNG TÂM." }
     await fetchWarrantyRequests()
-  } catch (err) { }
+  } catch (err) { 
+    message.value = { type: "error", text: "ĐÃ XẢY RA LỖI KHI XÁC NHẬN LỊCH HẸN." }
+  }
 }
 
 const openRescheduleModal = (id) => {
@@ -272,26 +331,54 @@ const openRescheduleModal = (id) => {
 }
 
 const submitReschedule = async () => {
-  if (!selectedNewTime.value) { alert("VUI LÒNG CHỌN NGÀY VÀ GIỜ MỚI."); return }
+  if (!selectedNewTime.value) { 
+    message.value = { type: "error", text: "VUI LÒNG CHỌN NGÀY VÀ GIỜ MỚI." }
+    return 
+  }
   try {
     await axios.put(`${API}/${currentRescheduleId.value}/reschedule-request`, { thoiGianMongMuon: selectedNewTime.value })
-    alert("YÊU CẦU ĐỔI LỊCH ĐÃ ĐƯỢC GỬI.")
     showRescheduleModal.value = false
+    // Dùng modal VVIP chung
+    message.value = { type: "success", text: "YÊU CẦU ĐỔI LỊCH ĐÃ ĐƯỢC GỬI THÀNH CÔNG." }
     await fetchWarrantyRequests()
-  } catch (err) { }
+  } catch (err) { 
+    message.value = { type: "error", text: "ĐÃ XẢY RA LỖI KHI GỬI YÊU CẦU ĐỔI LỊCH." }
+  }
 }
 
-const cancelWarranty = async (id) => {
-  if (!confirm("BẠN CÓ CHẮC CHẮN MUỐN HỦY YÊU CẦU NÀY?")) return
-  try { await axios.put(`${API}/${id}/cancel`); await fetchWarrantyRequests(); } catch (err) { }
-}
+// const cancelWarranty = async (id) => {
+//   if (!confirm("BẠN CÓ CHẮC CHẮN MUỐN HỦY YÊU CẦU NÀY?")) return
+//   try { await axios.put(`${API}/${id}/cancel`); await fetchWarrantyRequests(); } catch (err) { }
+// }
 
 const formatDisplayTime = (val) => {
   if (!val) return ''
   try { const d = new Date(val); if (!isNaN(d.getTime())) return d.toLocaleString('vi-VN') } catch (e) { }
   return val
 }
+// Thêm biến quản lý trạng thái modal xác nhận hủy
+const showCancelConfirmModal = ref(false)
+const currentCancelId = ref(null)
 
+// Thay thế hàm cancelWarranty cũ bằng hàm mở modal này:
+const cancelWarranty = (id) => {
+  currentCancelId.value = id
+  showCancelConfirmModal.value = true
+}
+
+// Thêm hàm thực hiện hủy khi khách hàng bấm nút xác nhận trong modal:
+const executeCancelWarranty = async () => {
+  if (!currentCancelId.value) return
+  try {
+    await axios.put(`${API}/${currentCancelId.value}/cancel`)
+    showCancelConfirmModal.value = false
+    message.value = { type: "success", text: "ĐÃ HỦY YÊU CẦU BẢO HÀNH THÀNH CÔNG." }
+    await fetchWarrantyRequests()
+  } catch (err) {
+    showCancelConfirmModal.value = false
+    message.value = { type: "error", text: "ĐÃ XẢY RA LỖI KHI HỦY YÊU CẦU." }
+  }
+}
 // Xóa Emoji, trả về text in hoa sang trọng
 const getStatusText = (status) => {
   switch (status) {
@@ -978,5 +1065,113 @@ onMounted(async () => {
 .btn-cancel-modal:hover {
   background-color: #f5f5f5;
   color: #333;
+}
+/* ==========================================================================
+   VELORA DARK VVIP MODAL POPUP (ĐỒNG BỘ GIAO DIỆN)
+========================================================================== */
+.velora-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(10, 10, 10, 0.75); /* Phủ nền tối mờ */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  animation: fadeInModal 0.25s ease-out;
+}
+
+.velora-modal-card {
+  background-color: #1c1815; /* Nền tối sang trọng */
+  border: 1px solid #cca15e; /* Viền Gold đặc trưng */
+  border-radius: 0; /* Vuông vức theo chủ đề VVIP */
+  padding: 40px 35px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  animation: scaleUpModal 0.25s ease-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Khung chứa icon tròn */
+.modal-icon-wrapper {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.modal-icon-wrapper.success {
+  background-color: #2ebd59; /* Xanh lá tick thành công */
+  color: #ffffff;
+}
+
+.modal-icon-wrapper.error {
+  background-color: #e74c3c; /* Đỏ báo lỗi */
+  color: #ffffff;
+}
+
+.icon-symbol {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Tiêu đề modal */
+.modal-title {
+  color: #cca15e; /* Chữ màu gold */
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+/* Nội dung thông báo */
+.modal-desc {
+  color: #dcd6ce;
+  font-size: 0.9rem;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+/* Nút ĐÓNG vuông góc chuẩn phong cách */
+.modal-btn-close {
+  background-color: #cca15e;
+  color: #1c1815;
+  border: none;
+  border-radius: 0; /* Không bo góc */
+  width: 100%;
+  padding: 14px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  letter-spacing: 1.5px;
+  transition: all 0.2s ease;
+}
+
+.modal-btn-close:hover {
+  background-color: #b88f4e;
+  color: #ffffff;
+}
+
+/* Hiệu ứng chuyển động mượt mà */
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUpModal {
+  from { transform: translateY(15px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 </style>
