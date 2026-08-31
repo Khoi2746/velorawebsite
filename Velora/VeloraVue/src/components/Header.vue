@@ -95,6 +95,7 @@
                 <router-link to="/dong-ho-co-san" class="nav-item" active-class="active">ĐỒNG HỒ CÓ SẴN</router-link>
                 <router-link to="/bao-hanh" class="nav-item" active-class="active">BẢO HÀNH</router-link>
                 <router-link to="/lien-he-tu-van" class="nav-item" active-class="active">LIÊN HỆ</router-link>
+                <router-link to="/bai-viet" class="nav-item" active-class="active">BÀI VIẾT</router-link>
             </nav>
         </div>
 

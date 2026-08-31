@@ -3,8 +3,17 @@
     <Header />
 
     <main class="main-content">
-      <!-- 1. HERO SECTION (Banner chính tràn viền) -->
+      <!-- 1. HERO SECTION (Banner chính tràn viền có Slider) -->
       <section class="hero-section">
+        <!-- Vòng lặp các ảnh Background -->
+        <div 
+          v-for="(img, index) in heroImages" 
+          :key="index"
+          class="hero-slide"
+          :class="{ active: index === currentSlide }"
+          :style="{ backgroundImage: `url(${img})` }"
+        ></div>
+
         <div class="hero-overlay"></div>
         <div class="container hero-container">
           <div class="hero-text">
@@ -17,6 +26,17 @@
             <div class="hero-actions">
               <router-link to="/dong-ho-co-san" class="btn-primary btn-hero">KHÁM PHÁ NGAY</router-link>
               <router-link to="/thuong-hieu" class="btn-outline btn-hero">CÂU CHUYỆN THƯƠNG HIỆU</router-link>
+            </div>
+            
+            <!-- Chấm tròn/thanh ngang chuyển slide -->
+            <div class="slider-dots">
+              <span 
+                v-for="(img, index) in heroImages" 
+                :key="'dot-'+index"
+                class="dot"
+                :class="{ active: index === currentSlide }"
+                @click="goToSlide(index)"
+              ></span>
             </div>
           </div>
         </div>
@@ -140,28 +160,33 @@
           </div>
 
           <div class="text-center" style="margin-top: 40px;">
-            <router-link to="/dong-ho-co-san" class="btn-outline">XEM TOÀN BỘ SẢN PHẨM</router-link>
+            <router-link to="/dong-ho-co-san" class="btn-outline-dark">XEM TOÀN BỘ SẢN PHẨM</router-link>
           </div>
         </div>
       </section>
 
-      <!-- 5. CÂU CHUYỆN THƯƠNG HIỆU (NEW) -->
+      <!-- 5. CÂU CHUYỆN THƯƠNG HIỆU -->
       <section class="brand-story-section">
         <div class="container">
           <div class="story-grid">
             <div class="story-image">
-              <img src="https://images.unsplash.com/photo-1587836374828-cb4387df3eb7?q=80&w=1000" alt="Watchmaker" />
+              <!-- 🔥 ĐÃ THAY ẢNH CƠ KHÍ NÉT CĂNG VÀ CHUẨN XÁC, BỎ CÁI LOGO FALLBACK GÂY LỖI DỊ DẠNG -->
+              <img 
+                src="https://images.unsplash.com/photo-1548690312-e3b507d8c110?auto=format&fit=crop&w=1000&q=80" 
+                alt="Nghệ nhân đồng hồ chế tác" 
+              />
             </div>
             <div class="story-text">
-              <h2 class="section-title" style="text-align: left;">DI SẢN <br /><span class="gold-text">VƯỢT THỜI
-                  GIAN</span></h2>
+              <h2 class="section-title" style="text-align: left;">DI SẢN <br /><span class="gold-text">VƯỢT THỜI GIAN</span></h2>
               <div class="title-divider" style="margin: 20px 0;"><span class="diamond"></span></div>
               <p>Tại Velora Boutique, chúng tôi không chỉ bán những chiếc đồng hồ. Chúng tôi trao gửi những di sản cơ
                 học, những tuyệt tác nghệ thuật được chế tác thủ công bởi các nghệ nhân hàng đầu thế giới.</p>
               <p>Mỗi tiếng tíc tắc đều mang trong mình một câu chuyện về sự kiên nhẫn, đam mê và khao khát vươn tới sự
                 hoàn mỹ tuyệt đối.</p>
-              <router-link to="/thuong-hieu" class="btn-link" style="margin-top: 15px; display: inline-block;">Khám phá
-                câu chuyện của chúng tôi <i class="fas fa-arrow-right"></i></router-link>
+              <!-- 🔥 ĐÃ THAY CLASS SANG btn-link-dark ĐỂ CHỮ MÀU ĐEN HIỆN RÕ TRÊN NỀN TRẮNG -->
+              <router-link to="/thuong-hieu" class="btn-link-dark" style="margin-top: 15px; display: inline-block;">
+                Khám phá câu chuyện của chúng tôi <i class="fas fa-arrow-right"></i>
+              </router-link>
             </div>
           </div>
         </div>
@@ -174,16 +199,49 @@
 </template>
 
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
+
+// 🔥 LOGIC HIỆU ỨNG SLIDER CHO HERO BANNER
+const heroImages = [
+  'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=2000', // Movement cơ học
+  'https://images.unsplash.com/photo-1547996160-81dfa63595aa?q=80&w=2000', // Đồng hồ trên tay
+  'https://images.unsplash.com/photo-1509048191080-d2984bad6ae5?q=80&w=2000', // Cổ điển
+  'https://images.unsplash.com/photo-1622434641406-a158123450f9?q=80&w=2000'  // Luxury Lifestyle
+]
+
+const currentSlide = ref(0)
+let slideInterval = null
+
+// Tự động chuyển ảnh mỗi 5 giây
+const startSlider = () => {
+  slideInterval = setInterval(() => {
+    currentSlide.value = (currentSlide.value + 1) % heroImages.length
+  }, 5000)
+}
+
+// Cho phép người dùng tự bấm để chuyển cảnh
+const goToSlide = (index) => {
+  currentSlide.value = index
+  clearInterval(slideInterval)
+  startSlider() // Reset lại bộ đếm sau khi bấm
+}
+
+onMounted(() => {
+  startSlider()
+})
+
+onUnmounted(() => {
+  if (slideInterval) clearInterval(slideInterval)
+})
 </script>
 
 <style scoped>
-/* Anh import file CSS cũ của em vào để giữ base */
 @import "../CSS/User/TrangChu.css";
 
 /* ====================================================
-   🔥 BỔ SUNG GIAO DIỆN LUXURY MỚI CHUẨN ĐỒNG HỒ
+   🔥 CSS LUXURY BANNER & KEN BURNS EFFECT
 ==================================================== */
 :root {
   --gold: #c5a880;
@@ -204,28 +262,60 @@ import Footer from '../Footer.vue'
   min-height: 85vh;
   display: flex;
   align-items: center;
-  /* Dùng ảnh movement đồng hồ cực xịn */
-  background: url('https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=2000') center/cover no-repeat;
+  justify-content: center; /* Căn giữa container theo chiều ngang */
+  overflow: hidden; 
+  background-color: #000;
 }
 
+/* Các Slide Ảnh tĩnh chìm ở dưới */
+.hero-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out, transform 7s linear;
+  transform: scale(1);
+  z-index: 0;
+}
+
+.hero-slide.active {
+  opacity: 1;
+  transform: scale(1.08); 
+  z-index: 1;
+}
+
+/* Lớp phủ Đen Mờ */
 .hero-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(to right, rgba(26, 26, 26, 0.9) 0%, rgba(26, 26, 26, 0.5) 50%, rgba(26, 26, 26, 0.1) 100%);
-  z-index: 1;
+  background: linear-gradient(to top, rgba(26, 26, 26, 0.9) 0%, rgba(26, 26, 26, 0.4) 50%, rgba(26, 26, 26, 0.7) 100%);
+  z-index: 2; 
 }
 
+/* Content Nằm trên cùng */
 .hero-container {
   position: relative;
-  z-index: 2;
+  z-index: 3;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* Đảm bảo content nằm chính giữa trang */
 }
 
+/* 🔥 Tinh chỉnh căn giữa toàn bộ Text và Nút */
 .hero-text {
-  max-width: 650px;
+  max-width: 800px; 
   color: #fff;
+  text-align: center; 
+  display: flex;
+  flex-direction: column;
+  align-items: center; 
 }
 
 .hero-subtitle {
@@ -243,7 +333,6 @@ import Footer from '../Footer.vue'
   margin-bottom: 25px;
   text-transform: uppercase;
   font-family: 'Playfair Display', serif;
-  /* Font chữ có chân sang trọng */
 }
 
 .hero-text p {
@@ -251,11 +340,34 @@ import Footer from '../Footer.vue'
   line-height: 1.8;
   color: #e0e0e0;
   margin-bottom: 40px;
+  max-width: 700px; 
 }
 
 .hero-actions {
   display: flex;
+  justify-content: center; 
   gap: 20px;
+  margin-bottom: 40px;
+}
+
+/* 🔥 Căn giữa các thanh trượt */
+.slider-dots {
+  display: flex;
+  justify-content: center; 
+  gap: 12px;
+}
+
+.dot {
+  width: 40px;
+  height: 3px;
+  background-color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dot.active {
+  background-color: #c5a880;
+  width: 60px;
 }
 
 .btn-hero {
@@ -287,6 +399,26 @@ import Footer from '../Footer.vue'
 .btn-outline:hover {
   background-color: #c5a880;
   color: #1a1a1a;
+}
+
+/* 🔥 CLASS NÚT MỚI: Dành cho nút nền trắng ở dưới cùng */
+.btn-outline-dark {
+  display: inline-block;
+  padding: 15px 35px;
+  font-size: 13px;
+  letter-spacing: 2px;
+  font-weight: 600;
+  text-transform: uppercase;
+  text-decoration: none;
+  background-color: transparent;
+  color: #1a1a1a; 
+  border: 1px solid #c5a880; 
+  transition: all 0.3s ease;
+}
+
+.btn-outline-dark:hover {
+  background-color: #c5a880;
+  color: #ffffff; 
 }
 
 /* --- SECTION TIÊU ĐỀ --- */
@@ -417,6 +549,22 @@ import Footer from '../Footer.vue'
   color: #c5a880;
 }
 
+/* 🔥 LINK MÀU ĐEN MỚI CHO NỀN TRẮNG */
+.btn-link-dark {
+  color: #1a1a1a;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #c5a880;
+  padding-bottom: 5px;
+  transition: color 0.3s;
+}
+
+.btn-link-dark:hover {
+  color: #c5a880;
+}
+
 /* --- SHOWCASE SECTION --- */
 .highlight-section {
   padding: 90px 0;
@@ -483,8 +631,9 @@ import Footer from '../Footer.vue'
   display: block;
   width: 100%;
   padding: 12px;
+  background-color: #1a1a1a; 
   border: 1px solid #1a1a1a;
-  color: #1a1a1a;
+  color: #ffffff !important; 
   text-decoration: none;
   font-size: 12px;
   font-weight: 600;
@@ -493,8 +642,9 @@ import Footer from '../Footer.vue'
 }
 
 .btn-view-more:hover {
-  background: #1a1a1a;
-  color: #fff;
+  background-color: #c5a880; 
+  border-color: #c5a880;
+  color: #ffffff !important;
 }
 
 .card-tag {
