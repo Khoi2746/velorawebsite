@@ -62,26 +62,22 @@
             <tbody>
               <tr v-for="item in paginatedLichHen" :key="item.id">
                 <td class="col-id">#{{ item.id }}</td>
-                
+
                 <td>
                   <div class="customer-info">
                     <span class="customer-name">{{ item.tenKhachHang || 'N/A' }}</span>
                     <span class="customer-phone">{{ item.soDienThoai || 'N/A' }}</span>
                   </div>
                 </td>
-                
+
                 <td>
                   <div class="product-info">
-                    <img 
-                      v-if="item.sanPham?.hinhAnh || item.hinhAnhSanPham" 
-                      :src="item.sanPham?.hinhAnh || item.hinhAnhSanPham" 
-                      alt="Product" 
-                      class="product-thumb"
-                    />
+                    <img v-if="item.sanPham?.hinhAnh || item.hinhAnhSanPham"
+                      :src="item.sanPham?.hinhAnh || item.hinhAnhSanPham" alt="Product" class="product-thumb" />
                     <div v-else class="product-thumb-placeholder">
                       <i class="fa-solid fa-box"></i>
                     </div>
-                    
+
                     <div class="product-details">
                       <span class="product-name">
                         {{ item.sanPham?.tenSanPham || item.tenSanPham || 'Không xác định' }}
@@ -97,42 +93,30 @@
                   <strong class="date-text">{{ formatDate(item.ngayHen) }}</strong><br />
                   <small class="time-text">{{ item.thoiGian || '' }}</small>
                 </td>
-                
+
                 <td>
                   <span :class="['badge', getStatusClass(item.trangThai)]">
                     {{ getStatusText(item.trangThai) }}
                   </span>
                 </td>
-                
+
                 <td>
                   <div class="col-actions" style="justify-content: flex-end;">
                     <!-- Nút Xác Nhận -->
-                    <button 
-                      v-if="item.trangThai === 0" 
-                      class="btn-action confirm" 
-                      title="Xác nhận lịch hẹn" 
-                      @click="quickUpdateStatus(item.id, 1)"
-                    >
+                    <button v-if="item.trangThai === 0" class="btn-action confirm" title="Xác nhận lịch hẹn"
+                      @click="quickUpdateStatus(item.id, 1)">
                       <i class="fa-solid fa-check"></i>
                     </button>
 
                     <!-- Nút Hoàn Thành -->
-                    <button 
-                      v-if="item.trangThai === 1" 
-                      class="btn-action complete" 
-                      title="Đã hoàn thành" 
-                      @click="quickUpdateStatus(item.id, 2)"
-                    >
+                    <button v-if="item.trangThai === 1" class="btn-action complete" title="Đã hoàn thành"
+                      @click="quickUpdateStatus(item.id, 2)">
                       <i class="fa-solid fa-check-double"></i>
                     </button>
 
                     <!-- Nút Từ Chối/Hủy (ĐÃ ĐỔI SANG MỞ MODAL LÝ DO HỦY) -->
-                    <button 
-                      v-if="item.trangThai === 0 || item.trangThai === 1" 
-                      class="btn-action delete" 
-                      title="Hủy lịch hẹn & Gửi Email" 
-                      @click="openCancelModal(item)"
-                    >
+                    <button v-if="item.trangThai === 0 || item.trangThai === 1" class="btn-action delete"
+                      title="Hủy lịch hẹn & Gửi Email" @click="openCancelModal(item)">
                       <i class="fa-solid fa-xmark"></i>
                     </button>
 
@@ -154,19 +138,15 @@
           <!-- THANH PHÂN TRANG -->
           <div class="pagination-wrapper" v-if="totalPages > 1">
             <span class="pagination-info">
-              Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} - 
+              Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} -
               {{ Math.min(currentPage * itemsPerPage, filteredLichHen.length) }} / {{ filteredLichHen.length }}
             </span>
             <div class="pagination-buttons">
               <button class="btn-page" @click="changePage(currentPage - 1)" :disabled="currentPage === 1">
                 <i class="fa-solid fa-chevron-left"></i>
               </button>
-              <button 
-                v-for="page in totalPages" 
-                :key="page" 
-                :class="['btn-page', { active: currentPage === page }]"
-                @click="changePage(page)"
-              >
+              <button v-for="page in totalPages" :key="page" :class="['btn-page', { active: currentPage === page }]"
+                @click="changePage(page)">
                 {{ page }}
               </button>
               <button class="btn-page" @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages">
@@ -181,19 +161,21 @@
       <div v-if="showModal" class="confirm-modal-overlay" @click.self="showModal = false">
         <div class="confirm-modal-card" style="text-align: left; max-width: 480px;">
           <div class="modal-header-luxury">
-            <h3 class="modal-title" style="margin: 0; text-align: left;">CẬP NHẬT LỊCH HẸN #{{ selectedLichHen.id }}</h3>
+            <h3 class="modal-title" style="margin: 0; text-align: left;">CẬP NHẬT LỊCH HẸN #{{ selectedLichHen.id }}
+            </h3>
             <button type="button" class="close-btn-luxury" @click="showModal = false">&times;</button>
           </div>
-          
+
           <form @submit.prevent="submitUpdateStatus" style="margin-top: 15px;">
             <div class="form-group-dark">
               <label>Tên khách hàng</label>
               <input type="text" :value="selectedLichHen.tenKhachHang" disabled class="input-dark-disabled" />
             </div>
-            
+
             <div class="form-group-dark">
               <label>Ghi chú của khách hàng</label>
-              <textarea rows="3" disabled class="input-dark-disabled">{{ selectedLichHen.ghiChu || 'Không có ghi chú' }}</textarea>
+              <textarea rows="3" disabled
+                class="input-dark-disabled">{{ selectedLichHen.ghiChu || 'Không có ghi chú' }}</textarea>
             </div>
 
             <div class="form-group-dark">
@@ -218,31 +200,32 @@
       <div v-if="showCancelModal" class="confirm-modal-overlay" @click.self="closeCancelModal">
         <div class="confirm-modal-card" style="text-align: left; max-width: 480px;">
           <div class="modal-header-luxury">
-            <h3 class="modal-title" style="margin: 0; text-align: left; color: #ff4444;">HỦY LỊCH HẸN #{{ selectedCancelItem?.id }}</h3>
+            <h3 class="modal-title" style="margin: 0; text-align: left; color: #ff4444;">HỦY LỊCH HẸN #{{
+              selectedCancelItem?.id }}</h3>
             <button type="button" class="close-btn-luxury" @click="closeCancelModal">&times;</button>
           </div>
-          
+
           <div class="modal-body-dark" style="margin-top: 15px;">
             <div class="form-group-dark" style="margin-bottom: 15px;">
               <label style="color: #aaa; font-weight: normal;">Khách hàng:</label>
-              <strong style="color: #ffffff; font-size: 15px;">{{ selectedCancelItem?.tenKhachHang }}</strong> 
-              <span style="color: #d1aa68; font-size: 13px;"> ({{ selectedCancelItem?.email || 'Chưa đăng ký email' }})</span>
+              <strong style="color: #ffffff; font-size: 15px;">{{ selectedCancelItem?.tenKhachHang }}</strong>
+              <span style="color: #d1aa68; font-size: 13px;"> ({{ selectedCancelItem?.email || 'Chưa đăng ký email'
+                }})</span>
             </div>
 
             <div class="form-group-dark">
               <label>Lý do hủy lịch <span style="color: #ff4444;">*</span></label>
-              <textarea 
-                v-model="cancelReason" 
-                rows="4" 
-                placeholder="Nhập chi tiết lý do hủy lịch hẹn (Sẽ tự động gửi Gmail cho khách)..." 
-                class="textarea-dark"
-              ></textarea>
+              <textarea v-model="cancelReason" rows="4"
+                placeholder="Nhập chi tiết lý do hủy lịch hẹn (Sẽ tự động gửi Gmail cho khách)..."
+                class="textarea-dark"></textarea>
             </div>
           </div>
 
           <div class="modal-actions-group" style="margin-top: 20px; justify-content: flex-end;">
-            <button type="button" class="btn-modal-cancel" @click="closeCancelModal" :disabled="isSubmittingCancel">HỦY BỎ</button>
-            <button type="button" class="btn-modal-submit" style="background-color: #ff4444; color: #ffffff;" @click="submitCancelAppointment" :disabled="isSubmittingCancel">
+            <button type="button" class="btn-modal-cancel" @click="closeCancelModal" :disabled="isSubmittingCancel">HỦY
+              BỎ</button>
+            <button type="button" class="btn-modal-submit" style="background-color: #ff4444; color: #ffffff;"
+              @click="submitCancelAppointment" :disabled="isSubmittingCancel">
               {{ isSubmittingCancel ? 'ĐANG GỬI EMAIL...' : 'XÁC NHẬN HỦY & GỬI EMAIL' }}
             </button>
           </div>
@@ -294,7 +277,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import AdminSidebar from './AdminSidebar.vue'; 
+import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
 // ================= LOGIC GIAO DIỆN CHUNG =================
@@ -346,7 +329,7 @@ const resetFilters = () => {
 
 const filteredLichHen = computed(() => {
   if (!Array.isArray(danhSachLichHen.value)) return [];
-  
+
   return danhSachLichHen.value.filter(item => {
     const lowerQuery = searchQuery.value.toLowerCase();
     const ten = item.tenKhachHang ? item.tenKhachHang.toLowerCase() : '';
@@ -441,7 +424,7 @@ const quickUpdateStatus = (id, newTrangThai) => {
       const response = await fetch(`http://localhost:8080/api/lich-hen/admin/cap-nhat-trang-thai/${id}?trangThai=${newTrangThai}`, {
         method: 'PUT'
       });
-      
+
       if (response.ok) {
         showCustomAlert(`Đã cập nhật trạng thái lịch hẹn #${id} sang "${statusTitle}" thành công!`, 'CẬP NHẬT THÀNH CÔNG', true);
         fetchLichHen();
@@ -521,7 +504,7 @@ const submitUpdateStatus = async () => {
     const response = await fetch(`http://localhost:8080/api/lich-hen/admin/cap-nhat-trang-thai/${selectedLichHen.value.id}?trangThai=${selectedLichHen.value.trangThai}`, {
       method: 'PUT'
     });
-    
+
     if (response.ok) {
       showModal.value = false;
       showCustomAlert('Cập nhật trạng thái thành công!', 'THÀNH CÔNG', true);
@@ -552,7 +535,7 @@ const formatDate = (dateData) => {
 };
 
 const getStatusText = (status) => {
-  switch(status) {
+  switch (status) {
     case 0: return 'Chờ xác nhận';
     case 1: return 'Đã xác nhận';
     case 2: return 'Hoàn thành';
@@ -562,7 +545,7 @@ const getStatusText = (status) => {
 };
 
 const getStatusClass = (status) => {
-  switch(status) {
+  switch (status) {
     case 0: return 'badge-warning';
     case 1: return 'badge-info';
     case 2: return 'badge-success';
@@ -591,11 +574,11 @@ const getStatusClass = (status) => {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.content-wrapper { 
-  flex-grow: 1; 
-  display: flex; 
-  flex-direction: column; 
-  overflow-y: auto; 
+.content-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
 .content {
@@ -633,7 +616,7 @@ const getStatusClass = (status) => {
   border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
   margin-bottom: 20px;
 }
 
@@ -686,7 +669,7 @@ const getStatusClass = (status) => {
 
 /* --- Table --- */
 .table-panel {
-  padding: 0; 
+  padding: 0;
   overflow: hidden;
 }
 
@@ -724,10 +707,12 @@ const getStatusClass = (status) => {
   display: flex;
   flex-direction: column;
 }
+
 .customer-name {
   font-weight: 600;
   color: var(--wood-dark);
 }
+
 .customer-phone {
   font-size: 12px;
   color: var(--text-muted);
@@ -739,40 +724,50 @@ const getStatusClass = (status) => {
   align-items: center;
   gap: 12px;
 }
+
 .product-thumb {
-  width: 45px; 
-  height: 45px; 
-  object-fit: cover; 
-  border-radius: 6px; 
+  width: 45px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 6px;
   border: 1px solid var(--border-light);
 }
+
 .product-thumb-placeholder {
-  width: 45px; 
-  height: 45px; 
-  background: #f3f4f6; 
-  border-radius: 6px; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
+  width: 45px;
+  height: 45px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #9ca3af;
 }
+
 .product-details {
   display: flex;
   flex-direction: column;
 }
+
 .product-name {
   font-weight: 600;
   color: var(--text-main);
   font-size: 13px;
 }
+
 .product-price {
   color: var(--gold-matte);
   font-weight: 500;
 }
 
 /* Cột Thời gian */
-.date-text { color: var(--wood-dark); }
-.time-text { color: var(--text-muted); }
+.date-text {
+  color: var(--wood-dark);
+}
+
+.time-text {
+  color: var(--text-muted);
+}
 
 /* --- Badges Trạng thái --- */
 .badge {
@@ -782,10 +777,30 @@ const getStatusClass = (status) => {
   font-weight: 600;
   display: inline-block;
 }
-.badge-warning { background-color: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
-.badge-info { background-color: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
-.badge-success { background-color: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
-.badge-danger { background-color: #fff1f0; color: #f5222d; border: 1px solid #ffa39e; }
+
+.badge-warning {
+  background-color: #fffbe6;
+  color: #faad14;
+  border: 1px solid #ffe58f;
+}
+
+.badge-info {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border: 1px solid #91d5ff;
+}
+
+.badge-success {
+  background-color: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.badge-danger {
+  background-color: #fff1f0;
+  color: #f5222d;
+  border: 1px solid #ffa39e;
+}
 
 /* --- Action Buttons --- */
 .col-actions {
@@ -804,20 +819,54 @@ const getStatusClass = (status) => {
   cursor: pointer;
   transition: all 0.2s;
 }
-.btn-action.reset-btn { background-color: #f0f0f0; color: #555; }
-.btn-action.reset-btn:hover { background-color: #e4e4e4; color: #333; }
 
-.btn-action.edit { background-color: #f0f0f0; color: #555; }
-.btn-action.edit:hover { background-color: #e4e4e4; color: #333; }
+.btn-action.reset-btn {
+  background-color: #f0f0f0;
+  color: #555;
+}
 
-.btn-action.delete { background-color: #ffeef0; color: #e74c3c; }
-.btn-action.delete:hover { background-color: #ffdce0; color: #c0392b; }
+.btn-action.reset-btn:hover {
+  background-color: #e4e4e4;
+  color: #333;
+}
 
-.btn-action.confirm { background-color: #f6ffed; color: #52c41a; }
-.btn-action.confirm:hover { background-color: #d9f7be; }
+.btn-action.edit {
+  background-color: #f0f0f0;
+  color: #555;
+}
 
-.btn-action.complete { background-color: #e6f7ff; color: #1890ff; }
-.btn-action.complete:hover { background-color: #bae0ff; }
+.btn-action.edit:hover {
+  background-color: #e4e4e4;
+  color: #333;
+}
+
+.btn-action.delete {
+  background-color: #ffeef0;
+  color: #e74c3c;
+}
+
+.btn-action.delete:hover {
+  background-color: #ffdce0;
+  color: #c0392b;
+}
+
+.btn-action.confirm {
+  background-color: #f6ffed;
+  color: #52c41a;
+}
+
+.btn-action.confirm:hover {
+  background-color: #d9f7be;
+}
+
+.btn-action.complete {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.btn-action.complete:hover {
+  background-color: #bae0ff;
+}
 
 .empty-state {
   text-align: center;
@@ -873,37 +922,107 @@ const getStatusClass = (status) => {
 
 /* --- Modal Style --- */
 .modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 1000;
 }
+
 .modal-box {
-  background: #fff; border-radius: 8px; width: 450px; max-width: 90%;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;
+  background: #fff;
+  border-radius: 8px;
+  width: 450px;
+  max-width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
+
 .modal-header {
-  padding: 20px; border-bottom: 1px solid var(--border-light);
-  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-.modal-header h3 { margin: 0; font-size: 18px; color: var(--wood-dark); }
-.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); }
-.modal-body { padding: 20px; }
-.form-group { padding: 0 0 15px 0; display: flex; flex-direction: column; gap: 8px; }
-.form-group label { font-size: 13px; font-weight: 600; color: var(--text-main); }
-.form-group input, .form-group textarea {
-  border: 1px solid var(--border-light); border-radius: 6px; padding: 10px; font-family: inherit; font-size: 14px;
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--wood-dark);
 }
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-group {
+  padding: 0 0 15px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.form-group input,
+.form-group textarea {
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
 .modal-actions {
-  padding: 15px 20px; display: flex; justify-content: flex-end; gap: 10px; background: #fafafa; border-top: 1px solid var(--border-light);
+  padding: 15px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #fafafa;
+  border-top: 1px solid var(--border-light);
 }
+
 .btn-cancel {
-  background: #f0f0f0; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; color: var(--text-main);
+  background: #f0f0f0;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-main);
 }
+
 .btn-submit {
-  background: var(--gold-matte); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; color: #fff; font-weight: bold;
+  background: var(--gold-matte);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #fff;
+  font-weight: bold;
 }
-.btn-submit:disabled, .btn-cancel:disabled {
-  opacity: 0.6; cursor: not-allowed;
+
+.btn-submit:disabled,
+.btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* CSS Modal Popup Xác Nhận ở Giữa Màn Hình (Theme Velora) */
@@ -934,8 +1053,15 @@ const getStatusClass = (status) => {
 }
 
 @keyframes modalPopIn {
-  from { opacity: 0; transform: scale(0.85); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .modal-icon-header i {
@@ -1051,7 +1177,8 @@ const getStatusClass = (status) => {
   box-sizing: border-box;
 }
 
-.select-dark, .textarea-dark {
+.select-dark,
+.textarea-dark {
   background-color: #11100f;
   border: 1px solid #d1aa68;
   color: #ffffff;
@@ -1069,7 +1196,8 @@ const getStatusClass = (status) => {
   color: #ffffff;
 }
 
-.textarea-dark:focus, .select-dark:focus {
+.textarea-dark:focus,
+.select-dark:focus {
   border-color: #e5be7a;
   box-shadow: 0 0 5px rgba(209, 170, 104, 0.4);
 }

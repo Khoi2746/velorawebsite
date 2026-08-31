@@ -49,7 +49,6 @@
             </div>
           </div>
 
-          <!-- 🔥 Ô SỐ 4 ĐÃ ĐƯỢC ĐỔI THÀNH TỔNG SẢN PHẨM -->
           <div class="metric-card">
             <div class="metric-icon" style="background-color: #f3e8ff; color: #9333ea;">
               <i class="fa-solid fa-box-open"></i>
@@ -113,16 +112,36 @@
             </div>
           </div>
 
-          <!-- Danh sách thao tác nhanh (Quick Links) -->
+          <!-- Danh sách thao tác nhanh (Quick Links) CÓ PHÂN QUYỀN -->
           <div class="box quick-actions-box">
             <div class="box-header">
               <h3>Truy Cập Nhanh</h3>
             </div>
             <div class="quick-links">
-              <router-link v-for="card in filteredCards" :key="card.title" :to="card.link" class="quick-link-item">
-                <i :class="card.icon"></i>
-                <span>{{ card.title }}</span>
-              </router-link>
+              <template v-for="card in allCards" :key="card.title">
+                
+                <!-- Hiển thị bình thường nếu CÓ QUYỀN -->
+                <router-link 
+                  v-if="hasAccess(card.allowedRoles)" 
+                  :to="card.link" 
+                  class="quick-link-item"
+                >
+                  <i :class="card.icon"></i>
+                  <span>{{ card.title }}</span>
+                </router-link>
+
+                <!-- ẨN MỜ và HIỆN Ổ KHÓA nếu KHÔNG CÓ QUYỀN -->
+                <div 
+                  v-else 
+                  class="quick-link-item disabled-link"
+                  title="Bạn không có quyền truy cập chức năng này"
+                >
+                  <i :class="card.icon"></i>
+                  <span>{{ card.title }}</span>
+                  <i class="fa-solid fa-lock lock-icon"></i>
+                </div>
+
+              </template>
             </div>
           </div>
         </section>
@@ -153,7 +172,6 @@ const today = new Date();
 const currentMonth = ref(String(today.getMonth() + 1).padStart(2, '0'));
 const currentYear = ref(today.getFullYear());
 
-// 🔥 ĐỔI BIẾN sanPhamSapHet THÀNH tongSanPham
 const stats = ref({
   tongDoanhThu: 0,
   tongDonHang: 0,
@@ -222,6 +240,7 @@ const formatPrice = (value) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
+// 🔥 Lấy ROLE của người dùng đang đăng nhập
 const userRole = computed(() => {
   try {
     const userStr = localStorage.getItem('user');
@@ -235,20 +254,22 @@ const userRole = computed(() => {
   return '';
 });
 
+// 🔥 Mảng cấu hình Phân Quyền các Card (Quick Links)
 const allCards = [
-  { title: 'Sản phẩm', icon: 'fa-solid fa-box-open', link: '/admin/products' },
-  { title: 'Lịch hẹn', icon: 'fa-solid fa-calendar-check', link: '/admin/lich-hen' },
-  { title: 'Người dùng', icon: 'fa-solid fa-users', link: '/admin/users', requiresAdmin: true },
-  { title: 'Nhập kho', icon: 'fa-solid fa-clipboard-list', link: '/admin/receipts' },
-  { title: 'Hoàn tiền', icon: 'fa-solid fa-rotate-left', link: '/admin/quan-ly-hoan-tien' },
-  { title: 'Mã giảm giá', icon: 'fa-solid fa-tags', link: '/admin/ma-giam-gia' }
+  { title: 'Sản phẩm', icon: 'fa-solid fa-box-open', link: '/admin/products', allowedRoles: ['ROLE_ADMIN', 'ROLE_INVENTORY'] },
+  { title: 'Lịch hẹn', icon: 'fa-solid fa-calendar-check', link: '/admin/lich-hen', allowedRoles: ['ROLE_ADMIN', 'ROLE_SALE', 'ROLE_CHUYEN_VIEN_TU_VAN'] },
+  { title: 'Người dùng', icon: 'fa-solid fa-users', link: '/admin/users', allowedRoles: ['ROLE_ADMIN'] },
+  { title: 'Nhập kho', icon: 'fa-solid fa-clipboard-list', link: '/admin/receipts', allowedRoles: ['ROLE_ADMIN', 'ROLE_INVENTORY'] },
+  { title: 'Hoàn tiền', icon: 'fa-solid fa-rotate-left', link: '/admin/quan-ly-hoan-tien', allowedRoles: ['ROLE_ADMIN', 'ROLE_SALE'] },
+  { title: 'Mã giảm giá', icon: 'fa-solid fa-tags', link: '/admin/ma-giam-gia', allowedRoles: ['ROLE_ADMIN', 'ROLE_SALE'] }
 ];
 
-const filteredCards = computed(() => {
-  if (!userRole.value) return allCards; 
-  if (userRole.value === 'ROLE_ADMIN' || userRole.value === 1) return allCards;
-  return allCards.filter(card => !card.requiresAdmin);
-});
+// 🔥 Hàm kiểm tra quyền
+const hasAccess = (allowedRoles) => {
+  if (!userRole.value) return false;
+  if (userRole.value === 'ROLE_ADMIN') return true; // Admin mặc định full quyền
+  return allowedRoles.includes(userRole.value);
+};
 
 const getStatusText = (status) => {
   const map = {
@@ -320,7 +341,7 @@ const fetchDashboardData = async () => {
       }).length;
     }
 
-    // 4. ĐẾM TỔNG SẢN PHẨM HIỆN CÓ TRONG KHO (Thay vì lọc < 5 thì lấy hết độ dài mảng)
+    // 4. ĐẾM TỔNG SẢN PHẨM HIỆN CÓ TRONG KHO 
     const resProducts = await axios.get(`${API_BASE}/api/san-pham?t=${timestamp}`, axiosConfig);
     if (resProducts.data) {
       stats.value.tongSanPham = resProducts.data.length;
@@ -330,7 +351,7 @@ const fetchDashboardData = async () => {
     animateValue('tongDoanhThu', stats.value.tongDoanhThu);
     animateValue('tongDonHang', stats.value.tongDonHang);
     animateValue('tongKhachHang', stats.value.tongKhachHang);
-    animateValue('tongSanPham', stats.value.tongSanPham); // Đã đổi biến
+    animateValue('tongSanPham', stats.value.tongSanPham); 
 
   } catch (error) {
     console.error('Lỗi tải dữ liệu Dashboard:', error);
@@ -557,15 +578,39 @@ onMounted(() => {
   transition: all 0.2s ease;
   background-color: #faf9f6;
   text-align: center;
+  position: relative; /* Thêm relative để chứa icon khóa */
 }
 .quick-link-item i {
   font-size: 24px;
   color: var(--gold-matte);
   margin-bottom: 10px;
 }
-.quick-link-item:hover {
+.quick-link-item:not(.disabled-link):hover {
   background-color: var(--wood-dark);
   color: #fff;
   border-color: var(--wood-dark);
+}
+
+/* 🔥 CSS CHO NÚT BỊ VÔ HIỆU HÓA (LÀM MỜ) */
+.disabled-link {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none; /* Không cho click */
+  background-color: #f0f0f0;
+  border-style: dashed;
+}
+
+.disabled-link i:not(.lock-icon) {
+  color: #999; /* Đổi màu icon chính thành xám */
+}
+
+/* Biểu tượng ổ khóa góc trên phải */
+.lock-icon {
+  position: absolute !important;
+  top: 8px !important;
+  right: 10px !important;
+  font-size: 14px !important;
+  color: #aaa !important;
+  margin-bottom: 0 !important;
 }
 </style>

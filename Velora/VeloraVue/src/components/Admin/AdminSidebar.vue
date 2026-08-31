@@ -26,23 +26,33 @@
 
       <!-- NHÓM 1: KHO & SẢN PHẨM -->
       <li class="menu-group" :class="{ 'menu-open': openGroups.inventory }">
-        <div class="menu-group-header" @click="toggleGroup('inventory')">
+        <div 
+          class="menu-group-header" 
+          :class="{ 'locked': !hasAccess(['ROLE_ADMIN', 'ROLE_INVENTORY']) }" 
+          @click="hasAccess(['ROLE_ADMIN', 'ROLE_INVENTORY']) && toggleGroup('inventory')"
+        >
           <div class="group-title">
             <i class="fa-solid fa-boxes-stacked"></i>
             <span>Kho & Sản Phẩm</span>
           </div>
-          <i class="fa-solid fa-chevron-down arrow-icon"></i>
+          <i v-if="!hasAccess(['ROLE_ADMIN', 'ROLE_INVENTORY'])" class="fa-solid fa-lock lock-right"></i>
+          <i v-else class="fa-solid fa-chevron-down arrow-icon"></i>
         </div>
-        <div class="sub-menu-collapse">
+        <div class="sub-menu-collapse" v-if="hasAccess(['ROLE_ADMIN', 'ROLE_INVENTORY'])">
           <ul class="sub-menu">
             <template
-              v-for="item in getGroupItems(['Quản Lý Sản Phẩm', 'Quản Lý Loại Sản Phẩm', 'Quản Lý Thương Hiệu', 'Quản Lý Kho', 'Phiếu Nhập Kho'])"
+              v-for="item in getGroupItems(['Quản Lý Sản Phẩm', 'Quản Lý Loại Sản Phẩm', 'Quản Lý Kho', 'Quản Lý Thương Hiệu', 'Phiếu Nhập Kho'])"
               :key="item.name">
               <li>
-                <router-link :to="item.link" active-class="active">
+                <router-link v-if="hasAccess(item.roles)" :to="item.link" active-class="active">
                   <i :class="item.icon"></i>
                   <span>{{ item.name }}</span>
                 </router-link>
+                <div v-else class="locked-item" title="Bạn không có quyền thao tác">
+                  <i :class="item.icon"></i>
+                  <span>{{ item.name }}</span>
+                  <i class="fa-solid fa-lock lock-right"></i>
+                </div>
               </li>
             </template>
           </ul>
@@ -51,23 +61,33 @@
 
       <!-- NHÓM 2: BÁN HÀNG & TÀI CHÍNH -->
       <li class="menu-group" :class="{ 'menu-open': openGroups.sales }">
-        <div class="menu-group-header" @click="toggleGroup('sales')">
+        <div 
+          class="menu-group-header" 
+          :class="{ 'locked': !hasAccess(['ROLE_ADMIN', 'ROLE_SALE']) }" 
+          @click="hasAccess(['ROLE_ADMIN', 'ROLE_SALE']) && toggleGroup('sales')"
+        >
           <div class="group-title">
             <i class="fa-solid fa-cash-register"></i>
             <span>Bán Hàng & Tài Chính</span>
           </div>
-          <i class="fa-solid fa-chevron-down arrow-icon"></i>
+          <i v-if="!hasAccess(['ROLE_ADMIN', 'ROLE_SALE'])" class="fa-solid fa-lock lock-right"></i>
+          <i v-else class="fa-solid fa-chevron-down arrow-icon"></i>
         </div>
-        <div class="sub-menu-collapse">
+        <div class="sub-menu-collapse" v-if="hasAccess(['ROLE_ADMIN', 'ROLE_SALE'])">
           <ul class="sub-menu">
             <template
               v-for="item in getGroupItems(['Quản Lý Đơn Đặt', 'Quản Lý Hoàn Tiền', 'Xuất Hóa Đơn', 'Quản Lý Mã Giảm Giá', 'Thống Kê Doanh Thu'])"
               :key="item.name">
               <li>
-                <router-link :to="item.link" active-class="active">
+                <router-link v-if="hasAccess(item.roles)" :to="item.link" active-class="active">
                   <i :class="item.icon"></i>
                   <span>{{ item.name }}</span>
                 </router-link>
+                <div v-else class="locked-item" title="Bạn không có quyền thao tác">
+                  <i :class="item.icon"></i>
+                  <span>{{ item.name }}</span>
+                  <i class="fa-solid fa-lock lock-right"></i>
+                </div>
               </li>
             </template>
           </ul>
@@ -76,23 +96,33 @@
 
       <!-- NHÓM 3: VẬN HÀNH & KHÁCH HÀNG -->
       <li class="menu-group" :class="{ 'menu-open': openGroups.operations }">
-        <div class="menu-group-header" @click="toggleGroup('operations')">
+        <div 
+          class="menu-group-header" 
+          :class="{ 'locked': !hasAccess(['ROLE_ADMIN', 'ROLE_CHUYEN_VIEN_TU_VAN']) }" 
+          @click="hasAccess(['ROLE_ADMIN', 'ROLE_CHUYEN_VIEN_TU_VAN']) && toggleGroup('operations')"
+        >
           <div class="group-title">
             <i class="fa-solid fa-user-gear"></i>
             <span>Vận Hành & Khách Hàng</span>
           </div>
-          <i class="fa-solid fa-chevron-down arrow-icon"></i>
+          <i v-if="!hasAccess(['ROLE_ADMIN', 'ROLE_CHUYEN_VIEN_TU_VAN'])" class="fa-solid fa-lock lock-right"></i>
+          <i v-else class="fa-solid fa-chevron-down arrow-icon"></i>
         </div>
-        <div class="sub-menu-collapse">
+        <div class="sub-menu-collapse" v-if="hasAccess(['ROLE_ADMIN', 'ROLE_CHUYEN_VIEN_TU_VAN'])">
           <ul class="sub-menu">
             <template
-              v-for="item in getGroupItems(['Quản Lý Người Dùng', 'Quản Lý Lịch Hẹn', 'Quản Lý Bảo Hành', 'Tư Vấn Khách Hàng'])"
+              v-for="item in getGroupItems(['Tư Vấn Khách Hàng', 'Quản Lý Người Dùng', 'Quản Lý Lịch Hẹn', 'Quản Lý Bảo Hành'])"
               :key="item.name">
               <li>
-                <router-link :to="item.link" active-class="active">
+                <router-link v-if="hasAccess(item.roles)" :to="item.link" active-class="active">
                   <i :class="item.icon"></i>
                   <span>{{ item.name }}</span>
                 </router-link>
+                <div v-else class="locked-item" title="Bạn không có quyền thao tác">
+                  <i :class="item.icon"></i>
+                  <span>{{ item.name }}</span>
+                  <i class="fa-solid fa-lock lock-right"></i>
+                </div>
               </li>
             </template>
           </ul>
@@ -100,13 +130,18 @@
       </li>
 
       <!-- ============================================== -->
-      <!-- TAB ĐỘC LẬP: TRUNG TÂM GIÁM SÁT SOC (MỚI THÊM) -->
+      <!-- TAB ĐỘC LẬP: TRUNG TÂM GIÁM SÁT SOC -->
       <!-- ============================================== -->
       <li>
-        <router-link to="/admin/soc" active-class="active">
+        <router-link v-if="hasAccess(['ROLE_ADMIN'])" to="/admin/soc" active-class="active">
           <i class="fa-solid fa-shield-halved"></i>
           <span>Trung Tâm SOC</span>
         </router-link>
+        <div v-else class="locked-item" style="padding: 10px 15px;" title="Khu vực bảo mật cấp cao">
+          <i class="fa-solid fa-shield-halved" style="width: 28px; font-size: 15px; margin-right: 5px;"></i>
+          <span>Trung Tâm SOC</span>
+          <i class="fa-solid fa-lock lock-right"></i>
+        </div>
       </li>
 
     </ul>
@@ -124,28 +159,45 @@ defineProps({
 });
 
 const userName = ref('Quản Trị Viên');
-const userRole = computed(() => {
-  try {
-    const userStr = localStorage.getItem('user');
-    if (userStr && userStr !== 'undefined') {
-      const user = JSON.parse(userStr);
-      if (user.hoTen) userName.value = user.hoTen;
-      return user?.vaiTro || '';
-    }
-  } catch (e) {
-    console.error("Lỗi parse user:", e);
-  }
-  return '';
-});
+const userRole = ref('');
 
-// Trạng thái mặc định ban đầu
+// Phân tích Role và Tên
+try {
+  const userStr = localStorage.getItem('user');
+  if (userStr && userStr !== 'undefined') {
+    const user = JSON.parse(userStr);
+    if (user.hoTen) userName.value = user.hoTen;
+    if (user.vaiTros && user.vaiTros.length > 0) {
+      userRole.value = user.vaiTros[0].tenVaiTro || '';
+    } else {
+      userRole.value = user.vaiTro || '';
+    }
+  }
+} catch (e) {
+  console.error("Lỗi parse user:", e);
+}
+
+// Hàm check quyền truy cập
+const hasAccess = (allowedRoles) => {
+  if (!userRole.value) return false;
+  if (userRole.value === 'ROLE_ADMIN') return true; // Admin full quyền
+  return allowedRoles.includes(userRole.value);
+};
+
+// Trạng thái mở menu mặc định
 const openGroups = ref({
-  inventory: true,
+  inventory: false,
   sales: false,
   operations: false
 });
 
-// THẦN CHÚ KHÔI PHỤC TRẠNG THÁI: Lấy dữ liệu đã lưu trong Local Storage khi load trang
+// Tự động mở Tab chuẩn theo nghề nghiệp của nhân viên
+if (userRole.value === 'ROLE_INVENTORY') openGroups.value.inventory = true;
+if (userRole.value === 'ROLE_SALE') openGroups.value.sales = true;
+if (userRole.value === 'ROLE_CHUYEN_VIEN_TU_VAN') openGroups.value.operations = true;
+if (userRole.value === 'ROLE_ADMIN') openGroups.value.inventory = true; // Admin vô ưu tiên kho
+
+// Khôi phục trạng thái
 const savedState = localStorage.getItem('velora_sidebar_state');
 if (savedState) {
   try {
@@ -156,35 +208,38 @@ if (savedState) {
 }
 
 const toggleGroup = (groupName) => {
-  // Đảo trạng thái đóng/mở
   openGroups.value[groupName] = !openGroups.value[groupName];
-  // THẦN CHÚ LƯU TRẠNG THÁI: Cập nhật thẳng vào Local Storage mỗi khi click
   localStorage.setItem('velora_sidebar_state', JSON.stringify(openGroups.value));
 };
 
+// 🔥 ĐÃ CẬP NHẬT CHUẨN ROLES VÀO TỪNG CHỨC NĂNG
 const allMenuItems = [
-  { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge', roles: ['ROLE_ADMIN'] },
+  { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge', roles: ['ROLE_ADMIN', 'ROLE_SALE', 'ROLE_INVENTORY', 'ROLE_CHUYEN_VIEN_TU_VAN'] },
+  
+  // Tab Vận Hành
   { name: 'Tư Vấn Khách Hàng', link: '/admin/tu-van-khach-hang', icon: 'fa-solid fa-comments', roles: ['ROLE_ADMIN', 'ROLE_CHUYEN_VIEN_TU_VAN'] },
-  { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open', roles: ['ROLE_ADMIN'] },
-  { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group', roles: ['ROLE_ADMIN'] },
   { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users', roles: ['ROLE_ADMIN'] },
-  { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice', roles: ['ROLE_ADMIN'] },
-  { name: 'Quản Lý Hoàn Tiền', link: '/admin/quan-ly-hoan-tien', icon: 'fa-solid fa-rotate-left', roles: ['ROLE_ADMIN'] },
-  { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked', roles: ['ROLE_ADMIN'] },
-  { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar', roles: ['ROLE_ADMIN'] },
-  { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem', roles: ['ROLE_ADMIN'] },
-  { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list', roles: ['ROLE_ADMIN'] },
-  { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags', roles: ['ROLE_ADMIN'] },
-  { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check', roles: ['ROLE_ADMIN', 'ROLE_CHUYEN_VIEN_TU_VAN'] },
-  { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN'] },
-  { name: 'Quản Lý Bảo Hành', link: '/admin/quan-ly-bao-hanh', icon: 'fa-solid fa-wrench', roles: ['ROLE_ADMIN'] }
+  { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check', roles: ['ROLE_ADMIN'] },
+  { name: 'Quản Lý Bảo Hành', link: '/admin/quan-ly-bao-hanh', icon: 'fa-solid fa-wrench', roles: ['ROLE_ADMIN'] },
+
+  // Tab Kho
+  { name: 'Quản Lý Sản Phẩm', link: '/admin/products', icon: 'fa-solid fa-box-open', roles: ['ROLE_ADMIN', 'ROLE_INVENTORY'] },
+  { name: 'Quản Lý Loại Sản Phẩm', link: '/admin/categories', icon: 'fa-solid fa-layer-group', roles: ['ROLE_ADMIN', 'ROLE_INVENTORY'] },
+  { name: 'Quản Lý Kho', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked', roles: ['ROLE_ADMIN', 'ROLE_INVENTORY'] },
+  { name: 'Quản Lý Thương Hiệu', link: '/admin/manufacturers', icon: 'fa-solid fa-gem', roles: ['ROLE_ADMIN', 'ROLE_INVENTORY'] },
+  { name: 'Phiếu Nhập Kho', link: '/admin/receipts', icon: 'fa-solid fa-clipboard-list', roles: ['ROLE_ADMIN', 'ROLE_INVENTORY'] },
+
+  // Tab Sale
+  { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice', roles: ['ROLE_ADMIN', 'ROLE_SALE'] },
+  { name: 'Quản Lý Hoàn Tiền', link: '/admin/quan-ly-hoan-tien', icon: 'fa-solid fa-rotate-left', roles: ['ROLE_ADMIN', 'ROLE_SALE'] },
+  { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar', roles: ['ROLE_ADMIN', 'ROLE_SALE'] },
+  { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags', roles: ['ROLE_ADMIN', 'ROLE_SALE'] },
+  { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN', 'ROLE_SALE'] }
 ];
 
 const getGroupItems = (namesArray) => {
-  if (!userRole.value) return allMenuItems.filter(item => namesArray.includes(item.name));
-  return allMenuItems.filter(item =>
-    namesArray.includes(item.name) && item.roles.includes(userRole.value)
-  );
+  // KHÔNG dùng filter roles ở đây nữa, lấy nguyên danh sách ra để template xử lý Khóa (Lock)
+  return namesArray.map(name => allMenuItems.find(item => item.name === name)).filter(Boolean);
 };
 </script>
 
@@ -312,7 +367,7 @@ const getGroupItems = (namesArray) => {
   user-select: none;
 }
 
-.menu-group-header:hover {
+.menu-group-header:hover:not(.locked) {
   color: #fff;
   background: rgba(255, 255, 255, 0.05);
 }
@@ -327,19 +382,46 @@ const getGroupItems = (namesArray) => {
   color: var(--gold-matte);
 }
 
+/* --- HIỆU ỨNG KHÓA (LOCKED) --- */
+.locked {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+  pointer-events: none; /* Cấm nhấn */
+}
+
+.locked-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  color: #dedede;
+  font-size: 13.5px;
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.locked-item i:first-child {
+  width: 28px;
+  font-size: 15px;
+}
+
+.lock-right {
+  margin-left: auto;
+  font-size: 12px;
+  color: #888;
+}
+
 /* HIỆU ỨNG MŨI TÊN LẬT 3D LÊN/XUỐNG */
 .arrow-icon {
   font-size: 11px;
   transform-origin: center;
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-block;
-  /* BẮT BUỘC PHẢI CÓ DÒNG NÀY */
   opacity: 0.5;
 }
 
 .menu-open .arrow-icon {
   transform: rotateX(180deg);
-  /* Lật 3D theo trục X */
   opacity: 1;
 }
 
@@ -359,7 +441,6 @@ const getGroupItems = (namesArray) => {
 .sub-menu {
   min-height: 0;
   overflow: hidden;
-  /* Bắt buộc để ẩn khi grid 0fr */
   list-style: none;
   padding-left: 15px;
   margin-left: 15px;
@@ -397,8 +478,8 @@ const getGroupItems = (namesArray) => {
 .sidebar-collapsed .user-panel .info,
 .sidebar-collapsed .menu-group-header span,
 .sidebar-collapsed .sidebar-menu span,
-/* <-- THÊM DÒNG NÀY ĐỂ ẨN CHỮ CỦA TRANG QUẢN TRỊ */
 .sidebar-collapsed .arrow-icon,
+.sidebar-collapsed .lock-right,
 .sidebar-collapsed .sub-menu-collapse {
   display: none !important;
 }
@@ -430,7 +511,8 @@ const getGroupItems = (namesArray) => {
   padding: 10px;
 }
 
-.sidebar-collapsed .menu-group-header {
+.sidebar-collapsed .menu-group-header,
+.sidebar-collapsed .locked-item {
   justify-content: center;
   padding: 15px 0;
 }
@@ -444,19 +526,16 @@ const getGroupItems = (namesArray) => {
   font-size: 20px;
 }
 
-/* =======================================================
-   ĐỒNG BỘ CĂN GIỮA TOÀN BỘ KHỐI VÀ ICON KHI THU GỌN 
-======================================================= */
-/* 1. Ép tất cả các khối (lẻ & nhóm) dùng chung 1 kiểu căn giữa và padding */
 .sidebar-collapsed .sidebar-menu a,
-.sidebar-collapsed .menu-group-header {
+.sidebar-collapsed .menu-group-header,
+.sidebar-collapsed .locked-item {
   justify-content: center !important;
   padding: 15px 0 !important;
 }
 
-/* 2. Đập bỏ cái width: 28px cũ của tất cả icon, ép về auto để nằm ngay tâm */
 .sidebar-collapsed .sidebar-menu a i,
-.sidebar-collapsed .group-title i {
+.sidebar-collapsed .group-title i,
+.sidebar-collapsed .locked-item i:first-child {
   width: auto !important;
   margin: 0 !important;
   font-size: 20px !important;

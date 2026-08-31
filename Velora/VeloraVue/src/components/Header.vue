@@ -25,6 +25,12 @@
 
                             <transition name="fade-slide">
                                 <div v-if="showDropdown" class="dropdown-menu" @click.stop>
+                                    <!-- 🔥 THÊM NÚT DASHBOARD CHO DESKTOP -->
+                                    <router-link v-if="isAdmin || isStaff" to="/admin/dashboard" class="dropdown-item" @click="showDropdown = false">
+                                        <i class="fa-solid fa-gauge-high" style="margin-right: 8px;"></i> 
+                                        {{ isStaff ? 'Staff Dashboard' : 'Admin Dashboard' }}
+                                    </router-link>
+                                    
                                     <router-link to="/thong-tin-ca-nhan" class="dropdown-item" @click="showDropdown = false">
                                         Thông tin cá nhân
                                     </router-link>
@@ -157,29 +163,38 @@ const checkAuth = async () => {
         // 🔥 Lấy thông tin user trực tiếp từ Database thông qua Session bảo mật ở Backend
         const res = await fetch('http://localhost:8080/api/auth/me', {
             method: 'GET',
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+                'Cache-Control': 'no-cache'
+            }
         });
 
         if (res.ok) {
-            const user = await res.json();
-            if (user && user.email) {
-                localStorage.setItem('user', JSON.stringify(user));
-                isLoggedIn.value = true;
-                userName.value = user.hoTen;
-                currentUserId.value = user.maNguoiDung;
-                
-                let roleName = '';
-                if (user.vaiTros && user.vaiTros.length > 0) {
-                    roleName = user.vaiTros[0].tenVaiTro ? user.vaiTros[0].tenVaiTro.toUpperCase() : '';
-                } else if (user.vaiTro) {
-                    roleName = user.vaiTro.toUpperCase();
-                }
+            // 🔥 Đọc dưới dạng text để tránh lỗi "Unexpected end of JSON input" nếu body rỗng
+            const text = await res.text();
+            if (text) {
+                const user = JSON.parse(text);
+                if (user && user.email) {
+                    localStorage.setItem('user', JSON.stringify(user));
+                    isLoggedIn.value = true;
+                    userName.value = user.hoTen;
+                    currentUserId.value = user.maNguoiDung;
+                    
+                    let roleName = '';
+                    if (user.vaiTros && user.vaiTros.length > 0) {
+                        roleName = user.vaiTros[0].tenVaiTro ? user.vaiTros[0].tenVaiTro.toUpperCase() : '';
+                    } else if (user.vaiTro) {
+                        roleName = user.vaiTro.toUpperCase();
+                    }
 
-                isAdmin.value = (roleName === 'ROLE_ADMIN');
-                isStaff.value = (roleName === 'ROLE_CHUYEN_VIEN_TU_VAN');
-                
-                fetchCartCount(user.maNguoiDung);
-                return;
+                    isAdmin.value = (roleName === 'ROLE_ADMIN');
+                    
+                    // 🔥 CẬP NHẬT: Thêm ROLE_SALE và ROLE_INVENTORY vào danh sách được vào Dashboard
+                    isStaff.value = ['ROLE_CHUYEN_VIEN_TU_VAN', 'ROLE_SALE', 'ROLE_INVENTORY'].includes(roleName);
+                    
+                    fetchCartCount(user.maNguoiDung);
+                    return;
+                }
             }
         }
     } catch (e) {
@@ -193,6 +208,7 @@ const checkAuth = async () => {
     isStaff.value = false;
     currentUserId.value = null;
     cartCount.value = 0;
+    localStorage.removeItem('user');
 }
 
 const logout = async () => {
@@ -213,6 +229,7 @@ const logout = async () => {
     currentUserId.value = null;
     cartCount.value = 0;
     showDropdown.value = false;
+    localStorage.removeItem('user');
 
     window.location.href = '/';
 }

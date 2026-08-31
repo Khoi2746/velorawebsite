@@ -90,8 +90,9 @@ const router = createRouter({
     },
 
     // ================== TƯ VẤN VIÊN ==================
+    // Dùng chung link /admin/chat cho Sidebar đồng bộ nhé
     {
-      path: '/admin/tu-van-khach-hang',
+      path: '/admin/chat',
       name: 'TuVanKhachHang',
       component: TuVanDashboard,
       meta: { requiresAdmin: true }
@@ -101,13 +102,13 @@ const router = createRouter({
 
 // ================== HỆ THỐNG KIỂM SOÁT REAL-TIME CHUẨN SESSION BACKEND ==================
 router.beforeEach(async (to, from, next) => {
-  // 🔥 Dọn sạch ký hiệu #_=_ hoặc _=_ do Facebook tự động gắn vào URL ngay khi router quét qua
+  // Dọn sạch ký hiệu #_=_ hoặc _=_ do Facebook tự động gắn vào URL ngay khi router quét qua
   if (window.location.hash.includes('_=_') || window.location.href.includes('_=_')) {
     const cleanUrl = window.location.href.replace(/#?_=_/g, '');
     window.history.replaceState({}, document.title, cleanUrl);
   }
 
-  // 🔥 Hàm gom dữ liệu thông minh từ cả 2 nguồn (Ghi nhớ và Không ghi nhớ)
+  // Hàm gom dữ liệu thông minh từ cả 2 nguồn (Ghi nhớ và Không ghi nhớ)
   const getUserData = () => {
     const local = localStorage.getItem('user');
     if (local) return JSON.parse(local);
@@ -126,7 +127,7 @@ router.beforeEach(async (to, from, next) => {
         const currentStatus = await res.text();
         if (currentStatus === 'KHOA' || currentStatus === 'BI_KHOA') {
           alert('Tài khoản của bạn đã bị khóa! Hệ thống sẽ tự động đăng xuất.');
-          // 🔥 Phải dọn sạch cả 2 kho để tránh kẹt phiên
+          // Phải dọn sạch cả 2 kho để tránh kẹt phiên
           localStorage.removeItem('user');
           sessionStorage.removeItem('user');
           return next('/dang-nhap');
@@ -165,8 +166,8 @@ router.beforeEach(async (to, from, next) => {
         return next('/dang-nhap');
       }
 
-      // Check quyền
-      const allowedRoles = ['ROLE_ADMIN', 'ROLE_STAFF', 'ROLE_CHUYEN_VIEN_TU_VAN'];
+      // 🔥 CẬP NHẬT: THÊM CÁC ROLE MỚI VÀO DANH SÁCH ĐƯỢC PHÉP VÀO KHU VỰC ADMIN
+      const allowedRoles = ['ROLE_ADMIN', 'ROLE_SALE', 'ROLE_INVENTORY', 'ROLE_CHUYEN_VIEN_TU_VAN'];
       if (!allowedRoles.includes(currentUser.vaiTro)) {
         alert('Bạn không có quyền truy cập vào khu vực quản trị Velora!');
         return next('/'); // Đá về trang chủ thay vì bắt đăng nhập lại

@@ -55,13 +55,78 @@ const handleLogout = () => {
 
 <style scoped>
 /* CSS cho Header */
-.main-header { height: 60px; background: var(--bg-page); z-index: 5; border-bottom: 1px solid var(--border-light, #eaeaea); }
-.navbar { display: flex; justify-content: space-between; align-items: center; height: 100%; padding-right: 20px; }
-.sidebar-toggle { color: var(--text-main); padding: 0 20px; font-size: 20px; text-decoration: none; line-height: 60px; transition: 0.2s; }
-.sidebar-toggle:hover { color: var(--gold-matte); }
-.navbar-right .nav-menu { list-style: none; display: flex; margin: 0; padding: 0; align-items: center; gap: 5px; }
-.nav-menu li a { color: var(--text-main); text-decoration: none; padding: 8px 12px; position: relative; display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 14.5px; border-radius: 6px; transition: 0.2s; }
-.nav-menu li a:hover { color: var(--gold-matte); background-color: rgba(204, 161, 94, 0.1); }
-.badge { position: absolute; top: -2px; right: 2px; padding: 3px 5px; border-radius: 10px; font-size: 10px; color: #fff; line-height: 1; min-width: 15px; text-align: center; font-weight: bold; }
-.bg-gold-matte { background-color: var(--gold-matte) !important; color: #fff; }
+.main-header {
+  height: 60px;
+  background: var(--bg-page);
+  z-index: 5;
+  border-bottom: 1px solid var(--border-light, #eaeaea);
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  padding-right: 20px;
+}
+
+.sidebar-toggle {
+  color: var(--text-main);
+  padding: 0 20px;
+  font-size: 20px;
+  text-decoration: none;
+  line-height: 60px;
+  transition: 0.2s;
+}
+
+.sidebar-toggle:hover {
+  color: var(--gold-matte);
+}
+
+.navbar-right .nav-menu {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.nav-menu li a {
+  color: var(--text-main);
+  text-decoration: none;
+  padding: 8px 12px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  font-size: 14.5px;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+.nav-menu li a:hover {
+  color: var(--gold-matte);
+  background-color: rgba(204, 161, 94, 0.1);
+}
+
+.badge {
+  position: absolute;
+  top: -2px;
+  right: 2px;
+  padding: 3px 5px;
+  border-radius: 10px;
+  font-size: 10px;
+  color: #fff;
+  line-height: 1;
+  min-width: 15px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.bg-gold-matte {
+  background-color: var(--gold-matte) !important;
+  color: #fff;
+}
 </style>

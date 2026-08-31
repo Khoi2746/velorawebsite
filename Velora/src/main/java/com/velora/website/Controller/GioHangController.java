@@ -25,7 +25,7 @@ public class GioHangController {
 
         if (cartItem != null) {
             // Nếu có rồi -> Cộng dồn số lượng
-            cartItem.setSoLuong(cartItem.getSoLuong() + request.getSoLuong());
+            cartItem.setSoLuong(cartItem.getSoLuong() + 1);// xét số lượng +1 vào giỏ hàng khi người dùng nhấn vào nút Thêm Vào Giỏ
             gioHangRepository.save(cartItem);
             return ResponseEntity.ok(cartItem);
         } else {
@@ -46,7 +46,7 @@ public class GioHangController {
     }
 
     // 3. API Xóa 1 sản phẩm khỏi giỏ
-    @DeleteMapping("/{maGioHang}")
+    @DeleteMapping("/{maGioHang}") // Chọn mã sản phẩm trong giỏ hàng để xóa 
     public ResponseEntity<?> xoaKhoiGio(@PathVariable Integer maGioHang) {
         gioHangRepository.deleteById(maGioHang);
         return ResponseEntity.ok().build();
