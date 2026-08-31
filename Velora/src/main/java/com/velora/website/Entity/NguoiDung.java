@@ -31,6 +31,10 @@ public class NguoiDung {
     @Column(name = "DiaChi")
     private String diaChi;
 
+    // BỔ SUNG TRƯỜNG ẢNH ĐẠI DIỆN
+    @Column(name = "AnhDaiDien")
+    private String anhDaiDien;
+
     @Column(name = "TrangThai")
     private String trangThai;
 
@@ -107,6 +111,15 @@ public class NguoiDung {
 
     public void setDiaChi(String diaChi) {
         this.diaChi = diaChi;
+    }
+
+// GETTER & SETTER CHO ANH DAI DIEN
+    public String getAnhDaiDien() {
+        return anhDaiDien;
+    }
+
+    public void setAnhDaiDien(String anhDaiDien) {
+        this.anhDaiDien = anhDaiDien;
     }
 
     public String getTrangThai() {

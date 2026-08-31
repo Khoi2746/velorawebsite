@@ -4,203 +4,273 @@ import com.velora.website.Entity.NguoiDung;
 import com.velora.website.Repository.NguoiDungRepository;
 import com.velora.website.Service.EmailService;
 
-// Import thêm thư viện để gửi Mail HTML
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/admin")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class NguoiDungController {
 
     private final NguoiDungRepository nguoiDungRepository;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    private final JavaMailSender mailSender; // Inject thêm JavaMailSender để gửi giao diện HTML
+    private final JavaMailSender mailSender;
 
-    public NguoiDungController(NguoiDungRepository nguoiDungRepository, EmailService emailService, JavaMailSender mailSender) {
+    public NguoiDungController(NguoiDungRepository nguoiDungRepository, 
+                               PasswordEncoder passwordEncoder,
+                               EmailService emailService, 
+                               JavaMailSender mailSender) {
         this.nguoiDungRepository = nguoiDungRepository;
+        this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.mailSender = mailSender;
     }
 
-    // 1. Lấy danh sách
+    // 1. Lấy danh sách toàn bộ thành viên
     @GetMapping("/thanh-vien")
     public ResponseEntity<List<NguoiDung>> layToanBoThanhVien() {
-        return ResponseEntity.ok(nguoiDungRepository.findAll());
+        List<NguoiDung> danhSach = nguoiDungRepository.findAll();
+        danhSach.forEach(u -> u.setMatKhauMaHoa(null));
+        return ResponseEntity.ok(danhSach);
     }
 
-    // 2. Thêm mới
-    @PostMapping("/thanh-vien")
+    // 2. Thêm mới thành viên
+    @PostMapping(value = "/thanh-vien", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional
     public ResponseEntity<?> themMoiThanhVien(@RequestBody NguoiDung nguoiDung) {
         if (nguoiDungRepository.existsByEmail(nguoiDung.getEmail())) {
             return ResponseEntity.badRequest().body("Email đã tồn tại!");
         }
+
         nguoiDung.setNgayTao(new Date());
         nguoiDung.setNgayCapNhat(new Date());
-        nguoiDung.setTrangThai("HOAT_DONG");
-        
-        // 1. Lấy mật khẩu thực tế từ Frontend gửi lên
-        String passThucTe = nguoiDung.getMatKhauMaHoa(); 
-        
-        // 2. Nếu Frontend trống (không nhập), mới gán mặc định là 123456
+        if (nguoiDung.getTrangThai() == null) {
+            nguoiDung.setTrangThai("HOAT_DONG");
+        }
+
+        String passThucTe = nguoiDung.getMatKhauMaHoa();
         if (passThucTe == null || passThucTe.trim().isEmpty()) {
             passThucTe = "123456";
         }
-        
-        // 3. Mã hóa mật khẩu và lưu lại
+
         nguoiDung.setMatKhauMaHoa(passwordEncoder.encode(passThucTe));
-        
         NguoiDung saved = nguoiDungRepository.save(nguoiDung);
-        
-        try {
-            // Gửi email báo luôn mật khẩu thực tế cho khách
-            emailService.sendEmail(saved.getEmail(), "Chào mừng đến Velora Clock", 
-                "Tài khoản đã tạo. Mật khẩu đăng nhập của bạn là: " + passThucTe);
-        } catch (Exception e) { 
-            System.err.println("Mail lỗi: " + e.getMessage()); 
-        }
-        
-        return ResponseEntity.ok(saved);
+
+        final String finalPass = passThucTe;
+        CompletableFuture.runAsync(() -> {
+            try {
+                emailService.sendEmail(saved.getEmail(), "Chào mừng đến Velora Clock", 
+                    "Tài khoản của bạn đã được khởi tạo thành công. Mật khẩu đăng nhập: " + finalPass);
+            } catch (Exception e) {
+                System.err.println("Mail lỗi khi tạo mới: " + e.getMessage());
+            }
+        });
+
+        saved.setMatKhauMaHoa(null);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
-    // 3. Sửa thông tin (Phía Admin)
-    @PutMapping("/thanh-vien/{id}")
+    // 3. Sửa thông tin thành viên (Phía Admin)
+    @PutMapping(value = "/thanh-vien/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Transactional
     public ResponseEntity<?> capNhatThanhVien(@PathVariable Integer id, @RequestBody NguoiDung form) {
-        return nguoiDungRepository.findById(id).map(user -> {
-            user.setHoTen(form.getHoTen());
-            user.setSoDienThoai(form.getSoDienThoai());
-            user.setDiaChi(form.getDiaChi());
-            user.setTrangThai(form.getTrangThai());
-            user.setNgayCapNhat(new Date());
-            
-            if (form.getVaiTros() != null) user.setVaiTros(form.getVaiTros());
-            
-            NguoiDung updatedUser = nguoiDungRepository.saveAndFlush(user);
-            
+        Optional<NguoiDung> optUser = nguoiDungRepository.findById(id);
+        if (optUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy thành viên!");
+        }
+
+        NguoiDung user = optUser.get();
+        user.setHoTen(form.getHoTen());
+        user.setSoDienThoai(form.getSoDienThoai());
+        user.setDiaChi(form.getDiaChi());
+        user.setTrangThai(form.getTrangThai());
+        user.setNgayCapNhat(new Date());
+
+        if (form.getVaiTros() != null) {
+            user.setVaiTros(form.getVaiTros());
+        }
+
+        NguoiDung updatedUser = nguoiDungRepository.save(user);
+
+        CompletableFuture.runAsync(() -> {
             try {
-                emailService.sendEmail(updatedUser.getEmail(), "Thông báo cập nhật", "Thông tin của bạn đã được quản trị viên cập nhật.");
-            } catch (Exception e) { System.err.println("Mail lỗi: " + e.getMessage()); }
-            
-            return ResponseEntity.ok(updatedUser);
-        }).orElse(ResponseEntity.notFound().build());
-    }
-
-    // 4. Xóa (ĐÃ FIX: CHẶN KHÔNG CHO XÓA ADMIN)
-    @DeleteMapping("/thanh-vien/{id}")
-    public ResponseEntity<?> xoaThanhVien(@PathVariable Integer id) {
-        return nguoiDungRepository.findById(id).map(user -> {
-            
-            // KIỂM TRA: Nếu tài khoản có chứa quyền ROLE_ADMIN thì chặn lại ngay lập tức
-            if (user.getVaiTros() != null && user.getVaiTros().stream()
-                    .anyMatch(vt -> "ROLE_ADMIN".equalsIgnoreCase(vt.getTenVaiTro()))) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không thể xóa tài khoản Quản trị viên!");
+                emailService.sendEmail(updatedUser.getEmail(), "Thông báo cập nhật tài khoản", 
+                    "Thông tin tài khoản của bạn đã được quản trị viên cập nhật thành công.");
+            } catch (Exception e) {
+                System.err.println("Mail lỗi khi cập nhật: " + e.getMessage());
             }
-            
-            // Nếu không phải Admin -> Tiến hành xóa như bình thường
-            nguoiDungRepository.delete(user);
-            return ResponseEntity.ok("Xóa thành công!");
-            
-        }).orElse(ResponseEntity.notFound().build());
+        });
+
+        updatedUser.setMatKhauMaHoa(null);
+        return ResponseEntity.ok(updatedUser);
     }
 
-    // 5. Đổi trạng thái 
-    @PatchMapping("/{id}/doi-trang-thai")
+    // 4. Xóa thành viên (Chặn xóa Admin)
+    @DeleteMapping("/thanh-vien/{id}")
+    @Transactional
+    public ResponseEntity<?> xoaThanhVien(@PathVariable Integer id) {
+        Optional<NguoiDung> optUser = nguoiDungRepository.findById(id);
+        if (optUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy người dùng!");
+        }
+
+        NguoiDung user = optUser.get();
+        if (user.getVaiTros() != null && user.getVaiTros().stream()
+                .anyMatch(vt -> "ROLE_ADMIN".equalsIgnoreCase(vt.getTenVaiTro()))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không thể xóa tài khoản Quản trị viên!");
+        }
+
+        nguoiDungRepository.delete(user);
+        return ResponseEntity.ok("Xóa thành công!");
+    }
+
+    // 5. Đổi trạng thái (Khóa / Mở khóa)
+    @PatchMapping("/thanh-vien/{id}/doi-trang-thai")
     @Transactional
     public ResponseEntity<?> doiTrangThai(@PathVariable Integer id) {
-        NguoiDung user = nguoiDungRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy!"));
+        Optional<NguoiDung> optUser = nguoiDungRepository.findById(id);
+        if (optUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy người dùng!");
+        }
 
-        if (user.getVaiTros().stream().anyMatch(vt -> "ROLE_ADMIN".equalsIgnoreCase(vt.getTenVaiTro()))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không thể khóa Admin!");
+        NguoiDung user = optUser.get();
+        if (user.getVaiTros() != null && user.getVaiTros().stream()
+                .anyMatch(vt -> "ROLE_ADMIN".equalsIgnoreCase(vt.getTenVaiTro()))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không thể thay đổi trạng thái của Admin!");
         }
 
         String currentStatus = user.getTrangThai() != null ? user.getTrangThai().toUpperCase() : "";
         String trangThaiMoi = (currentStatus.contains("HOAT_DONG") || currentStatus.contains("HOẠT ĐỘNG")) ? "KHOA" : "HOAT_DONG";
-        
+
         user.setTrangThai(trangThaiMoi);
         user.setNgayCapNhat(new Date());
-        NguoiDung updatedUser = nguoiDungRepository.saveAndFlush(user);
+        NguoiDung updatedUser = nguoiDungRepository.save(user);
 
-        try {
-            String statusText = "KHOA".equals(trangThaiMoi) ? "BỊ KHÓA" : "MỞ KHÓA (HOẠT ĐỘNG)";
-            emailService.sendEmail(updatedUser.getEmail(), "Thông báo trạng thái tài khoản Velora", 
-                "Tài khoản của bạn trên Velora Clock hiện tại đã chuyển sang trạng thái: " + statusText);
-        } catch (Exception e) { System.err.println("Mail lỗi: " + e.getMessage()); }
-
-        return ResponseEntity.ok(updatedUser);
-    }
-
-    // 6. Cập nhật thông tin (Người dùng tự cập nhật - Có gửi Email HTML)
-    @PutMapping("/cap-nhat/{id}")
-    public ResponseEntity<?> capNhatThongTin(@PathVariable Integer id, @RequestBody NguoiDung requestData) {
-        Optional<NguoiDung> optNguoiDung = nguoiDungRepository.findById(id);
-        
-        if (optNguoiDung.isEmpty()) {
-            return ResponseEntity.badRequest().body("Không tìm thấy người dùng!");
-        }
-
-        NguoiDung nguoiDung = optNguoiDung.get();
-        
-        // KIỂM TRA LOGIC: Lần đầu xác minh hay đổi thông tin?
-        // Nếu trường số điện thoại trong DB trước khi update là rỗng -> Đánh dấu là Xác minh lần đầu
-        boolean isLanDauXacMinh = (nguoiDung.getSoDienThoai() == null || nguoiDung.getSoDienThoai().trim().isEmpty());
-        
-        // Chỉ cập nhật các thông tin được phép (Không cho đổi Email hoặc Role ở đây)
-        if (requestData.getHoTen() != null) {
-            nguoiDung.setHoTen(requestData.getHoTen());
-        }
-        if (requestData.getSoDienThoai() != null) {
-            nguoiDung.setSoDienThoai(requestData.getSoDienThoai());
-        }
-        if (requestData.getDiaChi() != null) {
-            nguoiDung.setDiaChi(requestData.getDiaChi());
-        }
-        
-        nguoiDung.setNgayCapNhat(new java.util.Date()); 
-
-        NguoiDung updatedUser = nguoiDungRepository.save(nguoiDung);
-        
-        // Chạy một Thread mới để bắn Email HTML, không làm chậm phản hồi API
-        new Thread(() -> {
-            if (isLanDauXacMinh) {
-                sendVerificationSuccessEmail(updatedUser.getEmail(), updatedUser.getHoTen());
-            } else {
-                sendInfoChangedEmail(updatedUser.getEmail(), updatedUser.getHoTen());
+        CompletableFuture.runAsync(() -> {
+            try {
+                String statusText = "KHOA".equals(trangThaiMoi) ? "BỊ KHÓA" : "MỞ KHÓA (HOẠT ĐỘNG)";
+                emailService.sendEmail(updatedUser.getEmail(), "Thông báo trạng thái tài khoản Velora", 
+                    "Tài khoản của bạn trên Velora Clock hiện tại đã chuyển sang trạng thái: " + statusText);
+            } catch (Exception e) {
+                System.err.println("Mail lỗi khi đổi trạng thái: " + e.getMessage());
             }
-        }).start();
-        
+        });
+
+        updatedUser.setMatKhauMaHoa(null);
         return ResponseEntity.ok(updatedUser);
     }
 
-    /* =========================================================================================
-     * CÁC HÀM TIỆN ÍCH HỖ TRỢ GỬI MAIL HTML (ĐÃ THAY CHỮ THÀNH ICON)
-     * ========================================================================================= */
+   // 6. Cập nhật thông tin cá nhân (FormData + Upload File)
+    @PutMapping(value = "/cap-nhat/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Transactional
+    public ResponseEntity<?> capNhatThongTin(
+            @PathVariable Integer id,
+            @RequestParam(value = "hoTen", required = false) String hoTen,
+            @RequestParam(value = "soDienThoai", required = false) String soDienThoai,
+            @RequestParam(value = "diaChi", required = false) String diaChi,
+            @RequestParam(value = "avatar", required = false) MultipartFile avatar) {
+            
+        try {
+            Optional<NguoiDung> optNguoiDung = nguoiDungRepository.findById(id);
+            if (optNguoiDung.isEmpty()) {
+                return ResponseEntity.badRequest().body("Không tìm thấy người dùng!");
+            }
 
+            NguoiDung nguoiDung = optNguoiDung.get();
+            boolean isLanDauXacMinh = (nguoiDung.getSoDienThoai() == null || nguoiDung.getSoDienThoai().trim().isEmpty());
+            
+            if (hoTen != null && !hoTen.trim().isEmpty()) {
+                nguoiDung.setHoTen(hoTen);
+            }
+            nguoiDung.setSoDienThoai(soDienThoai);
+            nguoiDung.setDiaChi(diaChi);
+            
+            // 1. Xử lý lưu File Avatar (nếu có)
+            if (avatar != null && !avatar.isEmpty() && avatar.getOriginalFilename() != null) {
+                try {
+                    String uploadDir = "uploads/avatars/";
+                    Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+                    if (!Files.exists(uploadPath)) {
+                        Files.createDirectories(uploadPath);
+                    }
+
+                    String rawFilename = avatar.getOriginalFilename();
+                    String cleanFilename = StringUtils.cleanPath(rawFilename);
+                    String fileName = System.currentTimeMillis() + "_" + cleanFilename;
+                    Path filePath = uploadPath.resolve(fileName);
+
+                    try (InputStream inputStream = avatar.getInputStream()) {
+                        Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    nguoiDung.setAnhDaiDien("/uploads/avatars/" + fileName);
+                } catch (Exception e) {
+                    System.err.println("Lỗi lưu file avatar: " + e.getMessage());
+                }
+            }
+            
+            nguoiDung.setNgayCapNhat(new Date()); 
+            NguoiDung updatedUser = nguoiDungRepository.save(nguoiDung);
+            
+            // Lấy thông tin Email và HoTen ra biến nguyên bản trước khi đẩy sang thread gửi mail
+            final String targetEmail = updatedUser.getEmail();
+            final String targetFullName = updatedUser.getHoTen();
+
+            // 2. GỬI EMAIL KHÔNG LÀM CRASH REQUEST NẾU LỖI
+            CompletableFuture.runAsync(() -> {
+                try {
+                    if (isLanDauXacMinh) {
+                        sendVerificationSuccessEmail(targetEmail, targetFullName);
+                    } else {
+                        sendInfoChangedEmail(targetEmail, targetFullName);
+                    }
+                } catch (Throwable t) {
+                    System.err.println("Gửi mail thất bại (nhưng dữ liệu đã lưu thành công): " + t.getMessage());
+                }
+            });
+            
+            // Tránh set null vào Entity đang Managed, tạo bản copy hoặc ẩn ở Jackson trong Entity
+            return ResponseEntity.ok(updatedUser);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi Backend: " + e.getMessage());
+        }
+    }
     /* =========================================================================================
-     * CÁC HÀM TIỆN ÍCH HỖ TRỢ GỬI MAIL HTML (DARK THEME: NÂU GỖ - VÀNG KIM)
+     * HELPER METHODS - SEND HTML MAIL
      * ========================================================================================= */
 
     private void sendVerificationSuccessEmail(String toEmail, String fullName) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
+
             helper.setTo(toEmail);
             helper.setSubject("Velora Clock - Xác minh tài khoản thành công");
-            
+
             String htmlContent = "<div style='font-family: Arial, sans-serif; background-color: #26160d; color: #ffffff; max-width: 600px; margin: auto; border: 2px solid #d1aa68; padding: 30px; border-radius: 8px;'>"
                 + "<div style='text-align: center; margin-bottom: 20px;'>"
                 + "  <img src='https://i.postimg.cc/0jRpHvWJ/Velora-Icon.png' alt='Velora Clock' style='max-width: 180px; height: auto;' />"
@@ -219,7 +289,7 @@ public class NguoiDungController {
             helper.setText(htmlContent, true);
             mailSender.send(message);
             System.out.println("Đã gửi email [Xác Minh] cho: " + toEmail);
-            
+
         } catch (MessagingException e) {
             System.err.println("Lỗi gửi mail xác minh: " + e.getMessage());
         }
@@ -229,10 +299,10 @@ public class NguoiDungController {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
+
             helper.setTo(toEmail);
             helper.setSubject("Velora Clock - Cảnh báo thay đổi thông tin tài khoản");
-            
+
             String htmlContent = "<div style='font-family: Arial, sans-serif; background-color: #26160d; color: #ffffff; max-width: 600px; margin: auto; border: 2px solid #d1aa68; padding: 30px; border-radius: 8px;'>"
                 + "<div style='text-align: center; margin-bottom: 20px;'>"
                 + "  <img src='https://i.postimg.cc/0jRpHvWJ/Velora-Icon.png' alt='Velora Clock' style='max-width: 180px; height: auto;' />"
@@ -252,7 +322,7 @@ public class NguoiDungController {
             helper.setText(htmlContent, true);
             mailSender.send(message);
             System.out.println("Đã gửi email [Thay Đổi Info] cho: " + toEmail);
-            
+
         } catch (MessagingException e) {
             System.err.println("Lỗi gửi mail thay đổi thông tin: " + e.getMessage());
         }
