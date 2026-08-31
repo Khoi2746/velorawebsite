@@ -11,8 +11,13 @@
         <!-- CỘT TRÁI: SIDEBAR MENU -->
         <aside class="profile-sidebar">
           <div class="user-avatar-box">
+            <!-- AVATAR Ở SIDEBAR -->
             <div class="avatar-circle">
-              <i class="fas fa-user"></i>
+              <img :src="getAvatarUrl(userInfo.anhDaiDien)" alt="Avatar" class="avatar-img" />
+              <label for="sidebarAvatarInput" class="btn-quick-avatar" title="Đổi ảnh đại diện">
+                <i class="fas fa-camera"></i>
+              </label>
+              <input type="file" id="sidebarAvatarInput" @change="handleFileChange" accept="image/*" hidden />
             </div>
             <h3>{{ userInfo.hoTen || 'Thành Viên' }}</h3>
             <p class="role-text">{{ isAdmin ? 'QUẢN TRỊ VIÊN' : 'THÀNH VIÊN VVIP' }}</p>
@@ -45,6 +50,19 @@
             </div>
 
             <form class="profile-form" @submit.prevent="updateProfile">
+              
+              <!-- SECTION AVATAR TRONG FORM -->
+              <div class="avatar-form-section">
+                <div class="avatar-preview-box">
+                  <img :src="avatarPreview || getAvatarUrl(userInfo.anhDaiDien)" alt="Avatar Preview" />
+                  <label for="formAvatarInput" class="btn-change-avatar">
+                    <i class="fas fa-camera"></i>
+                  </label>
+                </div>
+                <input type="file" id="formAvatarInput" @change="handleFileChange" accept="image/*" hidden />
+                <span class="avatar-hint">Định dạng JPEG, PNG. Dung lượng tối đa 5MB</span>
+              </div>
+
               <div class="form-group">
                 <label>HỌ VÀ TÊN</label>
                 <input type="text" v-model="userInfo.hoTen" placeholder="Nhập họ và tên..." required />
@@ -186,12 +204,17 @@ const router = useRouter()
 // Tab hiện tại ('profile', 'history', 'appointments')
 const activeTab = ref('profile')
 
-// Thông tin người dùng
-const userInfo = ref({ maNguoiDung: '', hoTen: '', email: '', soDienThoai: '', diaChi: '' })
+// FIX 1: Đã sửa 'ẻmail' thành 'email' chuẩn chính tả
+const userInfo = ref({ maNguoiDung: '', hoTen: '', email: '', soDienThoai: '', diaChi: '', anhDaiDien: '' })
 const isAdmin = ref(false)
 const isUpdating = ref(false)
 const successMsg = ref('')
 const errorMsg = ref('')
+
+// Quản lý Avatar
+const avatarFile = ref(null)
+const avatarPreview = ref('')
+const defaultAvatar = 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
 
 // Quản lý Đơn hàng
 const historyOrders = ref([])
@@ -201,49 +224,54 @@ const appointments = ref([])
 const selectedStatus = ref('ALL')
 const isLoadingAppointments = ref(false)
 
-// Khởi tạo thông tin người dùng khi Mounted
+// FIX 2: Đồng bộ tự động dữ liệu mới nhất từ Database khi Mounted
 onMounted(async () => {
   let userStr = localStorage.getItem('user')
-  let user = null
+  let localUser = null
 
   if (userStr) {
     try {
-      user = JSON.parse(userStr)
+      localUser = JSON.parse(userStr)
     } catch (e) {
       console.error(e)
     }
   }
 
-  if (!user || !user.email) {
-    try {
-      const res = await axios.get('http://localhost:8080/api/auth/me', { withCredentials: true })
-      if (res.data && res.data.email) {
-        user = res.data
-        localStorage.setItem('user', JSON.stringify(user))
-      }
-    } catch (err) {
-      console.error('Lỗi khi tải thông tin người dùng từ Backend:', err)
-    }
-  }
+  const userId = localUser?.maNguoiDung || localUser?.id
 
-  if (!user || (!user.email && !user.hoTen)) {
+  if (!userId) {
     router.push('/dang-nhap')
     return
   }
 
+  // Luôn ưu tiên fetch dữ liệu mới nhất từ Backend về để đảm bảo không mất thông tin
+  try {
+    const res = await axios.get(`http://localhost:8080/api/admin/thanh-vien`)
+    if (res.data && Array.isArray(res.data)) {
+      const dbUser = res.data.find(u => u.maNguoiDung === Number(userId))
+      if (dbUser) {
+        localUser = { ...localUser, ...dbUser }
+        localStorage.setItem('user', JSON.stringify(localUser))
+      }
+    }
+  } catch (err) {
+    console.warn("Không thể tải bản ghi mới nhất từ server, dùng cache localStorage:", err)
+  }
+
   userInfo.value = {
-    maNguoiDung: user.maNguoiDung || user.id,
-    hoTen: user.hoTen || user.name || '',
-    email: user.email || '',
-    soDienThoai: user.soDienThoai || user.sdt || '',
-    diaChi: user.diaChi || ''
+    maNguoiDung: localUser.maNguoiDung || localUser.id,
+    hoTen: localUser.hoTen || localUser.name || '',
+    email: localUser.email || '',
+    soDienThoai: localUser.soDienThoai || localUser.sdt || '',
+    diaChi: localUser.diaChi || '',
+    anhDaiDien: localUser.anhDaiDien || localUser.avatar || ''
   }
 
   let roleName = ''
-  if (user.vaiTros && user.vaiTros.length > 0) {
-    roleName = user.vaiTros[0].tenVaiTro ? user.vaiTros[0].tenVaiTro.toUpperCase() : ''
-  } else if (user.vaiTro) {
-    roleName = user.vaiTro.toUpperCase()
+  if (localUser.vaiTros && localUser.vaiTros.length > 0) {
+    roleName = localUser.vaiTros[0].tenVaiTro ? localUser.vaiTros[0].tenVaiTro.toUpperCase() : ''
+  } else if (localUser.vaiTro) {
+    roleName = localUser.vaiTro.toUpperCase()
   }
 
   isAdmin.value = (roleName === 'ROLE_ADMIN' || roleName === 'ADMIN')
@@ -258,6 +286,23 @@ const switchTab = (tab) => {
   if (tab === 'appointments') {
     fetchAppointments()
   }
+}
+
+// Xử lý chọn ảnh đại diện
+const handleFileChange = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    avatarFile.value = file
+    avatarPreview.value = URL.createObjectURL(file)
+  }
+}
+
+// Trả về URL hoàn chỉnh cho Avatar
+const getAvatarUrl = (url) => {
+  if (avatarPreview.value) return avatarPreview.value
+  if (!url) return defaultAvatar
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  return `http://localhost:8080${url}`
 }
 
 // Lấy lịch sử mua hàng ĐÃ GIAO
@@ -278,32 +323,59 @@ const updateProfile = async () => {
   successMsg.value = ''
   errorMsg.value = ''
 
-  try {
-    const res = await fetch(`http://localhost:8080/api/admin/cap-nhat/${userInfo.value.maNguoiDung}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        hoTen: userInfo.value.hoTen,
-        soDienThoai: userInfo.value.soDienThoai,
-        diaChi: userInfo.value.diaChi
-      })
-    })
+  const userId = userInfo.value.maNguoiDung
+  if (!userId || userId === 'undefined') {
+    errorMsg.value = 'Không tìm thấy ID người dùng. Vui lòng đăng nhập lại!'
+    isUpdating.value = false
+    return
+  }
 
-    if (res.ok) {
-      const updatedUser = await res.json()
-      let currentUser = JSON.parse(localStorage.getItem('user'))
+  try {
+    const formData = new FormData()
+    formData.append('hoTen', userInfo.value.hoTen || '')
+    formData.append('soDienThoai', userInfo.value.soDienThoai || '')
+    formData.append('diaChi', userInfo.value.diaChi || '')
+    
+    if (avatarFile.value) {
+      formData.append('avatar', avatarFile.value)
+    }
+
+    const res = await axios.put(`http://localhost:8080/api/admin/cap-nhat/${userId}`, formData)
+
+    if (res.status === 200) {
+      const updatedUser = res.data
+      
+      userInfo.value.hoTen = updatedUser.hoTen
+      userInfo.value.soDienThoai = updatedUser.soDienThoai
+      userInfo.value.diaChi = updatedUser.diaChi
+      
+      if (updatedUser.anhDaiDien) {
+        userInfo.value.anhDaiDien = updatedUser.anhDaiDien + '?t=' + new Date().getTime()
+      }
+
+      // Cập nhật ghi đè chuẩn vào LocalStorage
+      let currentUser = JSON.parse(localStorage.getItem('user')) || {}
       currentUser.hoTen = updatedUser.hoTen
       currentUser.soDienThoai = updatedUser.soDienThoai
       currentUser.diaChi = updatedUser.diaChi
-
+      if (updatedUser.anhDaiDien) {
+        currentUser.anhDaiDien = userInfo.value.anhDaiDien
+      }
       localStorage.setItem('user', JSON.stringify(currentUser))
-      successMsg.value = 'Cập nhật thông tin thành công!'
-      window.dispatchEvent(new Event('user-updated')) // Cập nhật Header
-    } else {
-      errorMsg.value = `Lỗi Backend (Mã ${res.status})`
+
+      avatarFile.value = null
+      avatarPreview.value = ''
+      
+      successMsg.value = 'Cập nhật thông tin và ảnh đại diện thành công!'
+      window.dispatchEvent(new Event('user-updated'))
     }
   } catch (error) {
-    errorMsg.value = 'Không thể kết nối đến máy chủ.'
+    console.error("Lỗi cập nhật:", error)
+    if (error.response) {
+      errorMsg.value = `Lỗi Backend (${error.response.status}): ${typeof error.response.data === 'string' ? error.response.data : 'Lỗi xử lý hệ thống'}`
+    } else {
+      errorMsg.value = 'Không thể kết nối đến máy chủ.'
+    }
   } finally {
     isUpdating.value = false
   }
@@ -334,7 +406,7 @@ const fetchAppointments = async () => {
   }
 }
 
-// Hàm hủy lịch hẹn
+// Hủy lịch hẹn
 const cancelAppointment = async (id) => {
   if (confirm('Bạn có chắc chắn muốn hủy lịch hẹn này không?')) {
     try {
@@ -410,10 +482,42 @@ const formatDateTime = (dateStr) => {
 
 .profile-layout { display: grid; grid-template-columns: 280px 1fr; gap: 30px; align-items: start; }
 
-/* SIDEBAR */
+/* SIDEBAR & AVATAR */
 .profile-sidebar { background: #fff; border: 1px solid #eaeaea; padding: 30px 0; border-radius: 8px; }
 .user-avatar-box { text-align: center; padding: 0 20px 20px; border-bottom: 1px solid #eaeaea; }
-.avatar-circle { width: 70px; height: 70px; background: #cca15e; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 15px; }
+.avatar-circle { 
+  position: relative;
+  width: 85px; 
+  height: 85px; 
+  border-radius: 50%; 
+  margin: 0 auto 15px; 
+  border: 2px solid #cca15e;
+}
+.avatar-img { 
+  width: 100%; 
+  height: 100%; 
+  border-radius: 50%; 
+  object-fit: cover; 
+}
+.btn-quick-avatar {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #cca15e;
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  border: 2px solid #fff;
+  transition: 0.2s;
+}
+.btn-quick-avatar:hover { background: #362921; }
+
 .user-avatar-box h3 { font-size: 16px; color: #333; margin-bottom: 5px; font-weight: bold;}
 .role-text { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
 
@@ -429,12 +533,7 @@ const formatDateTime = (dateStr) => {
   align-items: center; 
   gap: 10px;
 }
-
-/* 🔥 THÊM ĐOẠN NÀY ĐỂ ÉP ĐỘ RỘNG ICON CỐ ĐỊNH LÀ 24PX */
-.profile-menu a i {
-  width: 24px;
-  text-align: center;
-}
+.profile-menu a i { width: 24px; text-align: center; }
 .profile-menu a.active { color: #cca15e; font-weight: 600; border-left-color: #cca15e; background: #fdfbf7; }
 .logout-link { color: #dc2626 !important; }
 
@@ -443,6 +542,48 @@ const formatDateTime = (dateStr) => {
 .content-header { margin-bottom: 30px; }
 .content-header h2 { font-size: 18px; color: #362921; font-weight: 700; margin-bottom: 8px; }
 .content-header p { font-size: 13px; color: #777; }
+
+/* FORM AVATAR SECTION */
+.avatar-form-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px dashed #eee;
+}
+.avatar-preview-box {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid #cca15e;
+}
+.avatar-preview-box img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.btn-change-avatar {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: #362921;
+  color: #fff;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  border: 2px solid #fff;
+  transition: 0.2s;
+}
+.btn-change-avatar:hover { background: #cca15e; }
+.avatar-hint { font-size: 12px; color: #888; margin-top: 10px; }
 
 /* FORM CÁ NHÂN */
 .form-group { margin-bottom: 20px; }
