@@ -3,7 +3,7 @@ package com.velora.website.Entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
-import java.util.List; // Thêm import List
+import java.util.List;
 
 @Entity
 @Table(name = "SanPham")
@@ -26,6 +26,7 @@ public class SanPham {
     private String moTaChiTiet;
     private String trangThai;
     private String gioiTinh;
+    private Integer thoiGianBaoHanh; // Thêm trường bảo hành
 
     public String getGioiTinh() {
         return gioiTinh;
@@ -47,7 +48,7 @@ public class SanPham {
     @JoinColumn(name = "ma_loai") // Khớp chính xác với tên cột ma_loai trong SQL
     private LoaiSanPham loaiSanPham;
 
-    // 🔥 BỔ SUNG: Quan hệ 1 - n với Thư Viện Ảnh (1 sản phẩm có nhiều ảnh chi tiết)
+    // Quan hệ 1 - n với Thư Viện Ảnh (1 sản phẩm có nhiều ảnh chi tiết)
     @OneToMany(mappedBy = "sanPham", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ThuVienAnh> thuVienAnhs;
 }

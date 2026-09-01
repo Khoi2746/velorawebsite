@@ -90,6 +90,11 @@
                 <span class="spec-label">Bộ sưu tập:</span>
                 <span class="spec-value">{{ product.loaiSanPham.tenLoai }}</span>
               </li>
+              <!-- THÊM: Hiển thị thời gian bảo hành rõ ràng trong bảng thông số kỹ thuật -->
+              <li>
+                <span class="spec-label">Bảo hành chính hãng:</span>
+                <span class="spec-value warranty-highlight">{{ product.thoiGianBaoHanh ? product.thoiGianBaoHanh + ' tháng' : '5 năm toàn cầu' }}</span>
+              </li>
               <li>
                 <span class="spec-label">Trạng thái:</span>
                 <span class="spec-value status-in-stock"
@@ -127,7 +132,7 @@
                   CHÍNH SÁCH BẢO HÀNH <span class="icon">+</span>
                 </div>
                 <div class="accordion-content">
-                  Bảo hành toàn cầu 5 năm chính hãng. Miễn phí bảo dưỡng lau dầu định kỳ trong 3 năm đầu tiên tại các trung tâm dịch vụ của Velora.
+                  Bảo hành toàn cầu {{ product.thoiGianBaoHanh ? (product.thoiGianBaoHanh / 12).toFixed(0) : '5' }} năm chính hãng. Miễn phí bảo dưỡng lau dầu định kỳ trong 3 năm đầu tiên tại các trung tâm dịch vụ cao cấp của Velora.
                 </div>
               </div>
               <div class="accordion-item">
@@ -443,6 +448,10 @@ onMounted(() => {
 .spec-value {
   font-weight: 600;
   color: #222;
+}
+
+.warranty-highlight {
+  color: #c5a880 !important;
 }
 
 .action-buttons-group {

@@ -50,7 +50,7 @@
                   <button class="btn-action edit" @click="openEditModal(category)" title="Chỉnh sửa">
                     <i class="fa-solid fa-pen"></i>
                   </button>
-                  <button class="btn-action delete" @click="deleteCategory(category.maLoai)" title="Xóa">
+                  <button class="btn-action delete" @click="confirmDeleteCategory(category.maLoai)" title="Xóa">
                     <i class="fa-solid fa-trash"></i>
                   </button>
                 </td>
@@ -73,7 +73,7 @@
       </main>
 
       <!-- MODAL THÊM / SỬA -->
-      <div v-if="showModal" class="modal-overlay">
+      <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
         <div class="modal-box">
           <div class="modal-header">
             <h3>{{ isEditMode ? 'Cập Nhật Loại Sản Phẩm' : 'Thêm Loại Sản Phẩm Mới' }}</h3>
@@ -97,6 +97,34 @@
           </form>
         </div>
       </div>
+
+      <!-- POPUP THÔNG BÁO VVIP DARK MODE -->
+      <div v-if="messageModal.show" class="velora-modal-overlay" @click.self="messageModal.show = false">
+        <div class="velora-modal-card">
+          <div class="modal-icon-wrapper" :class="messageModal.type">
+            <span class="icon-symbol">{{ messageModal.type === 'success' ? '✓' : '✕' }}</span>
+          </div>
+          <h3 class="modal-title">{{ messageModal.type === 'success' ? 'THÀNH CÔNG' : 'THÔNG BÁO LỖI' }}</h3>
+          <p class="modal-desc">{{ messageModal.text }}</p>
+          <button class="modal-btn-close" @click="messageModal.show = false">ĐÓNG</button>
+        </div>
+      </div>
+
+      <!-- MODAL XÁC NHẬN XÓA VVIP DARK MODE -->
+      <div v-if="showDeleteConfirmModal" class="velora-modal-overlay" @click.self="showDeleteConfirmModal = false">
+        <div class="velora-modal-card">
+          <div class="modal-icon-wrapper error">
+            <span class="icon-symbol">✕</span>
+          </div>
+          <h3 class="modal-title">XÁC NHẬN XÓA</h3>
+          <p class="modal-desc">BẠN CÓ CHẮC CHẮN MUỐN XÓA LOẠI SẢN PHẨM #{{ categoryToDeleteId }} KHÔNG? THAO TÁC NÀY SẼ ẢNH HƯỞNG ĐẾN DỮ LIỆU LIÊN KẾT!</p>
+          <div style="display: flex; gap: 10px; justify-content: center;">
+            <button class="modal-btn-close" style="background: transparent; border: 1px solid #cca15e; color: #cca15e;" @click="showDeleteConfirmModal = false">GIỮ LẠI</button>
+            <button class="modal-btn-close" style="background: #d9534f; color: white;" @click="executeDeleteCategory">XÁC NHẬN XÓA</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -123,6 +151,21 @@ const searchQuery = ref('');
 const showModal = ref(false);
 const isEditMode = ref(false);
 const currentCategoryId = ref(null);
+
+// Biến quản lý popup thông báo VVIP
+const messageModal = ref({
+    show: false,
+    type: 'success', 
+    text: ''
+});
+
+const showPopup = (text, type = 'success') => {
+    messageModal.value = { show: true, type, text };
+};
+
+// Biến quản lý modal xác nhận xóa VVIP
+const showDeleteConfirmModal = ref(false);
+const categoryToDeleteId = ref(null);
 
 const defaultForm = {
   tenLoai: '',
@@ -217,36 +260,48 @@ const saveCategory = async () => {
     });
 
     if (res.ok) {
-      alert(isEditMode.value ? 'Cập nhật loại sản phẩm thành công!' : 'Thêm loại sản phẩm mới thành công!');
+      showPopup(isEditMode.value ? 'CẬP NHẬT LOẠI SẢN PHẨM THÀNH CÔNG!' : 'THÊM LOẠI SẢN PHẨM MỚI THÀNH CÔNG!', 'success');
       closeModal();
       loadCategories();
     } else {
       const errorText = await res.text();
-      alert(`Lỗi hệ thống: ${errorText || 'Không thể lưu, vui lòng kiểm tra lại dữ liệu.'}`);
+      let displayMsg = errorText || 'Không thể lưu, vui lòng kiểm tra lại dữ liệu.';
+      if (errorText.includes('Violation of UNIQUE KEY constraint') || errorText.includes('duplicate key')) {
+        displayMsg = 'TÊN LOẠI SẢN PHẨM ĐÃ TỒN TẠI TRONG HỆ THỐNG!';
+      }
+      showPopup(displayMsg, 'error');
     }
   } catch (error) {
     console.error('Lỗi khi gửi dữ liệu loại sản phẩm:', error);
+    showPopup('ĐÃ XẢY RA LỖI KẾT NỐI HỆ THỐNG.', 'error');
   }
 };
 
-const deleteCategory = async (id) => {
-  if (confirm(`Bạn chắc chắn muốn xóa loại sản phẩm #${id}? Thao tác này sẽ mất dữ liệu liên kết!`)) {
-    try {
-      const res = await fetch(`${CAT_API_URL}/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        alert('Xóa loại sản phẩm thành công!');
-        if (paginatedCategories.value.length === 1 && currentPage.value > 1) {
-          currentPage.value--;
-        }
-        loadCategories();
-      } else {
-        alert('Xóa thất bại! Loại sản phẩm này có thể đang được sử dụng ở bảng Sản Phẩm.');
+const confirmDeleteCategory = (id) => {
+  categoryToDeleteId.value = id;
+  showDeleteConfirmModal.value = true;
+};
+
+const executeDeleteCategory = async () => {
+  if (!categoryToDeleteId.value) return;
+  try {
+    const res = await fetch(`${CAT_API_URL}/${categoryToDeleteId.value}`, {
+      method: 'DELETE'
+    });
+    showDeleteConfirmModal.value = false;
+    if (res.ok) {
+      showPopup('XÓA LOẠI SẢN PHẨM THÀNH CÔNG!', 'success');
+      if (paginatedCategories.value.length === 1 && currentPage.value > 1) {
+        currentPage.value--;
       }
-    } catch (error) {
-      console.error('Lỗi xóa loại sản phẩm:', error);
+      loadCategories();
+    } else {
+      showPopup('XÓA THẤT BẠI! LOẠI SẢN PHẨM NÀY CÓ THỂ ĐANG ĐƯỢC SỬ DỤNG Ở BẢNG SẢN PHẨM.', 'error');
     }
+  } catch (error) {
+    showDeleteConfirmModal.value = false;
+    console.error('Lỗi xóa loại sản phẩm:', error);
+    showPopup('ĐÃ XẢY RA LỖI KẾT NỐI KHI XÓA.', 'error');
   }
 };
 
@@ -372,7 +427,7 @@ onMounted(() => {
 
 /* --- Table --- */
 .table-panel {
-  padding: 0; /* Remove padding to let table take full width */
+  padding: 0; 
   overflow: hidden;
 }
 
@@ -488,7 +543,7 @@ onMounted(() => {
 }
 
 /* ==============================================
-   VIẾT THÊM CSS MODAL XUỐNG DƯỚI ĐÂY ĐỂ ĐÈ LÊN CSS CŨ
+   MODAL NHẬP LIỆU CHÍNH
    ============================================== */
 .modal-overlay {
   position: fixed;
@@ -595,5 +650,88 @@ onMounted(() => {
 
 .btn-submit:hover {
   opacity: 0.9;
+}
+
+/* ==============================================
+   CSS POPUP VVIP DARK MODE (THÔNG BÁO & XÁC NHẬN XÓA)
+   ============================================== */
+.velora-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+.velora-modal-card {
+    background: #231c18;
+    border: 1px solid #cca15e;
+    width: 420px;
+    max-width: 90%;
+    padding: 35px 25px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    color: #f8f6f0;
+}
+
+.modal-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin: 0 auto 20px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: bold;
+}
+
+.modal-icon-wrapper.success {
+    background: rgba(204, 161, 94, 0.15);
+    border: 2px solid #cca15e;
+    color: #cca15e;
+}
+
+.modal-icon-wrapper.error {
+    background: rgba(217, 83, 79, 0.15);
+    border: 2px solid #d9534f;
+    color: #d9534f;
+}
+
+.modal-title {
+    font-size: 18px;
+    letter-spacing: 1.5px;
+    color: #cca15e;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.modal-desc {
+    font-size: 14px;
+    color: #dcd6cd;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    word-break: break-word;
+}
+
+.modal-btn-close {
+    background: #cca15e;
+    color: #1a1412;
+    border: none;
+    padding: 12px 35px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+
+.modal-btn-close:hover {
+    background: #dfb775;
+    box-shadow: 0 0 10px rgba(204, 161, 94, 0.4);
 }
 </style>

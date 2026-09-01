@@ -79,7 +79,7 @@ public class SanPhamController {
     }
 
     // 1. Thêm sản phẩm mới 
-@PostMapping
+    @PostMapping
     public ResponseEntity<?> createProduct(@RequestBody SanPham sanPham) {
         try {
             // Kiểm tra validate tên sản phẩm
@@ -94,7 +94,13 @@ public class SanPhamController {
                         .replaceAll("\\s+", "-");        // Thay khoảng trắng bằng dấu -
                 sanPham.setDuongDanSlug(slug);
             }
-                sanPham.setGioiTinh(sanPham.getGioiTinh());
+            sanPham.setGioiTinh(sanPham.getGioiTinh());
+            
+            // BẢO HÀNH MẶC ĐỊNH NẾU NULL
+            if (sanPham.getThoiGianBaoHanh() == null) {
+                sanPham.setThoiGianBaoHanh(12);
+            }
+
             // PHÒNG NGỪA CÁC TRƯỜNG TEXT KHÁC BỊ NULL
             if (sanPham.getLoaiMay() == null) sanPham.setLoaiMay("Automatic");
             if (sanPham.getChatLieuDay() == null) sanPham.setChatLieuDay("Thép không gỉ");
@@ -131,7 +137,7 @@ public class SanPhamController {
         }
     }
 
-    // 2. Chỉnh sửa thông tin sản phẩm (ĐÃ SỬA: THÊM CẬP NHẬT DANH MỤC VÀ LOẠI SẢN PHẨM)
+    // 2. Chỉnh sửa thông tin sản phẩm (ĐÃ THÊM BẢO HÀNH)
     @PutMapping("/{id}")
     public ResponseEntity<?> updateProduct(@PathVariable Integer id, @RequestBody SanPham productDetails) {
         return sanPhamRepository.findById(id).map(sanPham -> {
@@ -139,6 +145,9 @@ public class SanPhamController {
             sanPham.setGiaBan(productDetails.getGiaBan());
             sanPham.setAnhDaiDien(productDetails.getAnhDaiDien());
             sanPham.setTrangThai(productDetails.getTrangThai());
+            
+            // CẬP NHẬT THỜI GIAN BẢO HÀNH
+            sanPham.setThoiGianBaoHanh(productDetails.getThoiGianBaoHanh());
             
             // Cập nhật Danh mục chính từ dữ liệu Vue gửi lên
             if (productDetails.getDanhMuc() != null && productDetails.getDanhMuc().getMaDanhMuc() != null) {
@@ -158,8 +167,6 @@ public class SanPhamController {
                     .replaceAll("\\s+", "-");
             sanPham.setDuongDanSlug(slug);
             
-            // KHÔNG setSoLuongTonKho ở đây để bảo toàn số lượng cũ trong Database
-            
             SanPham updatedProduct = sanPhamRepository.save(sanPham);
             return ResponseEntity.ok(updatedProduct);
         }).orElse(ResponseEntity.notFound().build());
@@ -173,6 +180,4 @@ public class SanPhamController {
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
     }
-
-    
 }

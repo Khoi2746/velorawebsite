@@ -11,9 +11,13 @@
           </div>
         </div>
 
+        <!-- THANH BỘ LỌC ĐƯỢC TỐI ƯU GIAO DIỆN -->
         <div class="filter-bar">
           <div class="custom-dropdown" :class="{ active: activeDropdown === 'price' }" @click="toggleDropdown('price')">
-            <div class="dropdown-selected">{{ filters.priceText || 'KHOẢNG GIÁ' }}</div>
+            <div class="dropdown-selected">
+              <span>{{ filters.priceText || 'KHOẢNG GIÁ' }}</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'price'">
                 <div class="option-item" @click.stop="selectOption('price', '', 'KHOẢNG GIÁ')">KHOẢNG GIÁ</div>
@@ -25,7 +29,10 @@
           </div>
 
           <div class="custom-dropdown" :class="{ active: activeDropdown === 'brand' }" @click="toggleDropdown('brand')">
-            <div class="dropdown-selected">{{ filters.brandText || 'THƯƠNG HIỆU' }}</div>
+            <div class="dropdown-selected">
+              <span>{{ filters.brandText || 'THƯƠNG HIỆU' }}</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'brand'">
                 <div class="option-item" @click.stop="selectOption('brand', '', 'THƯƠNG HIỆU')">THƯƠNG HIỆU</div>
@@ -37,7 +44,10 @@
           </div>
 
           <div class="custom-dropdown" :class="{ active: activeDropdown === 'category' }" @click="toggleDropdown('category')">
-            <div class="dropdown-selected">{{ filters.categoryText || 'LOẠI SẢN PHẨM' }}</div>
+            <div class="dropdown-selected">
+              <span>{{ filters.categoryText || 'LOẠI SẢN PHẨM' }}</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'category'">
                 <div class="option-item" @click.stop="selectOption('category', '', 'LOẠI SẢN PHẨM')">LOẠI SẢN PHẨM</div>
@@ -49,7 +59,10 @@
           </div>
 
           <div class="custom-dropdown" :class="{ active: activeDropdown === 'gender' }" @click="toggleDropdown('gender')">
-            <div class="dropdown-selected">{{ filters.genderText || 'GIỚI TÍNH' }}</div>
+            <div class="dropdown-selected">
+              <span>{{ filters.genderText || 'GIỚI TÍNH' }}</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
             <Transition name="luxe-fade-slide">
               <div class="dropdown-options" v-show="activeDropdown === 'gender'">
                 <div class="option-item" @click.stop="selectOption('gender', '', 'GIỚI TÍNH')">GIỚI TÍNH</div>
@@ -79,7 +92,12 @@
                 </router-link>
 
                 <div class="product-price">
-                  {{ product.giaBan > 100000000 ? 'Liên hệ để biết thêm chi tiết' : formatPrice(product.giaBan) }}
+                  {{ product.giaBan > 100000000 ? 'Liên hệ báo giá' : formatPrice(product.giaBan) }}
+                </div>
+
+                <!-- BỔ SUNG: Hiển thị thông tin Bảo hành ở đây cho khách nhìn thấy trực quan -->
+                <div class="product-warranty" v-if="product.thoiGianBaoHanh">
+                  <i class="fa-solid fa-shield-halved"></i> Bảo hành chính hãng: <b>{{ product.thoiGianBaoHanh }} tháng</b>
                 </div>
               </div>
 
@@ -223,18 +241,6 @@ const applyFilters = () => {
   currentPage.value = 1 
 }
 
-const clearFilter = () => {
-  filters.value = {
-    search: '', 
-    price: '', priceText: '',
-    brand: '', brandText: '',
-    category: '', categoryText: '',
-    gender: '', genderText: ''
-  }
-  router.replace({ query: {} })
-  applyFilters()
-}
-
 const selectOption = (type, value, text) => {
   filters.value[type] = value
   filters.value[`${type}Text`] = text
@@ -309,6 +315,37 @@ onUnmounted(() => {
   document.removeEventListener('click', closeDropdowns)
 })
 </script>
+
+<style scoped>
+/* GIAO DIỆN BỔ SUNG ĐỂ HIỂN THỊ THÔNG TIN BẢO HÀNH & TINH CHỈNH GỌN GÀNG */
+.product-warranty {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.product-warranty i {
+  color: #c5a059; /* Màu ánh kim đặc trưng cho website đồng hồ */
+}
+
+.custom-dropdown .dropdown-selected {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.custom-dropdown .dropdown-selected i {
+  font-size: 0.75rem;
+  transition: transform 0.3s ease;
+}
+
+.custom-dropdown.active .dropdown-selected i {
+  transform: rotate(180deg);
+}
+</style>
 
 <style scoped>
 @import "../CSS/User/SanPham.css";

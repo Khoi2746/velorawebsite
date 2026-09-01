@@ -46,6 +46,9 @@ public class BaoHanh {
     @Column(name = "NgayGui", nullable = false, updatable = false)
     private LocalDateTime ngayGui;
 
+    @Column(name = "HinhThucGiaoNhan", length = 100)
+    private String hinhThucGiaoNhan;
+
     // Đã đổi sang kiểu String để khớp với NVARCHAR(100) dưới DB
     @Column(name = "ThoiGianHen", length = 100)
     private String thoiGianHen;

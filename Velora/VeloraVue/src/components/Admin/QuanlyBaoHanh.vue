@@ -74,41 +74,45 @@
 
     <td>{{ formatDate(item.ngayGui) }}</td>
     <td>
-      <span
-        class="status-badge"
-        :class="{
-          pending: item.trangThai === 'CHO_XU_LY',
-          received: item.trangThai === 'DA_TIEP_NHAN',
-          reschedule: item.trangThai === 'YEU_CAU_DOI_LICH',
-          processing: item.trangThai === 'DANG_XU_LY',
-          completed: item.trangThai === 'HOAN_TAT',
-          rejected: item.trangThai === 'TU_CHOI'
-        }"
-      >
-        {{ getStatusText(item.trangThai) }}
-      </span>
-    </td>
-    <td>
-      <div class="action-cell">
-        <div class="datetime-wrapper" v-if="['DA_TIEP_NHAN', 'CHO_XU_LY', 'YEU_CAU_DOI_LICH'].includes(item.trangThai)">
-          <label class="input-label">Lịch hẹn đề xuất:</label>
-          <input type="datetime-local" v-model="item.thoiGianHenInput" class="input-datetime" />
-        </div>
+  <span
+    class="status-badge"
+    :class="{
+      pending: item.trangThai === 'CHO_XU_LY',
+      proposed: item.trangThai === 'DA_DE_XUAT_LICH',
+      received: item.trangThai === 'DA_TIEP_NHAN',
+      reschedule: item.trangThai === 'YEU_CAU_DOI_LICH',
+      processing: item.trangThai === 'DANG_SUA_CHUA',
+      completed: item.trangThai === 'HOAN_TAT',
+      cancelled: item.trangThai === 'DA_HUY',
+      rejected: item.trangThai === 'TU_CHOI'
+    }"
+  >
+    {{ getStatusText(item.trangThai) }}
+  </span>
+</td>
+<td>
+  <div class="action-cell">
+    <div class="datetime-wrapper" v-if="canProposeSchedule(item.trangThai)">
+      <label class="input-label">Lịch hẹn đề xuất:</label>
+      <input type="datetime-local" v-model="item.thoiGianHenInput" class="input-datetime" />
+    </div>
 
-        <select v-model="item.trangThai" class="status-select">
-          <option value="CHO_XU_LY">Chờ xử lý</option>
-          <option value="DA_TIEP_NHAN">Đã tiếp nhận (Gửi lịch hẹn)</option>
-          <option value="YEU_CAU_DOI_LICH">Yêu cầu đổi lịch</option>
-          <option value="DANG_XU_LY">Đang xử lý kỹ thuật</option>
-          <option value="HOAN_TAT">Hoàn tất</option>
-          <option value="TU_CHOI">Từ chối</option>
-        </select>
+    <select v-model="item.trangThai" class="status-select">
+      <option :value="item.trangThai" disabled>{{ getStatusText(item.trangThai) }} (hiện tại)</option>
+      <option v-for="opt in nextOptions(item.trangThai)" :key="opt" :value="opt">
+        {{ getStatusText(opt) }}
+      </option>
+    </select>
 
-        <button class="btn-confirm" @click="updateStatus(item)">
-          Cập nhật & Gửi Email
-        </button>
-      </div>
-    </td>
+    <button 
+  class="btn-confirm" 
+  @click="updateStatus(item)" 
+  :disabled="submittingIds.has(item.maBaoHanh) || item.trangThai === item.originalTrangThai"
+>
+  {{ submittingIds.has(item.maBaoHanh) ? 'Đang xử lý...' : 'Cập nhật & Gửi Email' }}
+</button>
+  </div>
+</td>
   </tr>
               <tr v-if="warrantyRequests.length === 0">
                 <td colspan="7" class="empty-state">Không có yêu cầu bảo hành nào trong hệ thống.</td>
@@ -163,7 +167,8 @@ const message = ref(null)
 
 const currentPage = ref(1)
 const itemsPerPage = ref(5)
-
+// Thêm vào trong script setup
+const submittingIds = ref(new Set())
 const totalPages = computed(() => {
   return Math.max(Math.ceil(warrantyRequests.value.length / itemsPerPage.value), 1)
 })
@@ -248,10 +253,11 @@ const fetchWarrantyRequests = async () => {
     const response = await axios.get(API)
     const data = response.data
     
-    warrantyRequests.value = data.map(item => ({
-      ...item,
-      thoiGianHenInput: item.thoiGianHen ? item.thoiGianHen.substring(0, 16) : ''
-    }))
+warrantyRequests.value = data.map(item => ({
+  ...item,
+  originalTrangThai: item.trangThai,
+  thoiGianHenInput: item.thoiGianHen ? item.thoiGianHen.substring(0, 16) : ''
+}))
   } catch (e) {
     console.error(e)
     message.value = {
@@ -263,39 +269,54 @@ const fetchWarrantyRequests = async () => {
 }
 
 const updateStatus = async (item) => {
+  if (item.trangThai === 'DA_DE_XUAT_LICH' && !item.thoiGianHenInput) {
+    message.value = { type: "error", text: "Vui lòng chọn thời gian hẹn trước khi đề xuất lịch." }
+    return
+  }
+  
+  submittingIds.value.add(item.maBaoHanh)
   try {
     const payload = {
       trangThai: item.trangThai,
-      ghiChuPhanHoi: item.ghiChuPhanHoi || "",
-      thoiGianHen: item.thoiGianHenInput ? item.thoiGianHenInput : null
+      thoiGianHen: item.thoiGianHenInput || null
     }
-
     await axios.put(`http://localhost:8080/api/bao-hanh/${item.maBaoHanh}/status`, payload)
-    
-    // Thay alert thành thông báo nổi giữa màn hình
-    message.value = {
-      type: "success",
-      text: `Đã cập nhật đơn #${item.maBaoHanh} và gửi thông báo thành công!`
-    }
-    
+    message.value = { type: "success", text: `Đã cập nhật đơn #${item.maBaoHanh} và gửi thông báo thành công!` }
     await fetchWarrantyRequests()
   } catch (err) {
-    console.error(err)
-    message.value = {
-      type: "error",
-      text: "Cập nhật thất bại, vui lòng thử lại."
-    }
+    const msg = err.response?.data?.message || "Cập nhật thất bại, vui lòng thử lại."
+    message.value = { type: "error", text: msg }
+  } finally {
+    submittingIds.value.delete(item.maBaoHanh)
   }
 }
 
+const ADMIN_TRANSITIONS = {
+  CHO_XU_LY: ['DA_DE_XUAT_LICH', 'TU_CHOI'],
+  DA_DE_XUAT_LICH: ['TU_CHOI'],
+  YEU_CAU_DOI_LICH: ['DA_DE_XUAT_LICH', 'TU_CHOI'],
+  DA_TIEP_NHAN: ['DANG_SUA_CHUA'],
+  DANG_SUA_CHUA: ['HOAN_TAT'],
+  HOAN_TAT: [],
+  DA_HUY: [],
+  TU_CHOI: []
+}
+
+const nextOptions = (current) => ADMIN_TRANSITIONS[current] || []
+
+const canProposeSchedule = (current) =>
+  ['CHO_XU_LY', 'YEU_CAU_DOI_LICH'].includes(current)
+
 const getStatusText = (status) => {
-  switch(status){
+  switch (status) {
     case "CHO_XU_LY": return "Chờ xử lý"
-    case "DA_TIEP_NHAN": return "Đã tiếp nhận"
+    case "DA_DE_XUAT_LICH": return "Đã đề xuất lịch"
+    case "DA_TIEP_NHAN": return "Khách đã xác nhận"
     case "YEU_CAU_DOI_LICH": return "Yêu cầu đổi lịch"
-    case "DANG_XU_LY": return "Đang xử lý"
+    case "DANG_SUA_CHUA": return "Đang xử lý kỹ thuật"
     case "HOAN_TAT": return "Hoàn tất"
-    case "TU_CHOI": return "Từ chối"
+    case "DA_HUY": return "Khách đã hủy"
+    case "TU_CHOI": return "Đã từ chối"
     default: return status
   }
 }
@@ -306,6 +327,65 @@ onMounted(() => {
 </script>
 
 <style>
+.status-badge {
+  display: inline-block;
+  padding: 5px 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.status-badge.pending {
+  color: #cca15e;
+  border-color: #cca15e;
+  background: rgba(204, 161, 94, 0.1);
+}
+
+.status-badge.proposed {
+  color: #63b3ed;
+  border-color: #63b3ed;
+  background: rgba(99, 179, 237, 0.1);
+}
+
+.status-badge.received {
+  color: #48bb78;
+  border-color: #48bb78;
+  background: rgba(72, 187, 120, 0.1);
+}
+
+.status-badge.reschedule {
+  color: #f6ad55;
+  border-color: #f6ad55;
+  background: rgba(246, 173, 85, 0.1);
+}
+
+.status-badge.processing {
+  color: #b794f4;
+  border-color: #b794f4;
+  background: rgba(183, 148, 244, 0.1);
+}
+
+.status-badge.completed {
+  color: #1a1614;
+  border-color: #48bb78;
+  background: #48bb78;
+}
+
+.status-badge.cancelled {
+  color: #a0aec0;
+  border-color: #a0aec0;
+  background: rgba(160, 174, 192, 0.08);
+}
+
+.status-badge.rejected {
+  color: #fc8181;
+  border-color: #fc8181;
+  background: rgba(252, 129, 129, 0.1);
+}
 :root {
   --wood-dark: #362921;
   --wood-active: #47372c;

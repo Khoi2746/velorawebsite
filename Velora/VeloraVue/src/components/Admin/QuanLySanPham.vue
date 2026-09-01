@@ -7,7 +7,7 @@
             <!-- 2. GỌI COMPONENT HEADER MỚI -->
             <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-            <!-- 3. NỘI DUNG CHÍNH (Giữ nguyên 100% logic của ku em) -->
+            <!-- 3. NỘI DUNG CHÍNH -->
             <main class="content">
                 <header class="header">
                     <div class="header-left">
@@ -24,7 +24,8 @@
                 <section class="filter-wrapper">
                     <div class="search-box">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" :value="searchQuery" @input="searchQuery = $event.target.value; currentPage = 1"
+                        <input type="text" :value="searchQuery"
+                            @input="searchQuery = $event.target.value; currentPage = 1"
                             placeholder="Tìm kiếm theo mã ID hoặc tên sản phẩm..." />
                     </div>
                     <div class="filter-boxes">
@@ -60,6 +61,7 @@
                                 <th>Giá Bán</th>
                                 <th>Tồn Kho</th>
                                 <th>Giới tính</th>
+                                <th>Bảo Hành</th> <!-- Thêm cột Bảo Hành -->
                                 <th>Trạng Thái</th>
                                 <th>Hành Động</th>
                             </tr>
@@ -89,6 +91,9 @@
                                 </td>
                                 <td>{{ product.gioiTinh }}</td>
 
+                                <!-- Hiển thị thông tin bảo hành -->
+                                <td>{{ product.thoiGianBaoHanh ? `${product.thoiGianBaoHanh} tháng` : 'Không có' }}</td>
+
                                 <td>
                                     <span class="status-badge"
                                         :class="product.trangThai === 'CON_HANG' ? 'in-stock' : 'out-stock'">
@@ -100,18 +105,20 @@
                                     <button class="btn-action edit" @click="openEditModal(product)" title="Chỉnh sửa">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
-                                    <button class="btn-action delete" @click="deleteProduct(product.maSanPham)" title="Xóa">
+                                    <!-- Thay thế gọi deleteProduct(product.maSanPham) thành: -->
+                                    <button class="btn-action delete" @click="confirmDeleteProduct(product.maSanPham)"
+                                        title="Xóa">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </td>
                             </tr>
                             <tr v-if="filteredProducts.length === 0">
-                                <td colspan="10" class="empty-state">Không tìm thấy sản phẩm nào phù hợp.</td>
+                                <td colspan="11" class="empty-state">Không tìm thấy sản phẩm nào phù hợp.</td>
                             </tr>
                         </tbody>
                     </table>
                 </section>
-                
+
                 <div class="pagination-controls"
                     style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;">
                     <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
@@ -134,7 +141,8 @@
                     <form @submit.prevent="saveProduct">
                         <div class="form-group">
                             <label>Tên sản phẩm *</label>
-                            <input type="text" v-model="form.tenSanPham" required placeholder="Ví dụ: Rolex Cosmograph" />
+                            <input type="text" v-model="form.tenSanPham" required
+                                placeholder="Ví dụ: Rolex Cosmograph" />
                         </div>
 
                         <div class="form-group">
@@ -156,7 +164,7 @@
                                 </option>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>Giới tính *</label>
                             <select v-model="form.gioiTinh" required>
@@ -166,7 +174,14 @@
                                 <option value="Unisex">Unisex</option>
                             </select>
                         </div>
-                        
+
+                        <!-- Input thêm thời gian bảo hành (tháng) -->
+                        <div class="form-group">
+                            <label>Thời gian bảo hành (tháng)</label>
+                            <input type="number" v-model.number="form.thoiGianBaoHanh" min="0"
+                                placeholder="Ví dụ: 24" />
+                        </div>
+
                         <div class="form-group">
                             <label>Giá bán (VNĐ) *</label>
                             <input type="number" v-model.number="form.giaBan" required min="0" />
@@ -198,40 +213,64 @@
                 </div>
             </div>
         </div>
-    </div>  
+    </div>
+    <!-- Popup Thông Báo VVIP Dark Mode -->
+    <div v-if="messageModal.show" class="velora-modal-overlay" @click.self="messageModal.show = false">
+        <div class="velora-modal-card">
+            <div class="modal-icon-wrapper" :class="messageModal.type">
+                <span class="icon-symbol">{{ messageModal.type === 'success' ? '✓' : '✕' }}</span>
+            </div>
+            <h3 class="modal-title">{{ messageModal.type === 'success' ? 'THÀNH CÔNG' : 'THÔNG BÁO LỖI' }}</h3>
+            <p class="modal-desc">{{ messageModal.text }}</p>
+            <button class="modal-btn-close" @click="messageModal.show = false">ĐÓNG</button>
+        </div>
+    </div>
+    <!-- Modal Xác Nhận Xóa VVIP Dark Mode -->
+    <div v-if="showDeleteConfirmModal" class="velora-modal-overlay" @click.self="showDeleteConfirmModal = false">
+        <div class="velora-modal-card">
+            <div class="modal-icon-wrapper error">
+                <span class="icon-symbol">✕</span>
+            </div>
+            <h3 class="modal-title">XÁC NHẬN XÓA</h3>
+            <p class="modal-desc">BẠN CÓ CHẮC CHẮN MUỐN XÓA SẢN PHẨM #{{ productToDeleteId }} KHÔNG? HÀNH ĐỘNG NÀY KHÔNG
+                THỂ HOÀN TÁC.</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="modal-btn-close"
+                    style="background: transparent; border: 1px solid #cca15e; color: #cca15e;"
+                    @click="showDeleteConfirmModal = false">GIỮ LẠI</button>
+                <button class="modal-btn-close" style="background: #d9534f; color: white;"
+                    @click="executeDeleteProduct">XÁC NHẬN XÓA</button>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 
-// IMPORT COMPONENT CON VÀO ĐÂY
+// IMPORT COMPONENT CON
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
-// ================= LOGIC ĐIỀU KHIỂN LAYOUT CHUNG =================
 const isCollapsed = ref(false);
 
 const toggleSidebar = () => {
     isCollapsed.value = !isCollapsed.value;
 };
 
-// ================= LOGIC DỮ LIỆU CŨ (Giữ nguyên 100%) =================
 const currentPage = ref(1);
-const itemsPerPage = 10; // Số sản phẩm mỗi trang
+const itemsPerPage = 10;
 
-// Tạo danh sách đã phân trang từ filteredProducts
 const paginatedProducts = computed(() => {
     const start = (currentPage.value - 1) * itemsPerPage;
     const end = start + itemsPerPage;
     return filteredProducts.value.slice(start, end);
 });
 
-// Tính tổng số trang
 const totalPages = computed(() => {
     return Math.ceil(filteredProducts.value.length / itemsPerPage) || 1;
 });
 
-// Hàm chuyển trang
 const changePage = (page) => {
     if (page >= 1 && page <= totalPages.value) {
         currentPage.value = page;
@@ -245,7 +284,6 @@ const products = ref([]);
 const categories = ref([]);
 const mainCategories = ref([]);
 
-// State cho bộ tìm kiếm và lọc
 const searchQuery = ref('');
 const filterDanhMuc = ref('');
 const filterTrangThai = ref('');
@@ -253,16 +291,18 @@ const filterGioiTinh = ref('');
 const showModal = ref(false);
 const isEditMode = ref(false);
 const currentProductId = ref(null);
-const imagePreview = ref(''); // Lưu URL preview ảnh
+const imagePreview = ref('');
 
+// Bổ sung thoiGianBaoHanh vào form mặc định
 const defaultForm = {
     tenSanPham: '',
     giaBan: 0,
     anhDaiDien: '',
-    trangThai: 'CON_HANG', // Thêm mới mặc định vẫn gửi CON_HANG lên DB
+    trangThai: 'CON_HANG',
     maDanhMucSelected: '',
     maLoaiSelected: '',
-    gioiTinh: ''
+    gioiTinh: '',
+    thoiGianBaoHanh: 12 // Mặc định 12 tháng hoặc để trống
 };
 const form = ref({ ...defaultForm });
 
@@ -270,17 +310,11 @@ const filteredProducts = computed(() => {
     const query = searchQuery.value.toLowerCase().trim();
 
     return products.value.filter(product => {
-        // Loại bỏ dấu # nếu người dùng lỡ gõ vào ô tìm kiếm (vd: gõ "#3" thành "3")
         const cleanQuery = query.startsWith('#') ? query.slice(1) : query;
-
-        // 1. Kiểm tra chính xác ID (Bằng tuyệt đối) hoặc tìm theo tên (Gần đúng)
         const matchId = product.maSanPham != null && String(product.maSanPham) === cleanQuery;
         const matchName = product.tenSanPham ? product.tenSanPham.toLowerCase().includes(query) : false;
-        
-        // Nếu người dùng nhập vào, ưu tiên khớp chính xác ID hoặc khớp tên
-        const matchSearch = !query || matchId || matchName;
 
-        // 2. Các bộ lọc danh mục, trạng thái, giới tính
+        const matchSearch = !query || matchId || matchName;
         const matchDanhMuc = !filterDanhMuc.value || (product.danhMuc && product.danhMuc.maDanhMuc === Number(filterDanhMuc.value));
         const matchTrangThai = !filterTrangThai.value || product.trangThai === filterTrangThai.value;
         const matchGioiTinh = !filterGioiTinh.value || product.gioiTinh === filterGioiTinh.value;
@@ -288,13 +322,21 @@ const filteredProducts = computed(() => {
         return matchSearch && matchDanhMuc && matchTrangThai && matchGioiTinh;
     });
 });
+// Thêm biến quản lý popup thông báo VVIP
+const messageModal = ref({
+    show: false,
+    type: 'success', // 'success' hoặc 'error'
+    text: ''
+});
 
-// Xử lý sự kiện khi người dùng chọn file hình ảnh từ máy tính
+const showPopup = (text, type = 'success') => {
+    messageModal.value = { show: true, type, text };
+};
 const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-        form.value.anhDaiDien = file.name; // Trích xuất tên file (ví dụ: "dongho.png") đưa vào form gửi đi
-        imagePreview.value = URL.createObjectURL(file); // Tạo đường dẫn tạm thời để hiển thị xem trước
+        form.value.anhDaiDien = file.name;
+        imagePreview.value = URL.createObjectURL(file);
     }
 };
 
@@ -341,7 +383,7 @@ const openAddModal = () => {
     isEditMode.value = false;
     currentProductId.value = null;
     form.value = { ...defaultForm };
-    imagePreview.value = ''; // Reset ảnh preview
+    imagePreview.value = '';
     showModal.value = true;
 };
 
@@ -349,6 +391,7 @@ const openEditModal = (product) => {
     isEditMode.value = true;
     currentProductId.value = product.maSanPham;
 
+    // Gán dữ liệu bảo hành vào form khi sửa
     form.value = {
         tenSanPham: product.tenSanPham,
         giaBan: product.giaBan,
@@ -356,7 +399,8 @@ const openEditModal = (product) => {
         trangThai: product.trangThai,
         maDanhMucSelected: product.danhMuc ? product.danhMuc.maDanhMuc : '',
         maLoaiSelected: product.loaiSanPham ? product.loaiSanPham.maLoai : '',
-        gioiTinh: product.gioiTinh
+        gioiTinh: product.gioiTinh,
+        thoiGianBaoHanh: product.thoiGianBaoHanh || 0
     };
 
     imagePreview.value = product.anhDaiDien ? getImageUrl(product.anhDaiDien) : '';
@@ -372,12 +416,14 @@ const saveProduct = async () => {
         let url = API_URL;
         let method = 'POST';
 
+        // Đẩy thêm thuộc tính thoiGianBaoHanh vào DTO gửi lên Backend
         const dataToSend = {
             tenSanPham: form.value.tenSanPham,
             gioiTinh: form.value.gioiTinh,
             giaBan: form.value.giaBan,
             anhDaiDien: form.value.anhDaiDien,
             trangThai: form.value.trangThai,
+            thoiGianBaoHanh: form.value.thoiGianBaoHanh,
             danhMuc: form.value.maDanhMucSelected ? { maDanhMuc: Number(form.value.maDanhMucSelected) } : null
         };
 
@@ -401,12 +447,12 @@ const saveProduct = async () => {
         });
 
         if (res.ok) {
-            alert(isEditMode.value ? 'Cập nhật sản phẩm thành công!' : 'Thêm sản phẩm thành công!');
+            showPopup(isEditMode.value ? 'CẬP NHẬT SẢN PHẨM THÀNH CÔNG!' : 'THÊM SẢN PHẨM THÀNH CÔNG!', 'success');
             closeModal();
             loadProducts();
         } else {
             const errorText = await res.text();
-            alert(`Có lỗi xảy ra: ${errorText || 'Vui lòng kiểm tra lại dữ liệu.'}`);
+            showPopup(`CÓ LỖI XẢY RA: ${errorText || 'Vui lòng kiểm tra lại dữ liệu.'}`, 'error');
         }
     } catch (error) {
         console.error('Lỗi khi lưu sản phẩm:', error);
@@ -420,17 +466,45 @@ const deleteProduct = async (id) => {
                 method: 'DELETE'
             });
             if (res.ok) {
-                alert('Xóa sản phẩm thành công!');
+                showPopup('XÓA SẢN PHẨM THÀNH CÔNG!', 'success');
                 loadProducts();
             } else {
-                alert('Xóa thất bại. Sản phẩm có thể đang vướng đơn hàng!');
+                showPopup('XÓA THẤT BẠI. SẢN PHẨM CÓ THỂ ĐANG VƯỚNG ĐƠN HÀNG!', 'error');
             }
         } catch (error) {
             console.error('Lỗi khi xóa sản phẩm:', error);
+            showPopup('ĐÃ XẢY RA LỖI KẾT NỐI KHI XÓA SẢN PHẨM.', 'error');
         }
     }
 };
+// Biến quản lý modal xác nhận xóa
+const showDeleteConfirmModal = ref(false);
+const productToDeleteId = ref(null);
 
+const confirmDeleteProduct = (id) => {
+    productToDeleteId.value = id;
+    showDeleteConfirmModal.value = true;
+};
+
+const executeDeleteProduct = async () => {
+    if (!productToDeleteId.value) return;
+    try {
+        const res = await fetch(`${API_URL}/${productToDeleteId.value}`, {
+            method: 'DELETE'
+        });
+        showDeleteConfirmModal.value = false;
+        if (res.ok) {
+            showPopup('XÓA SẢN PHẨM THÀNH CÔNG!', 'success');
+            loadProducts();
+        } else {
+            showPopup('XÓA THẤT BẠI. SẢN PHẨM CÓ THỂ ĐANG VƯỚNG ĐƠN HÀNG!', 'error');
+        }
+    } catch (error) {
+        showDeleteConfirmModal.value = false;
+        console.error('Lỗi khi xóa sản phẩm:', error);
+        showPopup('ĐÃ XẢY RA LỖI KẾT NỐI KHI XÓA SẢN PHẨM.', 'error');
+    }
+};
 onMounted(() => {
     loadProducts();
     loadCategories();
@@ -519,7 +593,8 @@ onMounted(() => {
 .modal-box {
     background: #fff;
     border-radius: 8px;
-    width: 600px; /* Cho form to ra một chút để chứa hình ảnh đẹp hơn */
+    width: 600px;
+    /* Cho form to ra một chút để chứa hình ảnh đẹp hơn */
     max-width: 90%;
     max-height: 90vh;
     overflow-y: auto;
@@ -555,7 +630,7 @@ onMounted(() => {
     color: var(--wood-dark);
 }
 
-.form-group input, 
+.form-group input,
 .form-group select {
     width: 100%;
     padding: 10px;
@@ -564,7 +639,7 @@ onMounted(() => {
     font-family: inherit;
 }
 
-.form-group input:focus, 
+.form-group input:focus,
 .form-group select:focus {
     outline: none;
     border-color: var(--gold-matte);
@@ -602,6 +677,7 @@ onMounted(() => {
     color: #333;
     font-weight: bold;
 }
+
 .btn-cancel:hover {
     background: #e4e4e4;
 }
@@ -615,7 +691,91 @@ onMounted(() => {
     cursor: pointer;
     font-weight: bold;
 }
+
 .btn-submit:hover {
     background: var(--gold-matte);
+}
+
+/* ==============================================
+   CSS POPUP VVIP DARK MODE CHO QUẢN LÝ SẢN PHẨM
+   ============================================== */
+.velora-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+.velora-modal-card {
+    background: #231c18;
+    border: 1px solid #cca15e;
+    width: 420px;
+    max-width: 90%;
+    padding: 35px 25px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    color: #f8f6f0;
+}
+
+.modal-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin: 0 auto 20px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: bold;
+}
+
+.modal-icon-wrapper.success {
+    background: rgba(204, 161, 94, 0.15);
+    border: 2px solid #cca15e;
+    color: #cca15e;
+}
+
+.modal-icon-wrapper.error {
+    background: rgba(217, 83, 79, 0.15);
+    border: 2px solid #d9534f;
+    color: #d9534f;
+}
+
+.modal-title {
+    font-size: 18px;
+    letter-spacing: 1.5px;
+    color: #cca15e;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.modal-desc {
+    font-size: 14px;
+    color: #dcd6cd;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    word-break: break-word;
+}
+
+.modal-btn-close {
+    background: #cca15e;
+    color: #1a1412;
+    border: none;
+    padding: 12px 35px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+
+.modal-btn-close:hover {
+    background: #dfb775;
+    box-shadow: 0 0 10px rgba(204, 161, 94, 0.4);
 }
 </style>
