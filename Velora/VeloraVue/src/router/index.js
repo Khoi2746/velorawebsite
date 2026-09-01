@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 // Các file giao diện Người dùng (User)
+import BaiViet from '../components/User/BaiViet.vue'
 import HomeView from '../components/User/TrangChu.vue'
 import DangNhap from '../components/Login.vue'
 import DangKy from '../components/SignIn.vue'
@@ -55,6 +56,9 @@ const router = createRouter({
     { path: '/san-pham/:id', name: 'ChiTietSanPham', component: ChiTietSanPham },
     { path: '/lien-he-tu-van', name: 'LienHeTuVan', component: LienHeTuVan },
     { path: '/quen-mat-khau', name: 'QuenMatKhau', component: QuenMatKhau },
+    
+    // 🔥 CHỈ GIỮ LẠI ĐÚNG 1 FILE BÀI VIẾT THÔNG MINH NÀY (CHO CẢ KHÁCH LẪN ADMIN)
+    { path: '/bai-viet', name: 'BaiViet', component: BaiViet },
 
     // ROUTE THANH TOÁN, QUÉT MÃ QR & HOÀN TIỀN
     { path: '/checkout', name: 'Checkout', component: ThanhToanDonHang },
@@ -90,7 +94,6 @@ const router = createRouter({
     },
 
     // ================== TƯ VẤN VIÊN ==================
-    // Dùng chung link /admin/chat cho Sidebar đồng bộ nhé
     {
       path: '/admin/chat',
       name: 'TuVanKhachHang',
@@ -183,7 +186,7 @@ router.beforeEach(async (to, from, next) => {
       return next('/dang-nhap');
     }
   } else {
-    // Nếu vào trang thường thì thả cửa cho đi qua (Check khóa đã có ở trên lo)
+    // Nếu vào trang thường thì thả cửa cho đi qua
     next();
   }
 });
