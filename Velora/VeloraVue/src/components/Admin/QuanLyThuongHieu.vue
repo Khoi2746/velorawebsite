@@ -1,13 +1,13 @@
 <template>
     <div class="velora-admin-wrapper admin-wrapper">
-        <!-- 1. GỌI COMPONENT SIDEBAR MỚI -->
+        <!-- 1. GỌI COMPONENT SIDEBAR -->
         <AdminSidebar :isCollapsed="isCollapsed" />
 
         <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
-            <!-- 2. GỌI COMPONENT HEADER MỚI -->
+            <!-- 2. GỌI COMPONENT HEADER -->
             <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-            <!-- 3. NỘI DUNG CHÍNH (Giữ nguyên 100% logic của ku em) -->
+            <!-- 3. NỘI DUNG CHÍNH -->
             <main class="content">
                 <header class="header">
                     <div class="header-left">
@@ -78,7 +78,7 @@
                                     <button class="btn-action edit" title="Chỉnh sửa" @click="openEditModal(brand)">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
-                                    <button class="btn-action delete" title="Xóa" @click="deleteBrand(brand.maThuongHieu, brand.tenThuongHieu)">
+                                    <button class="btn-action delete" title="Xóa" @click="confirmDeleteBrand(brand.maThuongHieu, brand.tenThuongHieu)">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </td>
@@ -113,7 +113,7 @@
                 </section>
             </main>
 
-            <!-- FORM MODAL THÊM / SỬA -->
+            <!-- FORM MODAL THÊM / SỬA TRUYỀN THỐNG -->
             <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
                 <div class="modal-box">
                     <div class="modal-header">
@@ -126,10 +126,8 @@
                             <input type="text" v-model="form.tenThuongHieu" required placeholder="Ví dụ: Rolex, Hublot..." />
                         </div>
                         
-                        <!-- CHỌN FILE ẢNH TRỰC TIẾP -->
                         <div class="form-group">
                             <label>Logo thương hiệu *</label>
-                            <!-- Chỉnh sửa màu nền input file cho dễ nhìn -->
                             <input type="file" accept="image/*" @change="handleFileUpload" style="background: transparent; color: inherit; padding: 5px 0;" />
                             <div v-if="form.logoThuongHieu" class="img-preview-wrapper" style="margin-top: 10px;">
                                 <p style="font-size: 12px; color: #888; margin-bottom: 4px;">Xem trước ảnh:</p>
@@ -159,6 +157,34 @@
                     </form>
                 </div>
             </div>
+
+            <!-- POPUP THÔNG BÁO VVIP DARK MODE -->
+            <div v-if="messageModal.show" class="velora-modal-overlay" @click.self="messageModal.show = false">
+                <div class="velora-modal-card">
+                    <div class="modal-icon-wrapper" :class="messageModal.type">
+                        <span class="icon-symbol">{{ messageModal.type === 'success' ? '✓' : '✕' }}</span>
+                    </div>
+                    <h3 class="modal-title">{{ messageModal.type === 'success' ? 'THÀNH CÔNG' : 'THÔNG BÁO LỖI' }}</h3>
+                    <p class="modal-desc">{{ messageModal.text }}</p>
+                    <button class="modal-btn-close" @click="messageModal.show = false">ĐÓNG</button>
+                </div>
+            </div>
+
+            <!-- MODAL XÁC NHẬN XÓA VVIP DARK MODE -->
+            <div v-if="showDeleteConfirmModal" class="velora-modal-overlay" @click.self="showDeleteConfirmModal = false">
+                <div class="velora-modal-card">
+                    <div class="modal-icon-wrapper error">
+                        <span class="icon-symbol">✕</span>
+                    </div>
+                    <h3 class="modal-title">XÁC NHẬN XÓA</h3>
+                    <p class="modal-desc">BẠN CÓ CHẮC CHẮN MUỐN XÓA THƯƠNG HIỆU "{{ brandToDeleteName }}" (#{{ brandToDeleteId }}) KHÔNG? THAO TÁC NÀY KHÔNG THỂ HOÀN TÁC.</p>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button class="modal-btn-close" style="background: transparent; border: 1px solid #cca15e; color: #cca15e;" @click="showDeleteConfirmModal = false">GIỮ LẠI</button>
+                        <button class="modal-btn-close" style="background: #d9534f; color: white;" @click="executeDeleteBrand">XÁC NHẬN XÓA</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </template>
@@ -167,7 +193,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import axios from 'axios';
 
-// IMPORT COMPONENT CON VÀO ĐÂY
+// IMPORT COMPONENT CON
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
@@ -178,13 +204,29 @@ const toggleSidebar = () => {
     isCollapsed.value = !isCollapsed.value;
 };
 
-// ================= LOGIC DỮ LIỆU CŨ =================
+// ================= LOGIC DỮ LIỆU THƯƠNG HIỆU =================
 const API_URL = 'http://localhost:8080/api/thuong-hieu';
 
 const brands = ref([]);
 const showModal = ref(false);
 const isEditMode = ref(false);
 const currentBrandId = ref(null);
+
+// Biến quản lý popup thông báo VVIP
+const messageModal = ref({
+    show: false,
+    type: 'success',
+    text: ''
+});
+
+const showPopup = (text, type = 'success') => {
+    messageModal.value = { show: true, type, text };
+};
+
+// Biến quản lý modal xác nhận xóa VVIP
+const showDeleteConfirmModal = ref(false);
+const brandToDeleteId = ref(null);
+const brandToDeleteName = ref('');
 
 // --- TÌM KIẾM & BỘ LỌC ---
 const searchQuery = ref('');
@@ -194,7 +236,6 @@ const statusFilter = ref('all');
 const currentPage = ref(1);    
 const itemsPerPage = ref(5);   
 
-// 1. Tầng lọc dữ liệu tìm kiếm và trạng thái
 const filteredBrands = computed(() => {
     return brands.value.filter(brand => {
         const matchesSearch = brand.tenThuongHieu
@@ -209,7 +250,6 @@ const filteredBrands = computed(() => {
     });
 });
 
-// Tự động nhảy về trang 1 khi gõ tìm kiếm hoặc đổi bộ lọc
 watch([searchQuery, statusFilter], () => {
     currentPage.value = 1;
 });
@@ -261,14 +301,11 @@ onMounted(() => {
     loadBrands();
 });
 
-// --- PHƯƠNG THỨC XỬ LÝ ẢNH CHUẨN ---
 const getLogoUrl = (img) => {
     if (!img) return '';
-    // Nếu là Base64 hoặc link Web ngoài hệ thống, render trực tiếp
     if (img.startsWith('data:image') || img.startsWith('http')) {
         return img;
     }
-    // Dành cho ảnh tĩnh mẫu cục bộ cũ
     return `/src/assets/images/brands/${img}`;
 };
 
@@ -281,14 +318,14 @@ const handleFileUpload = (event) => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-        alert('Vui lòng chọn file hình ảnh hợp lệ!');
+        showPopup('VUI LÒNG CHỌN FILE HÌNH ẢNH HỢP LỆ!', 'error');
         event.target.value = '';
         return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
-        form.value.logoThuongHieu = e.target.result; // Chuyển trọn vẹn thành Base64 gán vào form
+        form.value.logoThuongHieu = e.target.result; 
     };
     reader.readAsDataURL(file);
 };
@@ -321,28 +358,39 @@ const saveBrand = async () => {
         const dataToSend = { ...form.value };
         if (isEditMode.value) {
             await axios.put(`${API_URL}/${currentBrandId.value}`, dataToSend);
-            alert('Cập nhật thông tin thương hiệu thành công!');
+            showPopup('CẬP NHẬT THÔNG TIN THƯƠNG HIỆU THÀNH CÔNG!', 'success');
         } else {
             await axios.post(API_URL, dataToSend);
-            alert('Thêm mới đối tác thương hiệu thành công!');
+            showPopup('THÊM MỚI ĐỐI TÁC THƯƠNG HIỆU THÀNH CÔNG!', 'success');
         }
         closeModal();
         loadBrands();
     } catch (error) {
         console.error('Lỗi lưu:', error);
-        alert('Không thể ghi nhận dữ liệu, vui lòng kiểm tra lại cấu hình DB.');
+        let errorMsg = 'KHÔNG THỂ GHI NHẬN DỮ LIỆU, VUI LÒNG KIỂM TRA LẠI CẤU HÌNH.';
+        if (error.response && error.response.data) {
+            errorMsg = typeof error.response.data === 'string' ? error.response.data.toUpperCase() : JSON.stringify(error.response.data);
+        }
+        showPopup(errorMsg, 'error');
     }
 };
 
-const deleteBrand = async (id, name) => {
-    if (confirm(`Bạn có chắc chắn muốn xóa thương hiệu "${name}" (#${id})?`)) {
-        try {
-            await axios.delete(`${API_URL}/${id}`);
-            alert('Đã xóa thương hiệu thành công!');
-            loadBrands();
-        } catch (error) {
-            alert('Không thể xóa do thương hiệu này đang có sản phẩm ràng buộc!');
-        }
+const confirmDeleteBrand = (id, name) => {
+    brandToDeleteId.value = id;
+    brandToDeleteName.value = name;
+    showDeleteConfirmModal.value = true;
+};
+
+const executeDeleteBrand = async () => {
+    if (!brandToDeleteId.value) return;
+    try {
+        await axios.delete(`${API_URL}/${brandToDeleteId.value}`);
+        showDeleteConfirmModal.value = false;
+        showPopup('ĐÃ XÓA THƯƠNG HIỆU THÀNH CÔNG!', 'success');
+        loadBrands();
+    } catch (error) {
+        showDeleteConfirmModal.value = false;
+        showPopup('KHÔNG THỂ XÓA DO THƯƠNG HIỆU NÀY ĐANG CÓ SẢN PHẨM RÀNG BUỘC!', 'error');
     }
 };
 
@@ -356,7 +404,6 @@ const toggleBrandStatus = async (brand) => {
 };
 </script>
 
-<!-- CSS CHỨA BIẾN GLOBAL ĐỂ SIDEBAR NHẬN MÀU -->
 <style>
 :root {
     --wood-dark: #362921;
@@ -374,9 +421,6 @@ const toggleBrandStatus = async (brand) => {
 <style scoped>
 @import "../CSS/Admin/QuanLyThuongHieu.css";
 
-/* ==============================================
-   CSS LAYOUT CHUNG BỌC BÊN NGOÀI & FIX MODAL
-   ============================================== */
 .velora-admin-wrapper { 
     display: flex; 
     height: 100vh; 
@@ -397,7 +441,6 @@ const toggleBrandStatus = async (brand) => {
     padding: 30px; 
 }
 
-/* Đảm bảo header page vẫn đẹp */
 .header {
     display: flex;
     justify-content: space-between;
@@ -422,7 +465,7 @@ const toggleBrandStatus = async (brand) => {
     margin: 0;
 }
 
-/* Modal Overlay fix giúp nhấn ra ngoài để đóng và hiện giữa màn hình */
+/* Modal form nhập liệu */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -519,5 +562,88 @@ const toggleBrandStatus = async (brand) => {
 }
 .btn-submit:hover {
     background: var(--gold-matte);
+}
+
+/* ==============================================
+   CSS POPUP & MODAL XÁC NHẬN VVIP DARK MODE
+   ============================================== */
+.velora-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+.velora-modal-card {
+    background: #231c18;
+    border: 1px solid #cca15e;
+    width: 420px;
+    max-width: 90%;
+    padding: 35px 25px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    color: #f8f6f0;
+}
+
+.modal-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin: 0 auto 20px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: bold;
+}
+
+.modal-icon-wrapper.success {
+    background: rgba(204, 161, 94, 0.15);
+    border: 2px solid #cca15e;
+    color: #cca15e;
+}
+
+.modal-icon-wrapper.error {
+    background: rgba(217, 83, 79, 0.15);
+    border: 2px solid #d9534f;
+    color: #d9534f;
+}
+
+.modal-title {
+    font-size: 18px;
+    letter-spacing: 1.5px;
+    color: #cca15e;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.modal-desc {
+    font-size: 14px;
+    color: #dcd6cd;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    word-break: break-word;
+}
+
+.modal-btn-close {
+    background: #cca15e;
+    color: #1a1412;
+    border: none;
+    padding: 12px 35px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+
+.modal-btn-close:hover {
+    background: #dfb775;
+    box-shadow: 0 0 10px rgba(204, 161, 94, 0.4);
 }
 </style>
