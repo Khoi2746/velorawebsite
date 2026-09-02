@@ -2,7 +2,6 @@ package com.velora.website.Controller;
 
 import com.velora.website.Entity.BaiVietMarketing;
 import com.velora.website.Repository.BaiVietMarketingRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -16,11 +15,14 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 public class BaiVietController {
 
-    @Autowired
-    private BaiVietMarketingRepository repository;
+    private final BaiVietMarketingRepository repository;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate; // Dùng để can thiệp thẳng vào bảng mã giảm giá
+    private final JdbcTemplate jdbcTemplate;
+
+    BaiVietController(BaiVietMarketingRepository repository, JdbcTemplate jdbcTemplate) {
+        this.repository = repository;
+        this.jdbcTemplate = jdbcTemplate;
+    } // Dùng để can thiệp thẳng vào bảng mã giảm giá
 
     // Lấy tất cả bài viết (Cho Admin/Sale)
     @GetMapping

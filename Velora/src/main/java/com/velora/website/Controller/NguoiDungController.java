@@ -7,6 +7,7 @@ import com.velora.website.Service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -48,12 +50,25 @@ public class NguoiDungController {
         this.mailSender = mailSender;
     }
 
+    // =========================================================================
+    // HÀM HỖ TRỢ: Tạo bản sao an toàn để trả về Frontend (Giấu mật khẩu)
+    // =========================================================================
+    private NguoiDung createSafeResponse(NguoiDung source) {
+        NguoiDung safeCopy = new NguoiDung();
+        BeanUtils.copyProperties(source, safeCopy);
+        safeCopy.setMatKhauMaHoa(null); // Chỉ xóa trên bản sao, Database không bị ảnh hưởng
+        return safeCopy;
+    }
+
     // 1. Lấy danh sách toàn bộ thành viên
     @GetMapping("/thanh-vien")
     public ResponseEntity<List<NguoiDung>> layToanBoThanhVien() {
         List<NguoiDung> danhSach = nguoiDungRepository.findAll();
-        danhSach.forEach(u -> u.setMatKhauMaHoa(null));
-        return ResponseEntity.ok(danhSach);
+        // Trả về danh sách bản sao an toàn
+        List<NguoiDung> safeList = danhSach.stream()
+                .map(this::createSafeResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(safeList);
     }
 
     // 2. Thêm mới thành viên
@@ -88,8 +103,7 @@ public class NguoiDungController {
             }
         });
 
-        saved.setMatKhauMaHoa(null);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createSafeResponse(saved));
     }
 
     // 3. Sửa thông tin thành viên (Phía Admin)
@@ -123,8 +137,7 @@ public class NguoiDungController {
             }
         });
 
-        updatedUser.setMatKhauMaHoa(null);
-        return ResponseEntity.ok(updatedUser);
+        return ResponseEntity.ok(createSafeResponse(updatedUser));
     }
 
     // 4. Xóa thành viên (Chặn xóa Admin)
@@ -178,8 +191,7 @@ public class NguoiDungController {
             }
         });
 
-        updatedUser.setMatKhauMaHoa(null);
-        return ResponseEntity.ok(updatedUser);
+        return ResponseEntity.ok(createSafeResponse(updatedUser));
     }
 
    // 6. Cập nhật thông tin cá nhân (FormData + Upload File)
@@ -250,8 +262,7 @@ public class NguoiDungController {
                 }
             });
             
-            // Tránh set null vào Entity đang Managed, tạo bản copy hoặc ẩn ở Jackson trong Entity
-            return ResponseEntity.ok(updatedUser);
+            return ResponseEntity.ok(createSafeResponse(updatedUser));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -259,6 +270,7 @@ public class NguoiDungController {
                     .body("Lỗi Backend: " + e.getMessage());
         }
     }
+    
     /* =========================================================================================
      * HELPER METHODS - SEND HTML MAIL
      * ========================================================================================= */
