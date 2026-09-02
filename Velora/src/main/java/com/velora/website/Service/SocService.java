@@ -1,7 +1,7 @@
 package com.velora.website.Service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate; // 🔥 1. Import WebSocket template
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import com.velora.website.Entity.CanhBaoAnNinh;
@@ -32,37 +32,29 @@ public class SocService {
     private final NguoiDungRepository nguoiDungRepo;
     private final DanhGiaRepository danhGiaRepo; 
     
-    // 🔥 2. Khai báo biến final để Spring tự động tiêm WebSocket template vào
     private final SimpMessagingTemplate messagingTemplate;
 
-    // 🔥 3. HÀM TỰ ĐỘNG TẠO VÀ BẮN CẢNH BÁO REAL-TIME SANG SOC
     public void createAndBroadcastAlert(String ip, String loaiTanCong, String mucDo, String moTa) {
         CanhBaoAnNinh alert = new CanhBaoAnNinh();
         alert.setDiaChiIP(ip != null ? ip : "127.0.0.1");
-        alert.setLoaiTanCong(loaiTanCong); // Ví dụ: "XSS_ATTACK", "SQL_INJECTION"
-        alert.setMucDoNguyHiem(mucDo);       // Ví dụ: "NGHIEM_TRONG"
+        alert.setLoaiTanCong(loaiTanCong); 
+        alert.setMucDoNguyHiem(mucDo);       
         alert.setMoTaChiTiet(moTa);
         alert.setNgayTao(new Date());
         alert.setDaXuLy(false);
 
-        // Lưu vào cơ sở dữ liệu SQL Server
         CanhBaoAnNinh savedAlert = canhBaoRepo.save(alert);
-
-        // Bắn tín hiệu real-time qua WebSocket tới kênh `/topic/soc-alerts` mà trang VueJS đang lắng nghe
         messagingTemplate.convertAndSend("/topic/soc-alerts", savedAlert);
     }
 
-    // Lấy danh sách cảnh báo
     public List<CanhBaoAnNinh> getRecentAlerts() {
         return canhBaoRepo.findTop50ByOrderByNgayTaoDesc();
     }
 
-    // Lấy lịch sử truy cập
     public List<NhatKyDangNhap> getRecentLogs() {
         return nhatKyRepo.findTop100ByOrderByThoiGianDangNhapDesc();
     }
 
-    // Cô lập IP (Đưa vào Blacklist)
     public void blockIp(String ip, Integer maCanhBao) {
         if (!blacklistRepo.existsByDiaChiIP(ip)) {
             DanhSachDenIP blacklist = new DanhSachDenIP();
@@ -73,7 +65,6 @@ public class SocService {
             blacklistRepo.save(blacklist);
         }
         
-        // Đánh dấu cảnh báo đã xử lý
         if (maCanhBao != null) {
             canhBaoRepo.findById(maCanhBao).ifPresent(alert -> {
                 alert.setDaXuLy(true);
@@ -82,7 +73,6 @@ public class SocService {
         }
     }
 
-    // Lấy User Vi Phạm
     public List<SocUserDTO> getLockedUsers() {
         List<NguoiDung> users = nguoiDungRepo.findByTrangThaiOrThoiGianCamBinhLuanIsNotNull("BI_KHOA");
         return users.stream().map(u -> {
@@ -105,7 +95,6 @@ public class SocService {
         }).collect(Collectors.toList());
     }
 
-    // Lấy và phân tích Comment mạo danh/XSS
     public List<SocCommentDTO> getMonitoredComments() {
         List<DanhGia> comments = danhGiaRepo.findAll(); 
         return comments.stream().map(c -> {
@@ -128,14 +117,25 @@ public class SocService {
 
     public void updateUserStatus(Integer userId, String action) {
         nguoiDungRepo.findById(userId).ifPresent(user -> {
-            switch (action) {
-                case "LOCK": user.setTrangThai("BI_KHOA"); break;
+            switch (action.toUpperCase()) {
+                case "LOCK": 
+                    user.setTrangThai("BI_KHOA"); 
+                    // Nếu admin bấm nút Khóa -> Khóa vĩnh viễn (100 năm)
+                    user.setThoiGianCamBinhLuan(LocalDateTime.now().plusYears(100));
+                    break;
                 case "UNLOCK": 
                     user.setTrangThai("HOAT_DONG"); 
                     user.setSoLanViPham(0); 
+                    // 🔥 CHÌA KHÓA Ở ĐÂY: Bắt buộc phải rửa sạch án phạt cũ
+                    user.setThoiGianCamBinhLuan(null); 
                     break;
-                case "BAN_COMMENT": user.setThoiGianCamBinhLuan(LocalDateTime.now()); break;
-                case "UNBAN_COMMENT": user.setThoiGianCamBinhLuan(null); break;
+                case "BAN_COMMENT": 
+                    // Cấm 3 phút
+                    user.setThoiGianCamBinhLuan(LocalDateTime.now().plusMinutes(3)); 
+                    break;
+                case "UNBAN_COMMENT": 
+                    user.setThoiGianCamBinhLuan(null); 
+                    break;
             }
             nguoiDungRepo.save(user);
         });

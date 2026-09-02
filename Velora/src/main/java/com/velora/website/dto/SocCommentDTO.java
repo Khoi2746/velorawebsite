@@ -14,4 +14,5 @@ public class SocCommentDTO {
     private String tenSanPham;
     private Boolean isSpam;
     private LocalDateTime ngayDanhGia;
+    private java.time.LocalDateTime thoiGianCamBinhLuan;
 }

@@ -111,8 +111,29 @@
 
     <Footer />
 
+    <!-- TOAST THÔNG BÁO TỒN KHO TRƯỢT TỪ DƯỚI LÊN (GIỮ NGUYÊN) -->
     <div class="stock-toast" :class="{ 'show': showToast }">
       <i class="fas fa-exclamation-triangle"></i> {{ toastMessage }}
+    </div>
+
+    <!-- 🔥 MODAL POPUP XÁC NHẬN VÀ CẢNH BÁO CHUẨN LUXURY (THAY THẾ WINDOW.ALERT) -->
+    <div v-if="popup.show" class="custom-popup-overlay" @click.self="handleCancel">
+      <div class="custom-popup-box">
+        <div class="popup-icon">
+          <i :class="popup.type === 'confirm' ? 'fa-solid fa-circle-question' : 'fa-solid fa-circle-exclamation'"></i>
+        </div>
+        <div class="popup-content">
+          <h3>{{ popup.title }}</h3>
+          <p>{{ popup.message }}</p>
+        </div>
+        <div class="popup-actions" v-if="popup.type === 'confirm'">
+          <button type="button" class="btn-popup-cancel" @click="handleCancel">HỦY BỎ</button>
+          <button type="button" class="btn-popup-confirm" @click="handleConfirm">XÁC NHẬN</button>
+        </div>
+        <div class="popup-actions" v-else>
+          <button type="button" class="btn-popup-confirm" @click="handleConfirm">ĐỒNG Ý</button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -137,6 +158,36 @@ const isCheckingVoucher = ref(false)
 const formatPrice = (value) => {
   if (!value) return '0 ₫'
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
+}
+
+// ================= LOGIC POPUP CUSTOM THAY THẾ ALERT/CONFIRM =================
+const popup = ref({
+  show: false,
+  type: 'alert', // 'alert' hoặc 'confirm'
+  title: 'THÔNG BÁO',
+  message: '',
+  onConfirm: null,
+  onCancel: null
+})
+
+// Mở popup dạng Cảnh báo (Chỉ có nút Đồng ý)
+const openAlert = (message, onConfirmCallback = null) => {
+  popup.value = { show: true, type: 'alert', title: 'THÔNG BÁO', message, onConfirm: onConfirmCallback, onCancel: null }
+}
+
+// Mở popup dạng Xác nhận (Có nút Hủy và Xác nhận)
+const openConfirm = (message, onConfirmCallback) => {
+  popup.value = { show: true, type: 'confirm', title: 'XÁC NHẬN', message, onConfirm: onConfirmCallback, onCancel: null }
+}
+
+const handleConfirm = () => {
+  if (popup.value.onConfirm) popup.value.onConfirm()
+  popup.value.show = false
+}
+
+const handleCancel = () => {
+  if (popup.value.onCancel) popup.value.onCancel()
+  popup.value.show = false
 }
 
 // ================= TÍNH TOÁN TIỀN BẠC =================
@@ -184,7 +235,7 @@ const applyVoucher = async () => {
   }
 }
 
-// ================= LOGIC POPUP THÔNG BÁO TỒN KHO =================
+// ================= LOGIC TOAST THÔNG BÁO TỒN KHO =================
 const showToast = ref(false)
 const toastMessage = ref('')
 let toastTimer = null
@@ -250,37 +301,43 @@ const decreaseQty = (index) => {
 }
 
 // ================= XÓA KHỎI DB =================
-const removeItem = async (index) => {
-  if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?')) return;
-  const item = cartItems.value[index];
-  try {
-    const res = await fetch(`http://localhost:8080/api/gio-hang/${item.maGioHang}`, {
-      method: 'DELETE'
-    })
-    if (res.ok) {
-      cartItems.value.splice(index, 1)
-      window.dispatchEvent(new Event('cart-updated'))
-      if (cartItems.value.length === 0) {
-        appliedVoucher.value = null
-        voucherCode.value = ''
+const removeItem = (index) => {
+  // Thay thế confirm mặc định bằng Popup Custom
+  openConfirm('Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?', async () => {
+    const item = cartItems.value[index];
+    try {
+      const res = await fetch(`http://localhost:8080/api/gio-hang/${item.maGioHang}`, {
+        method: 'DELETE'
+      })
+      if (res.ok) {
+        cartItems.value.splice(index, 1)
+        window.dispatchEvent(new Event('cart-updated'))
+        if (cartItems.value.length === 0) {
+          appliedVoucher.value = null
+          voucherCode.value = ''
+        }
       }
+    } catch (error) {
+      console.error('Lỗi xóa sản phẩm:', error)
     }
-  } catch (error) {
-    console.error('Lỗi xóa sản phẩm:', error)
-  }
+  });
 }
 
 // ================= THANH TOÁN =================
 const proceedToCheckout = () => {
   const user = localStorage.getItem('user')
+  
   if (!user) {
-    alert('Vui lòng đăng nhập để tiến hành thanh toán!')
-    router.push('/dang-nhap')
+    // Thay thế alert đăng nhập bằng Popup, Đợi click ĐỒNG Ý thì chuyển trang
+    openAlert('Vui lòng đăng nhập để tiến hành thanh toán!', () => {
+      router.push('/dang-nhap')
+    });
     return
   }
 
   if (cartItems.value.length === 0) {
-    alert('Giỏ hàng của bạn đang trống!')
+    // Thay thế alert giỏ hàng trống bằng Popup
+    openAlert('Giỏ hàng của bạn đang trống!')
     return
   }
 
@@ -298,8 +355,10 @@ const proceedToCheckout = () => {
 onMounted(() => {
   const user = localStorage.getItem('user')
   if (!user) {
-    alert('Vui lòng đăng nhập để xem giỏ hàng!')
-    router.push('/dang-nhap')
+    // Thay thế alert khi vào trang chưa đăng nhập bằng Popup, đợi Đồng ý thì redirect
+    openAlert('Vui lòng đăng nhập để xem giỏ hàng!', () => {
+      router.push('/dang-nhap')
+    });
     return
   }
   loadCart()
@@ -308,4 +367,103 @@ onMounted(() => {
 
 <style scoped>
 @import "../CSS/User/GioHang.css";
+
+/* ==============================================================
+   CSS CUSTOM POPUP VELORA LUXURY (THAY THẾ WINDOW.ALERT)
+============================================================== */
+.custom-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  backdrop-filter: blur(4px);
+}
+
+.custom-popup-box {
+  background-color: #1a1918;
+  border: 1px solid #d1aa68;
+  border-radius: 8px;
+  padding: 30px 25px;
+  max-width: 440px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
+  animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPopIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.popup-icon i {
+  font-size: 44px;
+  color: #d1aa68;
+  margin-bottom: 12px;
+}
+
+.popup-content h3 {
+  color: #d1aa68;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+}
+
+.popup-content p {
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 25px 0;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.btn-popup-cancel {
+  background-color: #2e2b27;
+  color: #cccccc;
+  border: 1px solid #444444;
+  padding: 10px 25px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-popup-cancel:hover {
+  background-color: #444444;
+  color: #ffffff;
+}
+
+.btn-popup-confirm {
+  background-color: #d1aa68;
+  color: #1a1918;
+  border: none;
+  padding: 10px 30px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(209, 170, 104, 0.3);
+}
+
+.btn-popup-confirm:hover {
+  background-color: #e5be7a;
+  color: #000000;
+}
 </style>

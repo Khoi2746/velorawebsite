@@ -12,21 +12,17 @@
         <header class="header soc-header-banner">
           <div class="header-left">
             <h1>Velora Clock <span class="gold">Security Operations Center</span></h1>
-            <p>Hệ thống giám sát an ninh mạng chủ động, phòng chống dò quét và kiểm duyệt nội dung thời gian thực.</p>
+            <p>Hệ thống giám sát an ninh, quản lý tài khoản và kiểm duyệt nội dung thời gian thực.</p>
           </div>
           <div class="header-right">
             <div class="soc-live-badge">
-              <span class="pulse-dot"></span> Cảnh Báo Động - Đang Giám Sát
+              <span class="pulse-dot"></span> Đang Giám Sát Chủ Động
             </div>
           </div>
         </header>
 
-        <!-- Thẻ thống kê tổng quan -->
+        <!-- Thẻ thống kê tổng quan (Đã chuyển thành 2 cột cho cân đối) -->
         <div class="soc-stats-grid">
-          <div class="stat-card red-card">
-            <h3>Sự Cố Mạng Chờ Xử Lý</h3>
-            <div class="stat-number">{{ alerts.length }}</div>
-          </div>
           <div class="stat-card dark-card">
             <h3>Tài Khoản / IP Bị Cô Lập</h3>
             <div class="stat-number">{{ lockedUsers.length }}</div>
@@ -39,9 +35,6 @@
 
         <!-- Thanh chuyển tab điều hướng SOC -->
         <div class="soc-tabs-bar">
-          <button class="soc-tab-btn" :class="{ active: currentTab === 'threats' }" @click="currentTab = 'threats'">
-            <i class="fa-solid fa-radar"></i> Ra-da An Ninh (Threats)
-          </button>
           <button class="soc-tab-btn" :class="{ active: currentTab === 'locked-users' }" @click="currentTab = 'locked-users'">
             <i class="fa-solid fa-user-shield"></i> Kiểm Soát Vi Phạm
           </button>
@@ -56,42 +49,7 @@
         <!-- NỘI DUNG TỪNG TAB -->
         <section class="table-container">
           
-          <!-- TAB 1: RA-DA AN NINH -->
-          <div v-if="currentTab === 'threats'">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Thời Gian</th>
-                  <th>Địa Chỉ IP</th>
-                  <th>Loại Tấn Công</th>
-                  <th>Mức Độ</th>
-                  <th>Mô Tả Chi Tiết</th>
-                  <th>Hành Động</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="alert in alerts" :key="alert.maCanhBao">
-                  <td>{{ formatDate(alert.ngayTao) }}</td>
-                  <td><code>{{ alert.diaChiIP }}</code></td>
-                  <td><span class="status-badge banned-status">{{ alert.loaiTanCong }}</span></td>
-                  <td><span class="status-badge warn-status">{{ alert.mucDoNguyHiem }}</span></td>
-                  <td>{{ alert.moTaChiTiet }}</td>
-                  <td>
-                    <button class="btn-action" style="background: #ffebee; color: #c62828;" @click="blockIp(alert.diaChiIP, alert.maCanhBao)">
-                      <i class="fa-solid fa-ban"></i> Cô Lập IP
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="alerts.length === 0">
-                  <td colspan="6" class="empty-state" style="text-align: center; padding: 30px; color: #888;">
-                    Hệ thống an toàn. Không phát hiện cuộc tấn công nào.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- TAB 2: KIỂM SOÁT VI PHẠM (USER) -->
+          <!-- TAB 1: KIỂM SOÁT VI PHẠM (USER) -->
           <div v-if="currentTab === 'locked-users'">
             <table class="admin-table">
               <thead>
@@ -101,6 +59,8 @@
                   <th>Email</th>
                   <th>Trạng Thái</th>
                   <th>Lý Do Vi Phạm</th>
+                  <!-- 🔥 CỘT MỚI: THỜI GIAN ĐẾM NGƯỢC -->
+                  <th style="text-align: center;">Thời Gian Phạt</th>
                   <th>Hành Động</th>
                 </tr>
               </thead>
@@ -110,7 +70,16 @@
                   <td><strong>{{ u.hoTen }}</strong></td>
                   <td>{{ u.email }}</td>
                   <td><span class="status-badge banned-status">{{ u.trangThai }}</span></td>
-                  <td>{{ u.lyDoViPham }}</td>
+                  <td>{{ u.lyDoViPham || 'Vi phạm tiêu chuẩn cộng đồng' }}</td>
+                  
+                  <!-- 🔥 XỬ LÝ HIỂN THỊ THỜI GIAN -->
+                  <td style="text-align: center;">
+                    <span class="countdown-box" :class="getCountdownData(u).class">
+                      <i :class="getCountdownData(u).icon"></i> 
+                      {{ getCountdownData(u).text }}
+                    </span>
+                  </td>
+
                   <td>
                     <button class="btn-action btn-unlock" @click="manageUser(u.maNguoiDung, 'unlock')">
                       <i class="fa-solid fa-user-check"></i> Mở Khóa
@@ -118,7 +87,7 @@
                   </td>
                 </tr>
                 <tr v-if="lockedUsers.length === 0">
-                  <td colspan="6" class="empty-state" style="text-align: center; padding: 30px; color: #888;">
+                  <td colspan="7" class="empty-state" style="text-align: center; padding: 30px; color: #888;">
                     Không có tài khoản nào bị đình chỉ.
                   </td>
                 </tr>
@@ -126,7 +95,7 @@
             </table>
           </div>
 
-          <!-- TAB 3: BỘ LỌC NỘI DUNG (ĐÃ TÍCH HỢP ĐỒN LÊN ĐẦU, MÀU SẮC VÀ KHÓA USER) -->
+          <!-- TAB 2: BỘ LỌC NỘI DUNG -->
           <div v-if="currentTab === 'comments'">
             <table class="admin-table">
               <thead>
@@ -135,11 +104,11 @@
                   <th>Định Danh User</th>
                   <th>Nội Dung Chi Tiết</th>
                   <th>Trạng Thái Nội Dung</th>
-                  <th>Hành Động Xử Lý (Khóa/Xóa)</th>
+                  <th>Hành Động Xử Lý</th>
                 </tr>
               </thead>
               <tbody>
-                <!-- Dùng computed property sortedAndFilteredComments để đôn vi phạm lên trên -->
+                <!-- Đôn bình luận vi phạm lên đầu bảng -->
                 <tr 
                   v-for="comment in sortedAndFilteredComments" 
                   :key="comment.maDanhGia"
@@ -159,14 +128,14 @@
                     </span>
                   </td>
                   <td class="actions">
-                    <!-- Nút khóa / mở khóa tài khoản ngay trực tiếp tại dòng bình luận -->
+                    <!-- Nút khóa / mở khóa tài khoản -->
                     <button 
                       class="btn-action" 
                       :class="comment.userTrangThai === 'BI_KHOA' ? 'btn-unlock' : 'btn-lock'"
                       @click="toggleUserAccount(comment.maNguoiDung, comment.userTrangThai)"
                     >
                       <i :class="comment.userTrangThai === 'BI_KHOA' ? 'fa-solid fa-user-check' : 'fa-solid fa-user-lock'"></i>
-                      {{ comment.userTrangThai === 'BI_KHOA' ? 'Mở Khóa User' : 'Khóa User' }}
+                      {{ comment.userTrangThai === 'BI_KHOA' ? 'Mở Khóa' : 'Khóa User' }}
                     </button>
 
                     <!-- Nút xóa bình luận -->
@@ -184,7 +153,7 @@
             </table>
           </div>
 
-          <!-- TAB 4: NHẬT KÝ TRUY CẬP -->
+          <!-- TAB 3: NHẬT KÝ TRUY CẬP -->
           <div v-if="currentTab === 'logs'">
             <table class="admin-table">
               <thead>
@@ -224,7 +193,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 import { showAlert } from '@/composables/useAlert';
@@ -235,24 +204,26 @@ const API_BASE = `http://${host}:8080`;
 const isCollapsed = ref(false);
 const toggleSidebar = () => { isCollapsed.value = !isCollapsed.value; };
 
-const currentTab = ref('threats');
+// Đổi tab mặc định thành Kiểm Soát Vi Phạm
+const currentTab = ref('locked-users');
 
-const alerts = ref([]);
 const lockedUsers = ref([]);
 const comments = ref([]);
 const logs = ref([]);
 
-// Tải toàn bộ dữ liệu SOC
+// 🔥 BIẾN LƯU THỜI GIAN HIỆN TẠI (Được cập nhật mỗi giây bởi setInterval)
+const currentTime = ref(Date.now());
+let timerInterval = null;
+
+// Tải dữ liệu SOC
 const loadSocData = async () => {
   try {
-    const [resAlerts, resUsers, resComments, resLogs] = await Promise.all([
-      fetch(`${API_BASE}/api/soc/alerts`),
+    const [resUsers, resComments, resLogs] = await Promise.all([
       fetch(`${API_BASE}/api/soc/locked-users`),
       fetch(`${API_BASE}/api/soc/comments`),
       fetch(`${API_BASE}/api/soc/logs`)
     ]);
 
-    if (resAlerts.ok) alerts.value = await resAlerts.json();
     if (resUsers.ok) lockedUsers.value = await resUsers.json();
     if (resComments.ok) comments.value = await resComments.json();
     if (resLogs.ok) logs.value = await resLogs.json();
@@ -261,7 +232,52 @@ const loadSocData = async () => {
   }
 };
 
-// 🔥 LOGIC CỰC KỲ QUAN TRỌNG: Đôn các bình luận vi phạm (isSpam = true) lên trên đầu bảng
+// 🔥 HÀM TÍNH TOÁN ĐẾM NGƯỢC (Tự động chạy mỗi giây)
+const getCountdownData = (user) => {
+  // 1. Trạng thái BI_KHOA -> Cấm vĩnh viễn (Vi phạm lần 3)
+  if (user.trangThai === 'BI_KHOA') {
+    return { text: 'Khóa vĩnh viễn', class: 'ban-forever', icon: 'fa-solid fa-lock' };
+  }
+
+  // 2. Không có thời gian cấm -> Không bị phạt
+  if (!user.thoiGianCamBinhLuan) {
+    return { text: '--', class: 'ban-none', icon: 'fa-solid fa-minus' };
+  }
+
+  // 3. Xử lý an toàn kiểu dữ liệu LocalDateTime từ Spring Boot
+  let targetTime;
+  if (Array.isArray(user.thoiGianCamBinhLuan)) {
+    // Nếu Spring Boot nén thành mảng: [2026, 9, 3, 15, 30, 0]
+    const [y, m, d, h = 0, min = 0, s = 0] = user.thoiGianCamBinhLuan;
+    // JS đếm tháng từ 0 (Tháng 1 = 0) nên phải dùng m - 1
+    targetTime = new Date(y, m - 1, d, h, min, s).getTime();
+  } else {
+    // Nếu Spring Boot trả ra chuỗi ISO: "2026-09-03T15:30:00"
+    targetTime = new Date(user.thoiGianCamBinhLuan).getTime();
+  }
+
+  // 4. Tính độ lệch thời gian
+  const diff = targetTime - currentTime.value;
+
+  // Nếu đếm ngược đã về <= 0
+  if (diff <= 0) {
+    return { text: 'Đã hết hạn', class: 'ban-expired', icon: 'fa-solid fa-unlock' };
+  }
+
+  // Nếu vẫn còn thời gian -> Convert ra Phút:Giây (MM:SS)
+  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+  const formatM = m < 10 ? '0' + m : m;
+  const formatS = s < 10 ? '0' + s : s;
+
+  return { 
+    text: `${formatM}:${formatS}`, 
+    class: 'ban-counting', 
+    icon: 'fa-regular fa-clock' 
+  };
+};
+
 const sortedAndFilteredComments = computed(() => {
   return [...comments.value].sort((a, b) => {
     if (a.isSpam && !b.isSpam) return -1;
@@ -270,25 +286,6 @@ const sortedAndFilteredComments = computed(() => {
   });
 });
 
-// Hành động cô lập IP từ bảng Threats
-const blockIp = async (ip, maCanhBao) => {
-  if (!confirm(`Xác nhận cô lập địa chỉ IP: ${ip}?`)) return;
-  try {
-    const res = await fetch(`${API_BASE}/api/soc/block-ip`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ip, maCanhBao })
-    });
-    if (res.ok) {
-      showAlert('Đã cô lập IP thành công vào danh sách đen!', 'success');
-      loadSocData();
-    }
-  } catch (err) {
-    showAlert('Lỗi kết nối hệ thống!', 'error');
-  }
-};
-
-// Hành động quản lý tài khoản user từ tab Kiểm soát vi phạm
 const manageUser = async (userId, action) => {
   try {
     const res = await fetch(`${API_BASE}/api/soc/users/${userId}/${action}`, { method: 'PUT' });
@@ -301,7 +298,6 @@ const manageUser = async (userId, action) => {
   }
 };
 
-// Hành động khóa / mở khóa user ngay tại bảng Bộ Lọc Nội Dung
 const toggleUserAccount = async (userId, currentStatus) => {
   const action = (currentStatus === 'BI_KHOA') ? 'unlock' : 'lock';
   const msg = action === 'lock' ? `Khóa khẩn cấp tài khoản #${userId}?` : `Mở khóa cho tài khoản #${userId}?`;
@@ -318,7 +314,6 @@ const toggleUserAccount = async (userId, currentStatus) => {
   }
 };
 
-// Xóa bình luận độc hại
 const deleteComment = async (commentId) => {
   if (!confirm('Xóa vĩnh viễn bình luận này khỏi hệ thống?')) return;
   try {
@@ -339,6 +334,15 @@ const formatDate = (d) => {
 
 onMounted(() => {
   loadSocData();
+  // 🔥 BẬT BỘ ĐẾM GIÂY (Mỗi 1000ms sẽ kích hoạt render lại biến currentTime)
+  timerInterval = setInterval(() => {
+    currentTime.value = Date.now();
+  }, 1000);
+});
+
+onUnmounted(() => {
+  // Tắt bộ đếm khi thoát trang để tiết kiệm RAM
+  if (timerInterval) clearInterval(timerInterval);
 });
 </script>
 
@@ -365,47 +369,52 @@ onMounted(() => {
 .content-wrapper { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
 .content { flex: 1; padding: 30px; }
 
-/* Banner header SOC */
 .soc-header-banner { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-.soc-live-badge { background: #ffebee; color: #c62828; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
-.pulse-dot { width: 8px; height: 8px; background: #c62828; border-radius: 50%; animation: pulse 1.5s infinite; }
+.soc-live-badge { background: #e8f5e9; color: #2e7d32; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+.pulse-dot { width: 8px; height: 8px; background: #2e7d32; border-radius: 50%; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
 
-/* Thẻ Thống Kê */
-.soc-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px; }
+/* Chỉnh grid thành 2 cột đều nhau */
+.soc-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 25px; }
 .stat-card { padding: 20px; border-radius: 8px; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-.red-card { background: linear-gradient(135deg, #d32f2f, #b71c1c); }
 .dark-card { background: linear-gradient(135deg, #37474f, #263238); }
 .orange-card { background: linear-gradient(135deg, #ef6c00, #e65100); }
 .stat-card h3 { font-size: 14px; font-weight: 500; margin-bottom: 8px; opacity: 0.9; }
 .stat-number { font-size: 28px; font-weight: bold; }
 
-/* Tabs điều hướng SOC */
 .soc-tabs-bar { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; }
 .soc-tab-btn { background: #fff; border: 1px solid #ddd; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; color: #555; transition: all 0.2s; }
 .soc-tab-btn:hover { border-color: var(--gold-matte); color: var(--gold-matte); }
 .soc-tab-btn.active { background: var(--wood-dark); color: #fff; border-color: var(--wood-dark); }
 
-/* 🔥 HIỆU ỨNG MÀU SẮC ĐỎ NHẬT & XANH LÁ NHẬT CHO BỘ LỌC NỘI DUNG */
-.row-violation {
-  background-color: #fff5f5 !important; /* Đỏ nhạt cảnh báo */
-}
-.row-violation:hover {
-  background-color: #ffe3e3 !important;
+/* 🔥 CSS RIÊNG CHO CỘT ĐẾM NGƯỢC THỜI GIAN */
+.countdown-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-family: 'Courier New', Courier, monospace; /* Font kiểu đồng hồ điện tử */
+  font-weight: bold;
+  font-size: 14px;
+  min-width: 110px;
 }
 
-.row-safe {
-  background-color: #f4fbf7 !important; /* Xanh lá nhạt an toàn */
-}
-.row-safe:hover {
-  background-color: #e6f6ed !important;
-}
+.ban-counting { background-color: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+.ban-expired { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+.ban-forever { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+.ban-none { color: #aaa; }
 
-/* Badge trạng thái nội dung */
+.row-violation { background-color: #fff5f5 !important; }
+.row-violation:hover { background-color: #ffe3e3 !important; }
+
+.row-safe { background-color: #f4fbf7 !important; }
+.row-safe:hover { background-color: #e6f6ed !important; }
+
 .badge-danger { background-color: #ffebee; color: #c62828; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
 .badge-success { background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
 
-/* Nút khóa/mở khóa tài khoản */
 .btn-lock { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; margin-right: 6px; }
 .btn-lock:hover { background-color: #f44336; color: #fff; }
 
