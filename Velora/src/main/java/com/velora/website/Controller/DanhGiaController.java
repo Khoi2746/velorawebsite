@@ -40,7 +40,6 @@ public class DanhGiaController {
         this.socService = socService;
     }
 
-    // 1. API Lấy danh sách đánh giá của 1 sản phẩm
     @GetMapping("/san-pham/{maSanPham}")
     public ResponseEntity<?> getDanhGiaBySanPham(@PathVariable Integer maSanPham) {
         List<DanhGia> danhGias = danhGiaRepository.findBySanPham_MaSanPham(maSanPham);
@@ -63,27 +62,32 @@ public class DanhGiaController {
         return ResponseEntity.ok(result);
     }
 
-    // 2. API Thêm mới đánh giá 
     @PostMapping("/them")
     public ResponseEntity<?> addDanhGia(@RequestBody DanhGiaRequest payload, HttpServletRequest request) {
         try {
             NguoiDung user = nguoiDungRepository.findById(payload.getMaNguoiDung())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
-            // ➔ Kiểm tra nếu tài khoản đã bị khóa vĩnh viễn
-            if (user.getTrangThai() != null && "0".equals(user.getTrangThai())) {
-                return ResponseEntity.status(403).body(Map.of("message", "ACCOUNT_LOCKED"));
+            // 1. KIỂM TRA TÀI KHOẢN BỊ KHÓA VĨNH VIỄN (LẦN 3)
+            if (user.getTrangThai() != null && "BI_KHOA".equals(user.getTrangThai().toUpperCase())) {
+                return ResponseEntity.status(403).body(Map.of(
+                    "code", "BANNED_3", 
+                    "message", "Tài khoản của bạn đã bị khóa vĩnh viễn do vi phạm tiêu chuẩn cộng đồng nhiều lần!"
+                ));
             }
 
-            // ➔ TÁCH BIỆT: Kiểm tra nếu tài khoản đang trong thời gian cấm tạm thời (3 phút)
+            // 2. KIỂM TRA ĐANG TRONG THỜI GIAN CẤM TẠM THỜI (LẦN 2)
             if (user.getThoiGianCamBinhLuan() != null && user.getThoiGianCamBinhLuan().isAfter(LocalDateTime.now())) {
-                return ResponseEntity.status(403).body(Map.of("message", "TEMPORARILY_BANNED"));
+                return ResponseEntity.status(403).body(Map.of(
+                    "code", "TEMPORARILY_BANNED", 
+                    "message", "Bạn đang trong thời gian bị cấm bình luận (3 phút) do vi phạm trước đó!"
+                ));
             }
 
             String binhLuan = payload.getBinhLuan() != null ? payload.getBinhLuan() : "";
             String binhLuanLower = binhLuan.toLowerCase();
 
-            // 🔥 PHẦN A: KIỂM TRA MÃ ĐỘC (XSS / Script Injection)
+            // KIỂM TRA MÃ ĐỘC (XSS)
             boolean isSecurityThreat = binhLuanLower.contains("<script>") || 
                                        binhLuanLower.contains("javascript:") || 
                                        binhLuanLower.contains("alert(") || 
@@ -91,19 +95,14 @@ public class DanhGiaController {
             
             if (isSecurityThreat) {
                 String clientIp = request.getRemoteAddr();
-                
-                // Ngầm ghi log và bắn báo động đỏ về SOC ngay lập tức
                 socService.createAndBroadcastAlert(
-                    clientIp, 
-                    "XSS_ATTACK", 
-                    "NGHIEM_TRONG", 
-                    "Phát hiện cố tình chèn mã độc qua form đánh giá sản phẩm: " + binhLuan
+                    clientIp, "XSS_ATTACK", "NGHIEM_TRONG", 
+                    "Phát hiện chèn mã độc: " + binhLuan
                 );
-                
-                return ResponseEntity.status(403).body(Map.of("message", "MALICIOUS_CONTENT"));
+                return ResponseEntity.status(403).body(Map.of("code", "MALICIOUS", "message", "Phát hiện nội dung nguy hiểm!"));
             }
 
-            // 🔥 PHẦN B: KIỂM TRA TỪ NGỮ THÔ TỤC / SPAM THÔNG THƯỜNG
+            // 🔥 LUỒNG XỬ LÝ VI PHẠM 3 BƯỚC (BAD WORDS)
             List<String> badWords = Arrays.asList("dm", "vcl", "ngu", "chó", "lừa đảo");
             boolean containsBadWord = badWords.stream().anyMatch(binhLuanLower::contains);
 
@@ -113,20 +112,35 @@ public class DanhGiaController {
                 user.setSoLanViPham(viPham);
 
                 if (viPham == 1) {
-                    // Đặt thời gian cấm 3 phút cho lần vi phạm đầu tiên
+                    // LẦN 1: Chỉ cảnh báo vàng, không cấm thời gian
+                    nguoiDungRepository.save(user);
+                    return ResponseEntity.status(403).body(Map.of(
+                        "code", "WARNING_1", 
+                        "message", "Cảnh cáo lần 1: Ngôn từ không phù hợp. Nếu tái phạm sẽ bị cấm bình luận 3 phút!"
+                    ));
+                } 
+                else if (viPham == 2) {
+                    // LẦN 2: Cấm bình luận 3 phút
                     user.setThoiGianCamBinhLuan(LocalDateTime.now().plusMinutes(3));
                     nguoiDungRepository.save(user);
-                    
-                    // ➔ Trả về mã cảnh cáo nhẹ nhàng (Warning) để nhắc nhở chỉnh sửa
-                    return ResponseEntity.status(403).body(Map.of("message", "INAPPROPRIATE_LANGUAGE_WARNING"));
-                } else {
-                    user.setTrangThai("0"); // Khóa tài khoản từ vi phạm thứ 2
+                    return ResponseEntity.status(403).body(Map.of(
+                        "code", "WARNING_2", 
+                        "message", "Vi phạm lần 2: Tài khoản bị cấm bình luận trong 3 phút tới!"
+                    ));
+                } 
+                else {
+                    // LẦN 3: Khóa tài khoản vĩnh viễn (Chuyển trạng thái)
+                    user.setTrangThai("BI_KHOA");
+                    user.setThoiGianCamBinhLuan(LocalDateTime.now().plusYears(100)); // Cấm luôn 100 năm cho chắc
                     nguoiDungRepository.save(user);
-                    return ResponseEntity.status(403).body(Map.of("message", "ACCOUNT_LOCKED"));
+                    return ResponseEntity.status(403).body(Map.of(
+                        "code", "BANNED_3", 
+                        "message", "Vi phạm lần 3: Tài khoản của bạn đã bị KHÓA VĨNH VIỄN!"
+                    ));
                 }
             }
 
-            // ➔ NẾU NỘI DUNG SẠCH SẼ -> LƯU BÌNH LUẬN BÌNH THƯỜNG
+            // NẾU NỘI DUNG SẠCH SẼ -> LƯU VÀO DB
             SanPham sanPham = sanPhamRepository.findById(payload.getMaSanPham())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy kiệt tác đồng hồ này"));
 

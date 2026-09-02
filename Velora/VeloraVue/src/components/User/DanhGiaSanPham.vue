@@ -8,26 +8,18 @@
     <!-- KHU VỰC VIẾT ĐÁNH GIÁ -->
     <div class="review-form-container">
       <h3 class="form-title">Chia sẻ cảm nhận của bạn</h3>
-      
+
       <div class="star-rating-input">
         <span class="label">Chất lượng tuyệt tác:</span>
         <div class="stars">
-          <i 
-            v-for="star in 5" 
-            :key="star"
-            class="fa-star"
-            :class="star <= newReview.soSao ? 'fas active' : 'far'"
-            @click="newReview.soSao = star"
-          ></i>
+          <i v-for="star in 5" :key="star" class="fa-star" :class="star <= newReview.soSao ? 'fas active' : 'far'"
+            @click="newReview.soSao = star"></i>
         </div>
       </div>
 
-      <textarea 
-        v-model="newReview.binhLuan" 
-        class="review-textarea" 
+      <textarea v-model="newReview.binhLuan" class="review-textarea"
         placeholder="Tuyệt tác này mang lại cảm giác thế nào khi trên tay? Trải nghiệm bộ máy và độ hoàn thiện ra sao?..."
-        rows="4"
-      ></textarea>
+        rows="4"></textarea>
 
       <button class="btn-submit-review" @click="submitReview" :disabled="isSubmitting">
         {{ isSubmitting ? 'ĐANG GỬI...' : 'GỬI ĐÁNH GIÁ' }}
@@ -40,7 +32,7 @@
       <div v-else-if="reviews.length === 0" class="no-reviews">
         Chưa có đánh giá nào. Hãy là người đầu tiên sở hữu và đánh giá kiệt tác này!
       </div>
-      
+
       <template v-else>
         <!-- Hiển thị danh sách đánh giá theo trang -->
         <div class="review-item" v-for="review in paginatedReviews" :key="review.maDanhGia">
@@ -59,36 +51,39 @@
 
         <!-- THANH PHÂN TRANG -->
         <div class="pagination-container" v-if="totalPages > 1">
-          <button 
-            class="page-btn" 
-            :disabled="currentPage === 1" 
-            @click="currentPage--"
-          >
+          <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">
             <i class="fas fa-chevron-left"></i> Trước
           </button>
-          
+
           <div class="page-numbers">
-            <button 
-              v-for="page in totalPages" 
-              :key="page" 
-              class="page-number-btn"
-              :class="{ active: page === currentPage }"
-              @click="currentPage = page"
-            >
+            <button v-for="page in totalPages" :key="page" class="page-number-btn"
+              :class="{ active: page === currentPage }" @click="currentPage = page">
               {{ page }}
             </button>
           </div>
 
-          <button 
-            class="page-btn" 
-            :disabled="currentPage === totalPages" 
-            @click="currentPage++"
-          >
+          <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage++">
             Sau <i class="fas fa-chevron-right"></i>
           </button>
         </div>
       </template>
     </div>
+
+    <!-- KHỐI THÔNG BÁO SOC TRƯỢT TỪ VIỀN PHẢI MÀN HÌNH -->
+    <div class="soc-toast-notification" :class="[toastType, { 'show': showSocToast }]">
+      <div class="soc-toast-icon">
+        <i v-if="toastType === 'warning'" class="fa-solid fa-triangle-exclamation"></i>
+        <i v-else-if="toastType === 'error'" class="fa-solid fa-clock"></i>
+        <i v-else-if="toastType === 'ban'" class="fa-solid fa-user-lock"></i>
+      </div>
+      <div class="soc-toast-content">
+        <h4>{{ toastTitle }}</h4>
+        <p>{{ toastMessage }}</p>
+      </div>
+      <!-- Thanh chạy thời gian tự tắt -->
+      <div class="soc-toast-progress" :class="toastType"></div>
+    </div>
+
   </div>
 </template>
 
@@ -106,6 +101,27 @@ const props = defineProps({
 const reviews = ref([]);
 const loading = ref(false);
 const isSubmitting = ref(false);
+
+// --- CÁC BIẾN QUẢN LÝ POPUP TRƯỢT SOC ---
+const showSocToast = ref(false);
+const toastTitle = ref('');
+const toastMessage = ref('');
+const toastType = ref(''); // 'warning', 'error', 'ban'
+let toastTimeout = null;
+
+// Hàm kích hoạt Toast SOC trượt ra
+const triggerSocToast = (title, message, type) => {
+  toastTitle.value = title;
+  toastMessage.value = message;
+  toastType.value = type;
+  showSocToast.value = true;
+
+  if (toastTimeout) clearTimeout(toastTimeout);
+  // Tự động thụt vào sau 6 giây
+  toastTimeout = setTimeout(() => {
+    showSocToast.value = false;
+  }, 6000);
+};
 
 // Cấu hình phân trang
 const currentPage = ref(1);
@@ -159,10 +175,10 @@ const submitReview = async () => {
   }
 
   const user = JSON.parse(userStr);
-  
+
   const payload = {
     maSanPham: props.maSanPham,
-    maNguoiDung: user.id || user.maNguoiDung, 
+    maNguoiDung: user.id || user.maNguoiDung,
     soSaoDanhGia: newReview.value.soSao,
     binhLuan: newReview.value.binhLuan
   };
@@ -180,19 +196,23 @@ const submitReview = async () => {
     if (res.ok) {
       showAlert('Cảm ơn bạn đã chia sẻ cảm nhận!', 'success');
       newReview.value.binhLuan = '';
-      newReview.value.soSao = 5; 
-      fetchReviews(); 
+      newReview.value.soSao = 5;
+      fetchReviews();
     } else {
-      // ➔ XỬ LÝ CÁC THÔNG BÁO LỊCH SỰ THEO VĂN PHONG KINH DOANH
-      if (res.status === 403 && data?.message === 'MALICIOUS_CONTENT') {
-        showAlert('Bình luận của quý khách có chứa mã không rõ nguồn gốc, vui lòng kiểm tra lại nội dung!', 'warning');
-      } else if (res.status === 403 && data?.message === 'INAPPROPRIATE_LANGUAGE_WARNING') {
-        showAlert('Vui lòng chỉnh sửa lại từ ngữ phát ngôn cho phù hợp với tiêu chuẩn cộng đồng của Velora Clock.', 'warning');
-      } else if (res.status === 403 && data?.message === 'BANNED_3_MINS') {
-        showAlert('Bình luận vi phạm tiêu chuẩn! Bạn bị hạn chế tương tác trong 3 phút.', 'error');
-      } else if (res.status === 403 && data?.message === 'ACCOUNT_LOCKED') {
-        showAlert('Tài khoản của bạn đã bị tạm khóa do vi phạm nhiều lần. Vui lòng liên hệ bộ phận hỗ trợ.', 'error');
-      } else {
+      // ➔ BẮT CÁC MÃ LỖI TỪ SPRING BOOT ĐỂ BẬT POPUP TRƯỢT 3 CẤP ĐỘ
+      if (data?.code === 'WARNING_1') {
+        triggerSocToast('⚠️ CẢNH CÁO LẦN 1', data.message, 'warning');
+      }
+      else if (data?.code === 'WARNING_2' || data?.code === 'TEMPORARILY_BANNED') {
+        triggerSocToast('⛔ CẤM NGÔN TẠM THỜI', data.message, 'error');
+      }
+      else if (data?.code === 'BANNED_3') {
+        triggerSocToast('🔒 KHÓA VĨNH VIỄN', data.message, 'ban');
+      }
+      else if (data?.code === 'MALICIOUS') {
+        triggerSocToast('🚨 CẢNH BÁO AN NINH', data.message, 'ban'); // XSS mã độc xử lý mức cao nhất
+      }
+      else {
         showAlert(data?.message || 'Gửi đánh giá thất bại. Vui lòng thử lại.', 'error');
       }
     }
@@ -223,6 +243,10 @@ onMounted(() => {
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   font-family: 'Playfair Display', serif, sans-serif;
+  position: relative;
+  /* Tránh tràn layout popup */
+  overflow: hidden;
+  /* Giữ popup nằm gọn trong ô này (Nếu muốn nó bay ra ngoài viền trình duyệt thì bỏ dòng này đi) */
 }
 
 .section-header {
@@ -337,7 +361,8 @@ onMounted(() => {
   gap: 20px;
 }
 
-.loader, .no-reviews {
+.loader,
+.no-reviews {
   text-align: center;
   color: #777;
   font-style: italic;
@@ -468,5 +493,113 @@ onMounted(() => {
   border-color: #c5a880;
   color: #fff;
   font-weight: 600;
+}
+
+/* ==============================================================
+   HIỆU ỨNG THÔNG BÁO SOC TRƯỢT RA TỪ BÊN PHẢI (TÙY CHỈNH)
+============================================================== */
+.soc-toast-notification {
+  position: fixed;
+  top: 100px;
+  right: -450px;
+  /* Giấu ra ngoài rìa phải trình duyệt */
+  width: 380px;
+  background: #fff;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  display: flex;
+  padding: 20px;
+  border-radius: 8px;
+  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  z-index: 999999;
+}
+
+.soc-toast-notification.show {
+  right: 30px;
+  /* Trượt thụt vào trong 30px */
+}
+
+/* Các tone màu cho từng cấp độ */
+.soc-toast-notification.warning {
+  border-left: 6px solid #f39c12;
+  background: #fffcf5;
+}
+
+.soc-toast-notification.error {
+  border-left: 6px solid #e67e22;
+  background: #fff8f3;
+}
+
+.soc-toast-notification.ban {
+  border-left: 6px solid #c0392b;
+  background: #fdf2f1;
+}
+
+.soc-toast-icon {
+  font-size: 30px;
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.soc-toast-notification.warning .soc-toast-icon {
+  color: #f39c12;
+}
+
+.soc-toast-notification.error .soc-toast-icon {
+  color: #e67e22;
+}
+
+.soc-toast-notification.ban .soc-toast-icon {
+  color: #c0392b;
+}
+
+.soc-toast-content {
+  flex: 1;
+}
+
+.soc-toast-content h4 {
+  margin: 0 0 5px 0;
+  font-size: 15px;
+  font-weight: bold;
+  color: #333;
+}
+
+.soc-toast-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Thanh chạy đếm lùi thời gian (6 giây) */
+.soc-toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  width: 100%;
+  animation: shrinkProgress 6s linear forwards;
+}
+
+.soc-toast-progress.warning {
+  background: #f39c12;
+}
+
+.soc-toast-progress.error {
+  background: #e67e22;
+}
+
+.soc-toast-progress.ban {
+  background: #c0392b;
+}
+
+@keyframes shrinkProgress {
+  from {
+    width: 100%;
+  }
+
+  to {
+    width: 0%;
+  }
 }
 </style>
