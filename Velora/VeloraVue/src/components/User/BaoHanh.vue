@@ -36,24 +36,24 @@
             </div>
 
             <div class="form-row">
-  <div class="form-group">
-    <label>SỐ ĐIỆN THOẠI LIÊN HỆ</label>
-    <input v-model="form.sdt" type="tel" placeholder="Nhập số điện thoại..." required />
-  </div>
-  <div class="form-group">
-    <label>MÃ ĐƠN HÀNG <span class="required-star">*</span></label>
-    <div style="display: flex; gap: 10px;">
-      <input v-model="form.maDonHang" type="text" placeholder="Ví dụ: VELORA-..." required 
-             @blur="verifyOrderCode" />
-      <button type="button" class="btn-verify-order" @click="verifyOrderCode">KIỂM TRA</button>
-    </div>
-  </div>
-</div>
-<div class="form-group" v-if="orderCheckMessage">
-  <small :style="{ color: isOrderValid ? '#276749' : '#e53e3e', fontWeight: '600' }">
-    {{ orderCheckMessage }}
-  </small>
-</div>
+              <div class="form-group">
+                <label>SỐ ĐIỆN THOẠI LIÊN HỆ</label>
+                <input v-model="form.sdt" type="tel" placeholder="Nhập số điện thoại..." required />
+              </div>
+              <div class="form-group">
+                <label>MÃ ĐƠN HÀNG <span class="required-star">*</span></label>
+                <div style="display: flex; gap: 10px;">
+                  <input v-model="form.maDonHang" type="text" placeholder="Ví dụ: VELORA-..." required 
+                         @blur="verifyOrderCode" />
+                  <button type="button" class="btn-verify-order" @click="verifyOrderCode">KIỂM TRA</button>
+                </div>
+              </div>
+            </div>
+            <div class="form-group" v-if="orderCheckMessage">
+              <small :style="{ color: isOrderValid ? '#276749' : '#e53e3e', fontWeight: '600' }">
+                {{ orderCheckMessage }}
+              </small>
+            </div>
 
             <!-- LOGIC SẢN PHẨM -->
             <div class="form-group" v-if="isAutoFilled && availableProductsInOrder.length === 1">
@@ -150,37 +150,31 @@
               </div>
 
               <div class="history-body">
-                <div class="info-row"><span class="lbl">MÃ YÊU CẦU:</span> <span class="val">#{{ item.maBaoHanh
-                    }}</span></div>
-                <div class="info-row"><span class="lbl">SẢN PHẨM:</span> <span class="val">{{ item.loaiSanPham }}</span>
-                </div>
-                <div class="info-row"><span class="lbl">HÌNH THỨC:</span> <span class="val">{{ item.hinhThucGiaoNhan ===
-                  'MANG_TRUC_TIEP' ? 'KHÁCH MANG TỚI SHOP' : 'GỬI QUA VẬN CHUYỂN' }}</span></div>
+                <div class="info-row"><span class="lbl">MÃ YÊU CẦU:</span> <span class="val">#{{ item.maBaoHanh }}</span></div>
+                <div class="info-row"><span class="lbl">SẢN PHẨM:</span> <span class="val">{{ item.loaiSanPham }}</span></div>
+                <div class="info-row"><span class="lbl">HÌNH THỨC:</span> <span class="val">{{ item.hinhThucGiaoNhan === 'MANG_TRUC_TIEP' ? 'KHÁCH MANG TỚI SHOP' : 'GỬI QUA VẬN CHUYỂN' }}</span></div>
                 <div class="info-row"><span class="lbl">LIÊN HỆ:</span> <span class="val">{{ item.hoTen }} - {{ item.soDienThoai }}</span></div>
-                <div class="info-row"><span class="lbl">LỖI GHI NHẬN:</span> <span class="val">{{ item.moTaLoi }}</span>
-                </div>
+                <div class="info-row"><span class="lbl">LỖI GHI NHẬN:</span> <span class="val">{{ item.moTaLoi }}</span></div>
 
-                <!-- Giờ hẹn ĐÃ CHỐT — hiện cố định, không biến mất sau khi xác nhận -->
+                <!-- Giờ hẹn ĐÃ CHỐT -->
                 <div v-if="['DA_TIEP_NHAN', 'DANG_SUA_CHUA', 'HOAN_TAT'].includes(item.trangThai) && item.thoiGianHen"
                   class="info-row appointment-wait" style="border-left: 4px solid #276749;">
                   <span class="lbl">LỊCH HẸN ĐÃ CHỐT:</span>
-                  <span class="val" style="color:#276749; font-weight:700;">{{ formatDisplayTime(item.thoiGianHen)
-                    }}</span>
+                  <span class="val" style="color:#276749; font-weight:700;">{{ formatDisplayTime(item.thoiGianHen) }}</span>
                 </div>
 
                 <div v-if="item.trangThai === 'DA_DE_XUAT_LICH' && item.thoiGianHen" class="appointment-proposal-box">
-  <div class="appointment-title">LỊCH HẸN TRUNG TÂM ĐỀ XUẤT:</div>
-  <div class="appointment-time">{{ formatDisplayTime(item.thoiGianHen) }}</div>
+                  <div class="appointment-title">LỊCH HẸN TRUNG TÂM ĐỀ XUẤT:</div>
+                  <div class="appointment-time">{{ formatDisplayTime(item.thoiGianHen) }}</div>
 
-  <div class="appointment-actions">
-    <button class="btn-confirm-schedule" @click="confirmAppointment(item.maBaoHanh)">XÁC NHẬN LỊCH HẸN</button>
-    <button class="btn-reschedule" @click="openRescheduleModal(item.maBaoHanh)">YÊU CẦU ĐỔI GIỜ</button>
-  </div>
-</div>
+                  <div class="appointment-actions">
+                    <button class="btn-confirm-schedule" @click="confirmAppointment(item.maBaoHanh)">XÁC NHẬN LỊCH HẸN</button>
+                    <button class="btn-reschedule" @click="openRescheduleModal(item.maBaoHanh)">YÊU CẦU ĐỔI GIỜ</button>
+                  </div>
+                </div>
 
                 <div v-if="item.thoiGianKhachMongMuon" class="info-row appointment-wait">
-                  <span class="lbl">YÊU CẦU ĐỔI GIỜ:</span> <span class="val">{{
-                    formatDisplayTime(item.thoiGianKhachMongMuon) }}</span>
+                  <span class="lbl">YÊU CẦU ĐỔI GIỜ:</span> <span class="val">{{ formatDisplayTime(item.thoiGianKhachMongMuon) }}</span>
                 </div>
               </div>
 
@@ -289,7 +283,6 @@ const showRescheduleModal = ref(false)
 const currentRescheduleId = ref(null)
 const selectedNewTime = ref('')
 
-
 // Thêm logic cho Tra cứu bảo hành
 const lookupQuery = ref('')
 const lookupResultModal = ref(null)
@@ -302,7 +295,6 @@ const handleLookupWarranty = async () => {
   }
 
   const currentUser = getUser()
-  // Lấy chính xác giá trị số, loại bỏ hoàn toàn các ký tự lạ phía sau (nếu có)
   const rawUserId = currentUser ? (currentUser.maNguoiDung || currentUser.id) : null
   const userId = rawUserId ? parseInt(String(rawUserId).split(':')[0]) : null
 
@@ -326,13 +318,12 @@ const handleLookupWarranty = async () => {
     message.value = { type: "error", text: errorMsg }
   }
 }
+
 const getUser = () => {
   try {
     const userStr = localStorage.getItem("user")
     if (!userStr) return null
-    const user = JSON.parse(userStr)
-    // Đảm bảo trả về đúng trường maNguoiDung hoặc id dạng số thuần túy
-    return user
+    return JSON.parse(userStr)
   } catch (err) { return null }
 }
 
@@ -358,11 +349,9 @@ const connectWebSocket = () => {
   stompClient.activate();
 };
 
-// Thêm các biến reactive mới vào script
 const orderCheckMessage = ref('')
 const isOrderValid = ref(false)
 
-// Hàm kiểm tra mã đơn hàng do người dùng nhập vào
 const verifyOrderCode = async () => {
   const code = form.maDonHang.trim()
   if (!code) {
@@ -375,7 +364,6 @@ const verifyOrderCode = async () => {
   const userId = currentUser ? (currentUser.maNguoiDung || currentUser.id) : null
 
   try {
-    // Sửa đúng đường dẫn sang /api/bao-hanh/kiem-tra
     const res = await axios.get(`${API}/kiem-tra`, {
       params: { code: code, userId: userId }
     })
@@ -386,7 +374,6 @@ const verifyOrderCode = async () => {
       
       if (res.data.items && res.data.items.length > 0) {
         availableProductsInOrder.value = res.data.items
-        // Nếu chỉ có 1 sản phẩm, tự động chọn luôn
         if (res.data.items.length === 1) {
           form.loaiSanPham = `${res.data.items[0].ten} (Mã SP: ${res.data.items[0].maSanPham || 'N/A'})`
         }
@@ -403,7 +390,6 @@ const verifyOrderCode = async () => {
   }
 }
 
-// Cập nhật lại hàm submitForm để chặn nếu chưa kiểm tra hoặc mã không hợp lệ
 const submitForm = async () => {
   if (!isOrderValid.value) {
     message.value = { type: "error", text: "VUI LÒNG NHẬP VÀ XÁC THỰC MÃ ĐƠN HÀNG HỢP LỆ TRƯỚC KHI GỬI." }
@@ -417,13 +403,13 @@ const submitForm = async () => {
   }
 
   try {
-    const res = await axios.post(`${API}/send`, {
+    await axios.post(`${API}/send`, {
       maNguoiDung: currentUser.maNguoiDung,
       hoTen: form.hoTen, 
       sdt: form.sdt,
-      maDonHangCode: form.maDonHang, // Phải khớp với payload.get("maDonHangCode") ở Controller
+      maDonHangCode: form.maDonHang,
       loaiSanPham: form.loaiSanPham, 
-      moTaLoi: form.moTa,           // Phải khớp với payload.get("moTaLoi") ở Controller
+      moTaLoi: form.moTa,
       hinhThucGiaoNhan: form.hinhThucGiaoNhan
     })
 
@@ -436,13 +422,10 @@ const submitForm = async () => {
     availableProductsInOrder.value = []
     await fetchWarrantyRequests()
   } catch (err) {
-    // In lỗi chi tiết ra console của trình duyệt để dễ dàng soi nếu còn phát sinh
     console.error("Lỗi gửi bảo hành:", err.response?.data || err)
     message.value = { type: "error", text: err.response?.data?.message || "ĐÃ XẢY RA LỖI, VUI LÒNG THỬ LẠI." }
   }
 }
-
-const scheduleSuccessMessage = ref(null)
 
 const confirmAppointment = async (id) => {
   try {
@@ -541,6 +524,9 @@ onMounted(async () => {
     try {
       const savedOrder = JSON.parse(savedOrderStr)
       form.maDonHang = savedOrder.maDonHangCode || savedOrder.maDonHang || ''
+      
+      // Tự động điền mã đơn vào ô tra cứu bảo hành để tiện kiểm tra
+      lookupQuery.value = form.maDonHang
 
       let itemsList = []
 
@@ -578,6 +564,11 @@ onMounted(async () => {
         form.loaiSanPham = `${itemsList[0].ten} (Mã SP: ${itemsList[0].maSanPham || 'N/A'})`;
       }
 
+      // Tự động gọi xác thực mã đơn hàng
+      if (form.maDonHang) {
+        verifyOrderCode()
+      }
+
     } catch (e) {
       console.error("Lỗi parse data:", e)
     } finally {
@@ -588,7 +579,6 @@ onMounted(async () => {
   fetchWarrantyRequests()
   connectWebSocket()
 })
-
 </script>
 
 <style scoped>
@@ -600,7 +590,6 @@ onMounted(async () => {
 /* 1. BIẾN MÀU SẮC & CƠ BẢN */
 .bao-hanh-page {
   background-color: #fcfbf9;
-  /* Trắng ngà xa xỉ */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -619,7 +608,6 @@ onMounted(async () => {
 /* 2. HERO BANNER */
 .hero-banner {
   background-color: #1a1614;
-  /* Đen nhám sâu */
   color: #ffffff;
   padding: 50px 60px;
   border-radius: 0;
@@ -628,7 +616,6 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 40px;
   border-bottom: 4px solid #cca15e;
-  /* Line vàng Velora */
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
 }
 
@@ -682,11 +669,10 @@ onMounted(async () => {
   letter-spacing: 1px;
 }
 
-/* 3. BỐ CỤC GRID THÔNG MINH */
+/* 3. BỐ CỤC GRID */
 .warranty-container {
   display: grid;
   grid-template-columns: 5fr 4fr;
-  /* Cột trái to hơn chút */
   gap: 30px;
   align-items: start;
 }
@@ -694,22 +680,19 @@ onMounted(async () => {
 .form-section {
   grid-column: 1 / 2;
   grid-row: 1 / 3;
-  /* Chiếm cả 2 hàng bên trái */
 }
 
 .lookup-section {
   grid-column: 2 / 3;
   grid-row: 1 / 2;
-  /* Nằm trên cùng bên phải */
 }
 
 .history-section {
   grid-column: 2 / 3;
   grid-row: 2 / 3;
-  /* Nằm dưới lookup bên phải */
 }
 
-/* 4. CARD BOX DÙNG CHUNG */
+/* 4. CARD BOX */
 .card-box {
   background: #ffffff;
   padding: 40px;
@@ -823,7 +806,7 @@ onMounted(async () => {
   gap: 20px;
 }
 
-/* HÌNH THỨC GIAO NHẬN (RADIO CARDS) */
+/* RADIO CARDS */
 .delivery-methods {
   display: flex;
   gap: 15px;
@@ -851,7 +834,6 @@ onMounted(async () => {
   background: #fff;
   border-width: 2px;
   padding: 15px;
-  /* Bù lại 1px border */
 }
 
 .radio-card .text {
@@ -889,7 +871,7 @@ onMounted(async () => {
   color: #1a1614;
 }
 
-/* 7. PHẦN TRA CỨU (LOOKUP) */
+/* 7. PHẦN TRA CỨU */
 .lookup-form-group {
   display: flex;
   gap: 15px;
@@ -902,7 +884,6 @@ onMounted(async () => {
 .btn-lookup {
   width: 160px;
   padding: 0;
-  /* Chiều cao tự dãn theo flex */
 }
 
 /* 8. LỊCH SỬ BẢO HÀNH */
@@ -915,22 +896,10 @@ onMounted(async () => {
   padding-right: 10px;
 }
 
-/* Tùy chỉnh thanh cuộn */
-.history-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.history-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.history-list::-webkit-scrollbar-thumb {
-  background: #d4d0c7;
-}
-
-.history-list::-webkit-scrollbar-thumb:hover {
-  background: #cca15e;
-}
+.history-list::-webkit-scrollbar { width: 6px; }
+.history-list::-webkit-scrollbar-track { background: #f1f1f1; }
+.history-list::-webkit-scrollbar-thumb { background: #d4d0c7; }
+.history-list::-webkit-scrollbar-thumb:hover { background: #cca15e; }
 
 .history-card {
   background: #ffffff;
@@ -942,7 +911,6 @@ onMounted(async () => {
 .history-card:hover {
   border-color: #cca15e;
   transform: translateX(5px);
-  /* Hiệu ứng luxury lướt nhẹ */
 }
 
 .history-header {
@@ -965,7 +933,6 @@ onMounted(async () => {
   color: #cca15e;
 }
 
-/* BADGES - MÀU SẮC TRẦM, CHỮ NÉT MẢNH QUYỀN LỰC */
 .status-badge {
   font-size: 0.7rem;
   padding: 6px 14px;
@@ -975,45 +942,14 @@ onMounted(async () => {
   text-transform: uppercase;
 }
 
-.status-pending {
-  color: #8a5a19;
-  border-color: #8a5a19;
-}
+.status-pending { color: #8a5a19; border-color: #8a5a19; }
+.status-waiting { color: #2c5282; border-color: #2c5282; }
+.status-accepted { color: #276749; border-color: #276749; background: rgba(39, 103, 73, 0.05); }
+.status-reschedule { color: #9b2c2c; border-color: #9b2c2c; }
+.status-processing { color: #553c9a; border-color: #553c9a; }
+.status-completed { color: #ffffff; border-color: #276749; background: #276749; }
+.status-cancelled { color: #718096; border-color: #cbd5e0; background: #f7fafc; }
 
-.status-waiting {
-  color: #2c5282;
-  border-color: #2c5282;
-}
-
-.status-accepted {
-  color: #276749;
-  border-color: #276749;
-  background: rgba(39, 103, 73, 0.05);
-}
-
-.status-reschedule {
-  color: #9b2c2c;
-  border-color: #9b2c2c;
-}
-
-.status-processing {
-  color: #553c9a;
-  border-color: #553c9a;
-}
-
-.status-completed {
-  color: #ffffff;
-  border-color: #276749;
-  background: #276749;
-}
-
-.status-cancelled {
-  color: #718096;
-  border-color: #cbd5e0;
-  background: #f7fafc;
-}
-
-/* THÔNG TIN CHI TIẾT LỊCH SỬ */
 .info-row {
   font-size: 0.9rem;
   margin-bottom: 12px;
@@ -1033,7 +969,6 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-/* KHUNG LỊCH HẸN */
 .appointment-proposal-box {
   background: #fdfcfb;
   border: 1px solid #e5e3dd;
@@ -1155,7 +1090,6 @@ onMounted(async () => {
   width: 100vw;
   height: 100vh;
   background-color: rgba(15, 12, 10, 0.85);
-  /* Nền đen sâu, ấm */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1177,7 +1111,6 @@ onMounted(async () => {
   color: #fff;
 }
 
-/* Tái sử dụng class thẻ card sang trọng cho modal đổi lịch (vốn nền trắng) -> Đổi thành Dark */
 .modal-content.card-box {
   background: #14110f;
   border-color: #cca15e;
@@ -1273,75 +1206,21 @@ onMounted(async () => {
   color: #cca15e;
 }
 
-/* 10. ANIMATIONS */
-@keyframes fadeInModal {
-  from {
-    opacity: 0;
-  }
+@keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleUpModal { from { transform: scale(0.95) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
 
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes scaleUpModal {
-  from {
-    transform: scale(0.95) translateY(20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
-}
-
-/* 11. RESPONSIVE MEDIA QUERIES */
 @media(max-width: 992px) {
-  .warranty-container {
-    grid-template-columns: 1fr;
-  }
-
-  .form-section {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .lookup-section {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .history-section {
-    grid-column: 1;
-    grid-row: 3;
-  }
-
-  .hero-banner {
-    flex-direction: column;
-    text-align: center;
-    gap: 30px;
-    padding: 40px 20px;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-
-  .lookup-form-group {
-    flex-direction: column;
-  }
-
-  .btn-lookup {
-    width: 100%;
-    padding: 16px;
-  }
-
-  .delivery-methods {
-    flex-direction: column;
-  }
+  .warranty-container { grid-template-columns: 1fr; }
+  .form-section { grid-column: 1; grid-row: 1; }
+  .lookup-section { grid-column: 1; grid-row: 2; }
+  .history-section { grid-column: 1; grid-row: 3; }
+  .hero-banner { flex-direction: column; text-align: center; gap: 30px; padding: 40px 20px; }
+  .form-row { grid-template-columns: 1fr; gap: 0; }
+  .lookup-form-group { flex-direction: column; }
+  .btn-lookup { width: 100%; padding: 16px; }
+  .delivery-methods { flex-direction: column; }
 }
+
 .btn-verify-order {
   background: #1a1614;
   color: #cca15e;

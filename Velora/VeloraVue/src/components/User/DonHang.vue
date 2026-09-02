@@ -155,6 +155,16 @@
                     <i class="fas fa-shield-alt"></i> YÊU CẦU BẢO HÀNH
                   </button>
 
+                  <!-- NÚT MỚI THÊM: IN GIẤY BẢO HÀNH (Chỉ hiển thị khi đơn đã thanh toán: DA_THANH_TOAN) -->
+                  <button 
+                    v-if="isPaidOrder(selectedOrder)"
+                    class="btn-print-warranty" 
+                    @click="printWarrantyPaper(selectedOrder)"
+                    title="In giấy bảo hành chính hãng Velora"
+                  >
+                    <i class="fas fa-certificate"></i> IN GIẤY BẢO HÀNH
+                  </button>
+
                   <!-- NÚT 4: IN BIÊN LAI BÀN GIAO -->
                   <button class="btn-print" @click="printInvoice">
                     <i class="fas fa-print"></i> IN BIÊN LAI
@@ -219,6 +229,11 @@
                   <p><strong>Thanh toán:</strong>
                     <span :class="isOnlinePayment(selectedOrder.phuongThucThanhToan) ? 'text-[#c5a880] font-bold' : ''">
                       {{ selectedOrder.phuongThucThanhToan }}
+                    </span>
+                  </p>
+                  <p><strong>Trạng thái tiền:</strong>
+                    <span :style="{ color: isPaidOrder(selectedOrder) ? '#27ae60' : '#d97706', fontWeight: 'bold' }">
+                      {{ isPaidOrder(selectedOrder) ? 'ĐÃ THANH TOÁN (HỢP LỆ BẢO HÀNH)' : 'CHƯA THANH TOÁN' }}
                     </span>
                   </p>
                 </div>
@@ -289,9 +304,9 @@
     <Footer />
 
     <!-- =========================================================================
-         [PHẦN 4: BIÊN BẢN BÀN GIAO CHỈ HIỂN THỊ KHI IN (PRINT INVOICE)]
+         [PHẦN 4: BIÊN BẢN BÀN GIAO CHỈ HIỂN THỊ KHI IN BIÊN LAI]
     ========================================================================== -->
-    <div class="print-invoice-template" v-if="selectedOrder">
+    <div class="print-invoice-template" v-if="selectedOrder && printMode === 'invoice'">
       <div class="print-border-outer">
         <div class="print-border-inner">
           
@@ -420,6 +435,114 @@
     </div>
 
     <!-- =========================================================================
+         [PHẦN 4.1: GIẤY XÁC NHẬN BẢO HÀNH CHÍNH HÃNG KHI BẤM IN GIẤY BẢO HÀNH]
+    ========================================================================== -->
+    <div class="print-warranty-template" v-if="selectedOrder && printMode === 'warranty'">
+      <div class="print-border-outer warranty-outer">
+        <div class="print-border-inner warranty-inner">
+          
+          <!-- Header Logo & Tiêu đề bảo hành -->
+          <div class="print-header">
+            <div class="print-logo">
+              <img src="/img/VeloraIcon.png" alt="Velora Logo">
+            </div>
+            <div class="print-company-titles">
+              <h2 class="company-name">VELORA CLOCK BOUTIQUE</h2>
+              <p class="company-sub">TRUNG TÂM BẢO HÀNH & KIỂM ĐỊNH THỜI GIAN ĐỘC QUYỀN</p>
+            </div>
+          </div>
+
+          <div class="print-meta-top">
+            <div class="meta-left">
+              <strong>Số thẻ BH:</strong> WAR-{{ selectedOrder.maDonHangCode }}<br>
+              <strong>Đơn hàng:</strong> #{{ selectedOrder.maDonHangCode }}
+            </div>
+            <div class="meta-right">
+              <strong>Ngày kích hoạt:</strong> {{ selectedOrder.ngayTao }}<br>
+              <strong>Thời hạn bảo hành:</strong> 02 Năm (24 Tháng Chính Hãng)
+            </div>
+          </div>
+
+          <div class="print-title-box">
+            <h2 style="color: #cca15e; letter-spacing: 2px;">GIẤY XÁC NHẬN BẢO HÀNH ĐỘC QUYỀN</h2>
+            <p style="font-size: 12px; margin: 4px 0 0 0; font-style: italic; color: #555;">(Áp dụng toàn bộ hệ thống trung tâm bảo hành và tra cứu trực tuyến Velora)</p>
+          </div>
+
+          <!-- Thông tin chủ sở hữu -->
+          <div class="print-section">
+            <h3>I. THÔNG TIN CHỦ SỞ HỮU KIỆT TÁC:</h3>
+            <table class="no-border-table">
+              <tbody>
+                <tr>
+                  <td width="130"><strong>Họ và tên</strong></td>
+                  <td>: {{ selectedOrder.tenNguoiNhan }}</td>
+                  <td width="110"><strong>Số điện thoại</strong></td>
+                  <td>: {{ selectedOrder.soDienThoai }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Địa chỉ liên hệ</strong></td>
+                  <td>: {{ selectedOrder.diaChi }}</td>
+                  <td><strong>Email đăng ký</strong></td>
+                  <td>: {{ selectedOrder.email || 'Hệ thống bảo mật' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Danh sách đồng hồ được bảo hành -->
+          <div class="print-section">
+            <h3>II. DANH MỤC KIỆT TÁC BẢO HÀNH CHÍNH HÃNG:</h3>
+            <table class="bordered-table">
+              <thead>
+                <tr>
+                  <th width="40">STT</th>
+                  <th>Mã số định danh</th>
+                  <th>Tên cỗ máy / Phiên bản</th>
+                  <th width="60">Số lượng</th>
+                  <th>Thời hạn bảo hành</th>
+                  <th>Trạng thái kích hoạt</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, idx) in selectedOrder.items" :key="idx">
+                  <td align="center">{{ idx + 1 }}</td>
+                  <td align="center"><strong>VEL-{{ item.maSanPham || 'EDITION' }}</strong></td>
+                  <td>{{ item.ten }}</td>
+                  <td align="center">{{ item.soLuong }}</td>
+                  <td align="center">24 Tháng (Kể từ ngày mua)</td>
+                  <td align="center" style="color: #27ae60; font-weight: bold;">ĐÃ XÁC THỰC</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Chính sách cam kết độc quyền Velora -->
+          <div class="print-section">
+            <h3>III. CHÍNH SÁCH BẢO HÀNH VELORA CARE+:</h3>
+            <div style="font-size: 12px; line-height: 1.6; border: 1px dashed #cca15e; padding: 10px; background: #faf8f5;">
+              <p style="margin: 0 0 4px 0;">• <strong>Phạm vi bảo hành:</strong> Miễn phí 100% chi phí sửa chữa, thay thế linh kiện chính hãng đối với các lỗi phát sinh do nhà sản xuất (bộ máy, IC, độ chịu nước theo tiêu chuẩn).</p>
+              <p style="margin: 0 0 4px 0;">• <strong>Đặc quyền khách hàng:</strong> Thay pin miễn phí trọn đời cho dòng máy Quartz; kiểm tra độ chính xác và lau dầu định kỳ miễn phí trong thời gian bảo hành.</p>
+              <p style="margin: 0;">• <strong>Tra cứu trực tuyến:</strong> Quý khách có thể truy cập mục <strong>"BẢO HÀNH"</strong> trên website <em>velora.com</em> và nhập mã đơn <strong>{{ selectedOrder.maDonHangCode }}</strong> để tra cứu hoặc đặt lịch hẹn trực tiếp với kỹ thuật viên.</p>
+            </div>
+          </div>
+
+          <!-- Chữ ký & Con dấu -->
+          <div class="print-signatures" style="margin-top: 20px;">
+            <div class="sig-box">
+              <strong>CHỦ SỞ HỮU</strong><br>
+              <em class="sig-note">(Ký và ghi rõ họ tên)</em>
+            </div>
+            <div class="sig-box">
+              <strong>GIÁM ĐỐC TRUNG TÂM BẢO HÀNH VELORA</strong><br>
+              <em class="sig-note">(Ký, đóng dấu kiểm định chuẩn)</em>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
          [PHẦN 5: POPUP MODAL HỦY ĐƠN & TOAST THÔNG BÁO]
     ========================================================================== -->
     <!-- Toast thông báo nhanh góc màn hình -->
@@ -461,7 +584,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
@@ -480,12 +603,11 @@ const selectedOrder = ref(null)
 const currentTab = ref('ALL')
 const currentPage = ref(1)
 
+// Chế độ in ấn: 'invoice' (in biên lai) hoặc 'warranty' (in giấy bảo hành)
+const printMode = ref('invoice')
+
 // DÒNG MẶC ĐỊNH: Số lượng đơn hàng hiển thị trên 1 trang (4 đơn)
 const itemsPerPage = 4
-// THAY THẾ: Hiển thị 6 đơn trên 1 trang:
-// const itemsPerPage = 6;
-// THAY THẾ: Hiển thị 8 đơn trên 1 trang:
-// const itemsPerPage = 8;
 
 // Danh sách các nút Tab lọc trạng thái
 const tabs = [
@@ -589,18 +711,21 @@ const triggerToast = (msg) => {
   toastMessage.value = msg
   showToast.value = true
   if (toastTimer) clearTimeout(toastTimer)
-  
-  // DÒNG MẶC ĐỊNH: Tự tắt sau 3.5 giây (3500ms)
   toastTimer = setTimeout(() => { showToast.value = false }, 3500)
-  // THAY THẾ: Hiện thông báo 5 giây:
-  // toastTimer = setTimeout(() => { showToast.value = false }, 5000);
 }
 
-// Kiểm tra có phải đơn thanh toán trực tuyến (VNPAY, Chuyển khoản QR) hay không
+// Kiểm tra có phải đơn thanh toán trực tuyến hay không
 const isOnlinePayment = (method) => {
   if (!method) return false;
   const m = method.toUpperCase();
   return m !== 'COD' && m !== 'THANH TOÁN COD';
+}
+
+// Kiểm tra đơn hàng ĐÃ THANH TOÁN (để mở khóa chức năng in giấy bảo hành)
+const isPaidOrder = (order) => {
+  if (!order) return false;
+  const tt = order.trangThaiThanhToan;
+  return tt === 'DA_THANH_TOAN' || tt === 'Đã thanh toán';
 }
 
 const formatPrice = (value) => {
@@ -608,9 +733,8 @@ const formatPrice = (value) => {
 }
 
 // =========================================================================
-// [LOGIC 4: GỌI API BACKEND & WEBSOCKET]
+// [LOGIC 4: GỌI API BACKEND & IN ẤN BẢO HÀNH]
 // =========================================================================
-// Lấy danh sách đơn hàng của người dùng đang đăng nhập
 const fetchUserOrders = async () => {
   try {
     const userStr = localStorage.getItem('user')
@@ -637,6 +761,7 @@ const fetchUserOrders = async () => {
         email: order.email || user.email || '', 
         diaChi: order.diaChiGiaoHang,
         trangThaiDonHang: order.trangThaiDonHang,
+        trangThaiThanhToan: order.trangThaiThanhToan, // <--- BỔ SUNG TRƯỜNG THANH TOÁN
         phuongThucThanhToan: order.phuongThucThanhToan,
         lyDoHuy: order.lyDoHuy || order.ghiChu || '', 
         items: (order.chiTietDonHangs || []).map(ct => ({
@@ -666,6 +791,24 @@ const fetchUserOrders = async () => {
 const goToWarrantyPage = (order) => {
   localStorage.setItem('selectedWarrantyOrder', JSON.stringify(order))
   router.push('/bao-hanh')
+}
+
+// Kích hoạt in Giấy Xác Nhận Bảo Hành Chính Hãng
+const printWarrantyPaper = async (order) => {
+  if (!isPaidOrder(order)) {
+    triggerToast('Chỉ những đơn hàng đã thanh toán mới được cấp giấy bảo hành chính hãng!')
+    return
+  }
+  printMode.value = 'warranty'
+  await nextTick()
+  window.print()
+}
+
+// Kích hoạt in Biên lai bàn giao kiệt tác
+const printInvoice = async () => {
+  printMode.value = 'invoice'
+  await nextTick()
+  window.print()
 }
 
 // Kết nối WebSocket nhận thông báo cập nhật đơn Realtime
@@ -717,18 +860,13 @@ const cancelOrder = async (order) => {
   }
 }
 
-// Chuyển hướng sang trang Hoàn tiền & Trả hàng
+// Chuyển hướng sang trang Hoàn tiền
 const goToRefundPage = (order) => {
   localStorage.setItem('selectedRefundOrder', JSON.stringify(order))
   router.push('/yeu-cau-hoan-tien')
 }
 
-// Kích hoạt cửa sổ in hóa đơn của trình duyệt
-const printInvoice = () => {
-  window.print();
-}
-
-// Ánh xạ trạng thái sang cấp độ tiến trình (1 -> 4)
+// Ánh xạ trạng thái sang cấp độ tiến trình
 const getStepLevel = (status) => {
   switch (status) {
     case 'CHO_XU_LY': return 1;
@@ -741,7 +879,6 @@ const getStepLevel = (status) => {
 
 const isStepCompleted = (status, stepNumber) => { return getStepLevel(status) > stepNumber; }
 
-// Ánh xạ mã trạng thái sang tên tiếng Việt
 const getStatusText = (status) => {
   if (!status) return ''
   const cleanStatus = status.trim().toUpperCase()
@@ -760,7 +897,6 @@ const getStatusText = (status) => {
   return map[cleanStatus] || status
 }
 
-// Ánh xạ class CSS màu sắc theo trạng thái
 const getStatusClass = (status) => {
   if (!status) return ''
   const cleanStatus = status.trim().toUpperCase()
@@ -797,7 +933,7 @@ onMounted(() => {
 ========================================================================= */
 .order-tabs-wrapper {
   margin-bottom: 35px;
-  background-color: #ffffff;                    /* Nền thanh tab: TRẮNG */
+  background-color: #ffffff;
   border: 1px solid #f0f0f0;
   padding: 4px 20px;
   border-radius: 10px;
@@ -817,7 +953,7 @@ onMounted(() => {
   padding: 18px 20px;
   font-size: 14px;
   font-weight: 600;
-  color: #666;                                  /* Màu chữ tab chưa chọn: XÁM */
+  color: #666;
   cursor: pointer;
   position: relative;
   transition: all 0.3s ease;
@@ -826,7 +962,7 @@ onMounted(() => {
 
 .tab-btn:hover { color: #c5a880; }
 .tab-btn.active { 
-  color: #1a1a1a;                               /* Màu chữ tab ĐANG CHỌN: ĐEN XÁM */
+  color: #1a1a1a;
   font-weight: 700; 
 }
 .tab-btn.active::after {
@@ -834,7 +970,7 @@ onMounted(() => {
   position: absolute;
   bottom: 0; left: 0;
   width: 100%; height: 3px;
-  background-color: #c5a880;                    /* Gạch chân màu VÀNG HOÀNG KIM */
+  background-color: #c5a880;
   border-radius: 3px 3px 0 0;
 }
 
@@ -854,7 +990,7 @@ onMounted(() => {
 
 .order-layout {
   display: grid;
-  grid-template-columns: 420px 1fr;             /* Chia 2 cột: Cột trái 420px, Cột phải phần còn lại */
+  grid-template-columns: 420px 1fr;
   gap: 35px;
   align-items: start;
 }
@@ -887,9 +1023,9 @@ onMounted(() => {
 }
 
 .order-card.active {
-  border-color: #c5a880;                        /* Viền thẻ đang chọn: VÀNG HOÀNG KIM */
+  border-color: #c5a880;
   box-shadow: 0 4px 15px rgba(197, 168, 128, 0.15);
-  background: #fffcf8;                          /* Nền thẻ đang chọn: KEM NHẸ */
+  background: #fffcf8;
 }
 
 .order-card-header {
@@ -900,7 +1036,7 @@ onMounted(() => {
 
 .order-code { font-size: 14px; font-weight: 700; color: #1a1a1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 .order-date { font-size: 12px; color: #888; }
-.order-total { font-size: 15px; font-weight: 700; color: #c5a880; } /* Màu tiền: VÀNG HOÀNG KIM */
+.order-total { font-size: 15px; font-weight: 700; color: #c5a880; }
 .order-status { font-size: 11px; padding: 4px 8px; font-weight: 700; border-radius: 4px; text-transform: uppercase; }
 
 /* PHÂN TRANG */
@@ -919,7 +1055,7 @@ onMounted(() => {
 }
 .page-btn:hover:not(:disabled) { border-color: #c5a880; color: #c5a880; }
 .page-btn.active { 
-  background: #c5a880;                          /* Nền trang đang chọn: VÀNG HOÀNG KIM */
+  background: #c5a880;
   color: white; 
   border-color: #c5a880; 
 }
@@ -985,13 +1121,26 @@ onMounted(() => {
   cursor: pointer;
 }
 
-/* Các kiểu màu nút thao tác */
+/* Các kiểu nút */
 .btn-print { background: #fff; border: 1px solid #e5e7eb; color: #374151; }
 .btn-print:hover { background: #f9f9f9; border-color: #d1d5db; }
 .btn-refund-order { background: #fffaf0; border: 1px solid #fde68a; color: #b45309; }
 .btn-refund-order:hover { background: #fef3c7; }
 .btn-warranty-order { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
 .btn-cancel-order { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+
+/* Nút in giấy bảo hành sang trọng */
+.btn-print-warranty {
+  background: #1a1614;
+  color: #cca15e;
+  border: 1px solid #cca15e;
+  font-weight: 700 !important;
+}
+.btn-print-warranty:hover {
+  background: #cca15e;
+  color: #1a1614;
+  box-shadow: 0 4px 12px rgba(204, 161, 94, 0.3);
+}
 
 /* =========================================================================
    [CSS NHÓM 4: THANH TIẾN TRÌNH TIMELINE VẬN CHUYỂN]
@@ -1037,18 +1186,18 @@ onMounted(() => {
 }
 
 .step.active .step-icon {
-  border-color: #c5a880;                        /* Viền bước hiện tại: VÀNG */
+  border-color: #c5a880;
   color: #c5a880;
   box-shadow: 0 0 0 4px rgba(197, 168, 128, 0.1);
 }
 
 .step.completed .step-icon {
-  background: #c5a880;                          /* Nền bước đã hoàn thành: VÀNG */
+  background: #c5a880;
   border-color: #c5a880;
   color: #fff;
 }
 
-.step-line.filled { background: #c5a880; }       /* Đường nối đã đi qua: VÀNG */
+.step-line.filled { background: #c5a880; }
 
 .step p {
   font-size: 11px;
@@ -1097,7 +1246,7 @@ onMounted(() => {
 
 .info-panel p strong {
   display: inline-block;
-  width: 95px;
+  width: 120px;
   color: #666;
   font-weight: 600;
 }
@@ -1186,9 +1335,10 @@ onMounted(() => {
 .velora-btn-primary:hover { background: #b0936d; }
 
 /* =========================================================================
-   [CSS NHÓM 8: CẤU HÌNH IN BIÊN LAI BÀN GIAO (@media print)]
+   [CSS NHÓM 8: CẤU HÌNH IN BIÊN LAI & BẢO HÀNH (@media print)]
 ========================================================================= */
-.print-invoice-template { display: none; }
+.print-invoice-template,
+.print-warranty-template { display: none; }
 
 @media print {
   @page { margin: 0 !important; size: A4 portrait; }
@@ -1208,7 +1358,9 @@ onMounted(() => {
     overflow: hidden !important;
   }
 
-  .print-invoice-template {
+  /* Kích hoạt template in tương ứng */
+  .print-invoice-template,
+  .print-warranty-template {
     display: block !important;
     width: 100%; height: 100vh;
     padding: 8mm 10mm !important;
@@ -1219,7 +1371,8 @@ onMounted(() => {
   }
 
   /* Watermark logo in chìm */
-  .print-invoice-template::before {
+  .print-invoice-template::before,
+  .print-warranty-template::before {
     content: ""; position: absolute;
     top: 35%; left: 20%; width: 60%; height: 40%;
     background-image: url('/img/VeloraIcon.png');
@@ -1292,7 +1445,7 @@ onMounted(() => {
   .print-signatures { 
     display: flex; 
     justify-content: space-around; 
-    margin-top: 25px; 
+    margin-top: 20px; 
     text-align: center; 
     font-size: 14px; 
   }
