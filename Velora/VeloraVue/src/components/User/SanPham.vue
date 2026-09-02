@@ -95,7 +95,6 @@
                   {{ product.giaBan > 100000000 ? 'Liên hệ báo giá' : formatPrice(product.giaBan) }}
                 </div>
 
-                <!-- BỔ SUNG: Hiển thị thông tin Bảo hành ở đây cho khách nhìn thấy trực quan -->
                 <div class="product-warranty" v-if="product.thoiGianBaoHanh">
                   <i class="fa-solid fa-shield-halved"></i> Bảo hành chính hãng: <b>{{ product.thoiGianBaoHanh }} tháng</b>
                 </div>
@@ -328,7 +327,7 @@ onUnmounted(() => {
 }
 
 .product-warranty i {
-  color: #c5a059; /* Màu ánh kim đặc trưng cho website đồng hồ */
+  color: #c5a059;
 }
 
 .custom-dropdown .dropdown-selected {
@@ -344,6 +343,13 @@ onUnmounted(() => {
 
 .custom-dropdown.active .dropdown-selected i {
   transform: rotate(180deg);
+}
+
+/* 🔥 ĐOẠN CSS NÀY SẼ TIÊU DIỆT CÁI ICON THỪA TỪ FILE CSS BÊN NGOÀI */
+.custom-dropdown::after,
+.dropdown-selected::after {
+  display: none !important;
+  content: none !important;
 }
 </style>
 

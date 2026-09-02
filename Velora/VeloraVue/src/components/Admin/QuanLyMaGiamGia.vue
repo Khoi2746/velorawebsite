@@ -1,34 +1,29 @@
 <template>
     <div class="velora-admin-wrapper admin-wrapper">
-        <!-- 1. GỌI COMPONENT SIDEBAR MỚI -->
         <AdminSidebar :isCollapsed="isCollapsed" />
 
         <div class="content-wrapper" :class="{ 'content-expanded': isCollapsed }">
-            <!-- 2. GỌI COMPONENT HEADER MỚI -->
             <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-            <!-- 3. NỘI DUNG CHÍNH (Giữ nguyên 100% logic của ku em) -->
             <main class="content">
-                <header class="header">
+                <!-- 🔥 HEADER MỚI CÓ NÚT LIÊN KẾT CHÉO -->
+                <header class="header" style="display: flex; justify-content: space-between; align-items: flex-end;">
                     <div class="header-title">
                         <h1>Quản Lý <span class="gold">Mã Giảm Giá</span></h1>
                         <p>Tạo và cấu hình các mã khuyến mãi, giới hạn lượt sử dụng cho khách hàng.</p>
                     </div>
+                    <button @click="$router.push('/bai-viet')" class="btn-link-cross">
+                        <i class="fa-solid fa-bullhorn"></i> TỚI TRANG CHIẾN DỊCH MARKETING
+                    </button>
                 </header>
 
-                <!-- KHỐI CÔNG CỤ (TÌM KIẾM + LỌC + THÊM MỚI) TRÊN 1 HÀNG -->
+                <!-- KHỐI CÔNG CỤ -->
                 <div class="controls-container">
-                    <!-- Ô Tìm kiếm -->
                     <div class="search-box">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input 
-                            type="text" 
-                            v-model="searchQuery" 
-                            placeholder="Tìm theo mã code..."
-                        >
+                        <input type="text" v-model="searchQuery" placeholder="Tìm theo mã code...">
                     </div>
 
-                    <!-- Cụm Bộ lọc -->
                     <div class="filter-group">
                         <div class="filter-item">
                             <label>Trạng thái:</label>
@@ -58,7 +53,6 @@
                         </div>
                     </div>
 
-                    <!-- Nút Thêm Mới (Được đẩy sang phải) -->
                     <button @click="moModal()" class="btn-add">
                         <i class="fa-solid fa-plus"></i> Thêm mã mới
                     </button>
@@ -83,7 +77,7 @@
                                 <td>Giảm {{ item.phanTramGiam }}%</td>
                                 <td>{{ item.soLuotDaDung }} / {{ item.gioiHanSuDung }}</td>
                                 <td>
-                                    <span :class="{'permanent': !item.ngayHetHan}">
+                                    <span :class="{ 'permanent': !item.ngayHetHan }">
                                         {{ formatDate(item.ngayHetHan) }}
                                     </span>
                                 </td>
@@ -106,8 +100,7 @@
                             </tr>
                         </tbody>
                     </table>
-                    
-                    <!-- Khối điều hướng phân trang -->
+
                     <div class="pagination-wrapper" v-if="totalPages > 1">
                         <button class="btn-page" @click="prevPage" :disabled="currentPage === 1">Trước</button>
                         <span class="page-info">Trang <strong>{{ currentPage }}</strong> / {{ totalPages }}</span>
@@ -133,7 +126,7 @@
                             <label>Giới hạn số lượt dùng</label>
                             <input v-model="formData.gioiHanSuDung" type="number" required>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>Thời hạn sử dụng</label>
                             <select v-model="loaiHanSuDung">
@@ -159,7 +152,7 @@
                 </div>
             </div>
 
-            <!-- MODAL POPUP XÁC NHẬN Ở GIỮA MÀN HÌNH -->
+            <!-- MODAL POPUP XÁC NHẬN CHUẨN VELORA -->
             <div v-if="showConfirmModal" class="confirm-modal-overlay" @click.self="showConfirmModal = false">
                 <div class="confirm-modal-card">
                     <div class="modal-icon-header">
@@ -174,7 +167,7 @@
                 </div>
             </div>
 
-            <!-- MODAL POPUP THÔNG BÁO Ở GIỮA MÀN HÌNH -->
+            <!-- MODAL POPUP THÔNG BÁO CHUẨN VELORA -->
             <div v-if="showAlertModal" class="confirm-modal-overlay" @click.self="showAlertModal = false">
                 <div class="confirm-modal-card">
                     <div class="modal-icon-header">
@@ -195,21 +188,14 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
-
-// IMPORT COMPONENT CON VÀO ĐÂY
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
-// ================= LOGIC ĐIỀU KHIỂN LAYOUT CHUNG =================
 const isCollapsed = ref(false);
+const toggleSidebar = () => { isCollapsed.value = !isCollapsed.value; };
 
-const toggleSidebar = () => {
-    isCollapsed.value = !isCollapsed.value;
-};
-
-// ================= LOGIC DỮ LIỆU CŨ (Giữ nguyên 100%) =================
 const danhSachMa = ref([]);
-const searchQuery = ref(''); 
+const searchQuery = ref('');
 const hienThiModal = ref(false);
 const dangSua = ref(false);
 const formData = ref({ id: null, maCode: '', phanTramGiam: 0, gioiHanSuDung: 100, ngayHetHan: '' });
@@ -218,10 +204,8 @@ const loaiHanSuDung = ref('none');
 const filterTrangThai = ref('all');
 const filterMucGiam = ref('all');
 const filterHanSuDung = ref('all');
-
-// --- CẤU HÌNH PHÂN TRANG ---
 const currentPage = ref(1);
-const itemsPerPage = ref(7); // Số lượng bản ghi mã giảm giá trên một trang (có thể tùy chỉnh)
+const itemsPerPage = ref(7);
 
 const tinhTrangThai = (item) => {
     if (item.soLuotDaDung >= item.gioiHanSuDung) {
@@ -261,54 +245,28 @@ const danhSachMaLoc = computed(() => {
     });
 });
 
-// Tính tổng số trang
-const totalPages = computed(() => {
-    return Math.ceil(danhSachMaLoc.value.length / itemsPerPage.value) || 1;
-});
-
-// Dữ liệu hiển thị trên trang hiện tại
+const totalPages = computed(() => Math.ceil(danhSachMaLoc.value.length / itemsPerPage.value) || 1);
 const paginatedDanhSach = computed(() => {
     const start = (currentPage.value - 1) * itemsPerPage.value;
-    const end = start + itemsPerPage.value;
-    return danhSachMaLoc.value.slice(start, end);
+    return danhSachMaLoc.value.slice(start, start + itemsPerPage.value);
 });
 
-// Reset về trang 1 mỗi khi người dùng tìm kiếm hoặc thay đổi bộ lọc
-watch([searchQuery, filterTrangThai, filterMucGiam, filterHanSuDung], () => {
-    currentPage.value = 1;
-});
-
-// Hàm chuyển trang
-const prevPage = () => {
-    if (currentPage.value > 1) currentPage.value--;
-};
-
-const nextPage = () => {
-    if (currentPage.value < totalPages.value) currentPage.value++;
-};
-// --- KẾT THÚC CẤU HÌNH PHÂN TRANG ---
+watch([searchQuery, filterTrangThai, filterMucGiam, filterHanSuDung], () => { currentPage.value = 1; });
+const prevPage = () => { if (currentPage.value > 1) currentPage.value--; };
+const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++; };
 
 const formatDate = (dateString) => {
     if (!dateString) return 'Vĩnh viễn';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', { 
-        day: '2-digit', month: '2-digit', year: 'numeric' 
-    });
+    return new Date(dateString).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 const layDanhSach = async () => {
-  try {
-    const res = await axios.get('/api/admin/ma-giam-gia');
-    if (res.data && Array.isArray(res.data.content)) {
-        danhSachMa.value = res.data.content; 
-    } else if (Array.isArray(res.data)) {
-        danhSachMa.value = res.data;        
-    } else {
-        danhSachMa.value = [];              
-    }
-  } catch (error) {
-    console.error("Lỗi lấy dữ liệu:", error);
-  }
+    try {
+        const res = await axios.get('http://localhost:8080/api/admin/ma-giam-gia');
+        if (res.data && Array.isArray(res.data.content)) danhSachMa.value = res.data.content;
+        else if (Array.isArray(res.data)) danhSachMa.value = res.data;
+        else danhSachMa.value = [];
+    } catch (error) { console.error("Lỗi lấy dữ liệu:", error); }
 };
 
 const moModal = (item = null) => {
@@ -317,24 +275,22 @@ const moModal = (item = null) => {
         let formattedDate = '';
         if (item.ngayHetHan) {
             formattedDate = item.ngayHetHan.substring(0, 10);
-            loaiHanSuDung.value = 'custom'; 
+            loaiHanSuDung.value = 'custom';
         } else {
-            loaiHanSuDung.value = 'none';   
+            loaiHanSuDung.value = 'none';
         }
         formData.value = { ...item, ngayHetHan: formattedDate };
     } else {
         dangSua.value = false;
-        loaiHanSuDung.value = 'none'; 
+        loaiHanSuDung.value = 'none';
         formData.value = { id: null, maCode: '', phanTramGiam: 0, gioiHanSuDung: 100, ngayHetHan: '' };
     }
     hienThiModal.value = true;
 };
 
-// --- MODAL POPUP THÔNG BÁO Ở GIỮA MÀN HÌNH CHUẨN VELORA ---
 const showConfirmModal = ref(false);
 const confirmModalText = ref('');
 const pendingConfirmAction = ref(null);
-
 const showAlertModal = ref(false);
 const alertModalTitle = ref('THÔNG BÁO');
 const alertModalMessage = ref('');
@@ -342,56 +298,48 @@ const alertModalIcon = ref('fa-solid fa-circle-check');
 const alertModalTitleColor = ref('#4CAF50');
 
 const showCustomAlert = (message, title = 'THÔNG BÁO', isSuccess = true) => {
-  alertModalMessage.value = message;
-  alertModalTitle.value = title;
-  alertModalIcon.value = isSuccess ? 'fa-solid fa-circle-check' : 'fa-solid fa-triangle-exclamation';
-  alertModalTitleColor.value = isSuccess ? '#4CAF50' : '#ff4444';
-  showAlertModal.value = true;
+    alertModalMessage.value = message;
+    alertModalTitle.value = title;
+    alertModalIcon.value = isSuccess ? 'fa-solid fa-circle-check' : 'fa-solid fa-triangle-exclamation';
+    alertModalTitleColor.value = isSuccess ? '#4CAF50' : '#ff4444';
+    showAlertModal.value = true;
 };
 
 const triggerConfirmModal = (text, actionFn) => {
-  confirmModalText.value = text;
-  pendingConfirmAction.value = actionFn;
-  showConfirmModal.value = true;
+    confirmModalText.value = text;
+    pendingConfirmAction.value = actionFn;
+    showConfirmModal.value = true;
 };
 
 const handleExecuteConfirm = async () => {
-  showConfirmModal.value = false;
-  if (pendingConfirmAction.value) {
-    await pendingConfirmAction.value();
-    pendingConfirmAction.value = null;
-  }
+    showConfirmModal.value = false;
+    if (pendingConfirmAction.value) {
+        await pendingConfirmAction.value();
+        pendingConfirmAction.value = null;
+    }
 };
 
 const luuMaGiamGia = async () => {
     try {
         const payload = { ...formData.value };
-
-        if (loaiHanSuDung.value === 'none') {
-            payload.ngayHetHan = null;
-        } else if (loaiHanSuDung.value === 'custom') {
-            if (!payload.ngayHetHan) {
-                showCustomAlert("Vui lòng chọn ngày hết hạn cụ thể!", "CẢNH BÁO", false);
-                return;
-            }
-            if (payload.ngayHetHan.length === 10) {
-                payload.ngayHetHan = `${payload.ngayHetHan}T23:59:59`;
-            }
+        if (loaiHanSuDung.value === 'none') { payload.ngayHetHan = null; }
+        else if (loaiHanSuDung.value === 'custom') {
+            if (!payload.ngayHetHan) { showCustomAlert("Vui lòng chọn ngày hết hạn cụ thể!", "CẢNH BÁO", false); return; }
+            if (payload.ngayHetHan.length === 10) payload.ngayHetHan = `${payload.ngayHetHan}T23:59:59`;
         } else {
             const soNgay = parseInt(loaiHanSuDung.value);
             const dateHienTai = new Date();
             dateHienTai.setDate(dateHienTai.getDate() + soNgay);
-            
             const timezoneOffset = dateHienTai.getTimezoneOffset() * 60000;
             const targetDate = new Date(dateHienTai.getTime() - timezoneOffset).toISOString().slice(0, 10);
             payload.ngayHetHan = `${targetDate}T23:59:59`;
         }
 
         if (dangSua.value) {
-            await axios.put(`/api/admin/ma-giam-gia/${payload.id}`, payload);
+            await axios.put(`http://localhost:8080/api/admin/ma-giam-gia/${payload.id}`, payload);
             showCustomAlert("Đã cập nhật thông tin mã giảm giá thành công!", "THÀNH CÔNG", true);
         } else {
-            await axios.post('/api/admin/ma-giam-gia', payload);
+            await axios.post('http://localhost:8080/api/admin/ma-giam-gia', payload);
             showCustomAlert("Đã tạo mới mã giảm giá thành công!", "THÀNH CÔNG", true);
         }
         hienThiModal.value = false;
@@ -409,26 +357,19 @@ const luuMaGiamGia = async () => {
 const xoaMa = (id) => {
     triggerConfirmModal("Bạn có chắc chắn muốn xóa mã giảm giá này?", async () => {
         try {
-            await axios.delete(`/api/admin/ma-giam-gia/${id}`);
-            if (paginatedDanhSach.value.length === 1 && currentPage.value > 1) {
-                currentPage.value--;
-            }
+            await axios.delete(`http://localhost:8080/api/admin/ma-giam-gia/${id}`);
+            if (paginatedDanhSach.value.length === 1 && currentPage.value > 1) currentPage.value--;
             showCustomAlert("Đã xóa mã giảm giá thành công!", "THÀNH CÔNG", true);
             layDanhSach();
         } catch (error) {
-            if (error.response && error.response.data) {
-                showCustomAlert("Lỗi: " + error.response.data, "LỖI XÓA MÃ", false);
-            }
+            if (error.response && error.response.data) showCustomAlert("Lỗi: " + error.response.data, "LỖI XÓA MÃ", false);
         }
     });
 };
 
-onMounted(() => {
-    layDanhSach();
-});
+onMounted(() => { layDanhSach(); });
 </script>
 
-<!-- CSS CHỨA BIẾN GLOBAL ĐỂ SIDEBAR NHẬN MÀU -->
 <style>
 :root {
     --wood-dark: #362921;
@@ -444,9 +385,6 @@ onMounted(() => {
 </style>
 
 <style scoped>
-/* ==============================================
-   CSS LAYOUT CHUNG BỌC BÊN NGOÀI
-   ============================================== */
 .velora-admin-wrapper {
     display: flex;
     height: 100vh;
@@ -468,9 +406,6 @@ onMounted(() => {
     min-width: 0;
 }
 
-/* ==============================================
-   CSS CỦA TRANG MÃ GIẢM GIÁ (Giữ nguyên)
-   ============================================== */
 .header {
     margin-bottom: 25px;
 }
@@ -492,20 +427,37 @@ onMounted(() => {
     margin: 0;
 }
 
-/* ================= KHỐI CONTROLS ĐỒNG BỘ 1 HÀNG ================= */
+/* NÚT LIÊN KẾT MARKETING ĐỘC QUYỀN */
+.btn-link-cross {
+    background-color: transparent;
+    color: #362921;
+    border: 2px solid #362921;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.3s;
+    letter-spacing: 1px;
+}
+
+.btn-link-cross:hover {
+    background-color: #362921;
+    color: #fff;
+}
+
 .controls-container {
     background: #fff;
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     margin-bottom: 25px;
     display: flex;
     align-items: center;
     gap: 20px;
-    flex-wrap: wrap; /* Cho phép rớt dòng nếu màn hình quá nhỏ */
+    flex-wrap: wrap;
 }
 
-/* Tìm kiếm */
 .search-box {
     position: relative;
     display: flex;
@@ -523,6 +475,8 @@ onMounted(() => {
     border: 1px solid #ddd;
     width: 220px;
     transition: 0.3s;
+    height: 40px;
+    border-radius: 4px;
 }
 
 .search-box input:focus {
@@ -530,7 +484,6 @@ onMounted(() => {
     border-color: #d1aa68;
 }
 
-/* Nhóm Filter */
 .filter-group {
     display: flex;
     align-items: center;
@@ -557,13 +510,14 @@ onMounted(() => {
     outline: none;
     cursor: pointer;
     min-width: 140px;
+    height: 40px;
+    border-radius: 4px;
 }
 
 .filter-item select:focus {
     border-color: #d1aa68;
 }
 
-/* Nút thêm mới - Được đẩy sang góc phải */
 .btn-add {
     margin-left: auto;
     background-color: #3e332e;
@@ -577,23 +531,14 @@ onMounted(() => {
     gap: 8px;
     font-weight: 500;
     white-space: nowrap;
+    height: 40px;
+    border-radius: 4px;
 }
 
 .btn-add:hover {
     background-color: #d1aa68;
 }
 
-/* Chiều cao đồng bộ cho tất cả control */
-.search-box input, 
-.filter-item select,
-.btn-add {
-    height: 40px;
-    box-sizing: border-box;
-    border-radius: 4px;
-    font-size: 14px;
-}
-
-/* ================= BẢNG & TRẠNG THÁI ================= */
 .status-badge {
     padding: 5px 10px;
     border-radius: 20px;
@@ -628,7 +573,8 @@ table {
     border-collapse: collapse;
 }
 
-th, td {
+th,
+td {
     padding: 16px 20px;
     text-align: left;
     border-bottom: 1px solid #f0f0f0;
@@ -681,6 +627,7 @@ td strong {
     background-color: #f0f0f0;
     color: #333;
 }
+
 .btn-edit:hover {
     background-color: #e0e0e0;
 }
@@ -689,11 +636,11 @@ td strong {
     background-color: #fce4e4;
     color: #e74c3c;
 }
+
 .btn-delete:hover {
-    background-color: #f5caca;
+    background: #f5caca;
 }
 
-/* ================= PHÂN TRANG ================= */
 .pagination-wrapper {
     display: flex;
     justify-content: center;
@@ -729,7 +676,7 @@ td strong {
     color: #555;
 }
 
-/* ================= MODAL ================= */
+/* MODAL */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -803,7 +750,10 @@ td strong {
     cursor: pointer;
     transition: 0.2s;
 }
-.btn-cancel:hover { background: #ddd; }
+
+.btn-cancel:hover {
+    background: #ddd;
+}
 
 .btn-save {
     padding: 10px 20px;
@@ -814,102 +764,111 @@ td strong {
     cursor: pointer;
     transition: 0.2s;
 }
-.btn-save:hover { background: #d1aa68; }
 
-/* CSS Custom Modal Popup ở giữa màn hình chuẩn Velora Theme */
+.btn-save:hover {
+    background: #d1aa68;
+}
+
 .confirm-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.82);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(4px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
 }
 
 .confirm-modal-card {
-  background-color: #1a1918;
-  border: 1px solid #d1aa68;
-  border-radius: 8px;
-  padding: 30px 25px;
-  max-width: 440px;
-  width: 90%;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
-  animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background-color: #1a1918;
+    border: 1px solid #d1aa68;
+    border-radius: 8px;
+    padding: 30px 25px;
+    max-width: 440px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
+    animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes modalPopIn {
-  from { opacity: 0; transform: scale(0.85); }
-  to { opacity: 1; transform: scale(1); }
+    from {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .modal-icon-header i {
-  font-size: 44px;
-  color: #d1aa68;
-  margin-bottom: 12px;
+    font-size: 44px;
+    color: #d1aa68;
+    margin-bottom: 12px;
 }
 
 .modal-title {
-  color: #d1aa68;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  margin-bottom: 12px;
-  text-transform: uppercase;
+    color: #d1aa68;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
 }
 
 .modal-desc {
-  color: #ffffff;
-  font-size: 14px;
-  line-height: 1.6;
-  margin-bottom: 25px;
+    color: #ffffff;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 25px;
 }
 
 .modal-actions-group {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
 }
 
 .btn-modal-cancel {
-  background-color: #2e2b27;
-  color: #cccccc;
-  border: 1px solid #444444;
-  padding: 10px 25px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
+    background-color: #2e2b27;
+    color: #cccccc;
+    border: 1px solid #444444;
+    padding: 10px 25px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
 }
 
 .btn-modal-cancel:hover {
-  background-color: #444444;
-  color: #ffffff;
+    background-color: #444444;
+    color: #ffffff;
 }
 
 .btn-modal-submit {
-  background-color: #d1aa68;
-  color: #1a1918;
-  border: none;
-  padding: 10px 30px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(209, 170, 104, 0.3);
+    background-color: #d1aa68;
+    color: #1a1918;
+    border: none;
+    padding: 10px 30px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(209, 170, 104, 0.3);
 }
 
 .btn-modal-submit:hover {
-  background-color: #e5be7a;
-  color: #000000;
+    background-color: #e5be7a;
+    color: #000000;
 }
 </style>
