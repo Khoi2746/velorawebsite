@@ -1,22 +1,42 @@
 <template>
   <div class="order-page">
+    <!-- =========================================================================
+         [PHẦN 1: HEADER VÀ TIÊU ĐỀ TRANG]
+    ========================================================================== -->
     <Header />
 
     <main class="order-content">
       <div class="container">
+        
+        <!-- 1.1 KHUNG TIÊU ĐỀ CHÍNH -->
         <div class="title-wrapper">
+          <!-- DÒNG MẶC ĐỊNH: Tiêu đề in hoa chuẩn -->
           <h1 class="page-title">ĐƠN HÀNG CỦA BẠN</h1>
+          <!-- THAY THẾ: Đổi màu tiêu đề sang VÀNG HOÀNG KIM:
+          <h1 class="page-title" style="color: #c5a880;">ĐƠN HÀNG CỦA BẠN</h1> -->
+          <!-- THAY THẾ: Đổi màu tiêu đề sang ĐỎ NỔI BẬT:
+          <h1 class="page-title" style="color: #dc2626;">ĐƠN HÀNG CỦA BẠN</h1> -->
+
+          <!-- Họa tiết trang trí đường kẻ & kim cương -->
           <div class="title-divider">
             <span class="diamond"></span>
           </div>
         </div>
 
-        <!-- THANH TAB LỌC TRẠNG THÁI -->
+        <!-- =========================================================================
+             [PHẦN 2: THANH TAB LỌC TRẠNG THÁI ĐƠN HÀNG]
+        ========================================================================== -->
         <div class="order-tabs-wrapper" v-if="orders.length > 0">
           <div class="order-tabs">
-            <button v-for="tab in tabs" :key="tab.value" @click="currentTab = tab.value"
-              :class="['tab-btn', { 'active': currentTab === tab.value }]">
+            <!-- Duyệt danh sách các tab trạng thái -->
+            <button 
+              v-for="tab in tabs" 
+              :key="tab.value" 
+              @click="currentTab = tab.value"
+              :class="['tab-btn', { 'active': currentTab === tab.value }]"
+            >
               {{ tab.label }}
+              <!-- Số đếm số lượng đơn hàng theo từng tab -->
               <span class="tab-count" v-if="getCountByTab(tab.value) > 0">
                 ({{ getCountByTab(tab.value) }})
               </span>
@@ -24,23 +44,39 @@
           </div>
         </div>
 
+        <!-- =========================================================================
+             [PHẦN 3: BỐ CỤC 2 CỘT (DANH SÁCH & CHI TIẾT ĐƠN HÀNG)]
+        ========================================================================== -->
         <div class="order-layout" v-if="filteredOrders.length > 0">
-          <!-- CỘT TRÁI: DANH SÁCH ĐƠN HÀNG CÓ PHÂN TRANG -->
+          
+          <!-- -------------------------------------------------------------------
+               3.1 CỘT BÊN TRÁI: DANH SÁCH ĐƠN HÀNG & PHÂN TRANG
+          -------------------------------------------------------------------- -->
           <div class="order-list-section">
             <h2 class="section-title">LỊCH SỬ GIAO DỊCH</h2>
 
             <div class="order-list">
-              <div v-for="order in paginatedOrders" :key="order.maDonHang" class="order-card"
+              <!-- Duyệt từng thẻ đơn hàng hiển thị theo trang -->
+              <div 
+                v-for="order in paginatedOrders" 
+                :key="order.maDonHang" 
+                class="order-card"
                 :class="{ 'active': selectedOrder && selectedOrder.maDonHang === order.maDonHang }"
-                @click="selectOrder(order)">
+                @click="selectOrder(order)"
+              >
+                <!-- Mã đơn và ngày đặt -->
                 <div class="order-card-header">
                   <span class="order-code">#{{ order.maDonHangCode }}</span>
                   <span class="order-date">{{ order.ngayTao }}</span>
                 </div>
 
+                <!-- Tổng tiền và badge trạng thái -->
                 <div class="order-card-body">
                   <div class="order-card-footer" style="margin-top: 15px;">
                     <div class="order-total">{{ formatPrice(order.tongTien) }}</div>
+                    <!-- THAY THẾ: Tổng tiền hiển thị màu đỏ:
+                    <div class="order-total" style="color: #dc2626; font-weight: bold;">{{ formatPrice(order.tongTien) }}</div> -->
+
                     <div class="order-status" :class="getStatusClass(order.trangThaiDonHang)">
                       {{ getStatusText(order.trangThaiDonHang) }}
                     </div>
@@ -49,95 +85,132 @@
               </div>
             </div>
 
-            <!-- COMPONENT PHÂN TRANG -->
+            <!-- THANH PHÂN TRANG (PAGINATION) -->
             <div class="pagination-wrapper" v-if="totalPages > 1">
+              <!-- Nút trang trước -->
               <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">
                 <i class="fas fa-chevron-left"></i>
               </button>
 
-              <button v-for="page in totalPages" :key="page" class="page-btn" :class="{ active: currentPage === page }"
-                @click="currentPage = page">
+              <!-- Các nút số trang -->
+              <button 
+                v-for="page in totalPages" 
+                :key="page" 
+                class="page-btn" 
+                :class="{ active: currentPage === page }"
+                @click="currentPage = page"
+              >
                 {{ page }}
               </button>
 
+              <!-- Nút trang sau -->
               <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage++">
                 <i class="fas fa-chevron-right"></i>
               </button>
             </div>
           </div>
 
-          <!-- CỘT PHẢI: CHI TIẾT ĐƠN HÀNG -->
+          <!-- -------------------------------------------------------------------
+               3.2 CỘT BÊN PHẢI: KHUNG CHI TIẾT ĐƠN HÀNG ĐANG CHỌN
+          -------------------------------------------------------------------- -->
           <div class="order-detail-section">
             <div v-if="selectedOrder" class="detail-box">
 
+              <!-- HEADER KHUNG CHI TIẾT & CÁC NÚT THAO TÁC -->
               <div class="detail-header">
                 <h2>CHI TIẾT ĐƠN HÀNG <span>#{{ selectedOrder.maDonHangCode }}</span></h2>
                 <div class="detail-actions">
 
+                  <!-- Badge thông báo khi đang chờ duyệt hủy -->
                   <div v-if="selectedOrder.trangThaiDonHang === 'YEU_CAU_HUY'" class="pending-cancel-badge">
                     <i class="fas fa-clock"></i> Đang chờ duyệt hủy
                   </div>
 
-                  <button v-if="selectedOrder.trangThaiDonHang === 'CHO_XU_LY'" @click="cancelOrder(selectedOrder)"
-                    class="btn-cancel-order">
+                  <!-- NÚT 1: HỦY ĐƠN (Chỉ hiện khi đơn ở trạng thái Chờ xử lý) -->
+                  <button 
+                    v-if="selectedOrder.trangThaiDonHang === 'CHO_XU_LY'" 
+                    @click="cancelOrder(selectedOrder)"
+                    class="btn-cancel-order"
+                  >
                     <i class="fas fa-ban"></i> HỦY ĐƠN
                   </button>
+                  <!-- THAY THẾ: Cho phép hủy cả khi đơn đang chuẩn bị hàng:
+                  <button v-if="['CHO_XU_LY', 'CHUAN_BI_HANG'].includes(selectedOrder.trangThaiDonHang)" @click="cancelOrder(selectedOrder)" class="btn-cancel-order"><i class="fas fa-ban"></i> HỦY ĐƠN</button> -->
 
+                  <!-- NÚT 2: HOÀN TIỀN (Hiện khi đã giao hoặc đơn thanh toán online bị hủy) -->
                   <button
                     v-if="selectedOrder.trangThaiDonHang === 'DA_GIAO' || (selectedOrder.trangThaiDonHang === 'DA_HUY' && isOnlinePayment(selectedOrder.phuongThucThanhToan))"
-                    @click="goToRefundPage(selectedOrder)" class="btn-refund-order">
+                    @click="goToRefundPage(selectedOrder)" 
+                    class="btn-refund-order"
+                  >
                     <i class="fas fa-undo-alt"></i> HOÀN TIỀN
                   </button>
 
+                  <!-- NÚT 3: YÊU CẦU BẢO HÀNH (Hiện khi đơn đã giao thành công) -->
                   <button 
                     v-if="selectedOrder.trangThaiDonHang === 'DA_GIAO'" 
                     @click="goToWarrantyPage(selectedOrder)" 
-                    class="btn-warranty-order">
+                    class="btn-warranty-order"
+                  >
                     <i class="fas fa-shield-alt"></i> YÊU CẦU BẢO HÀNH
                   </button>
 
-                  <button class="btn-print" @click="printInvoice"><i class="fas fa-print"></i> IN BIÊN LAI</button>
+                  <!-- NÚT 4: IN BIÊN LAI BÀN GIAO -->
+                  <button class="btn-print" @click="printInvoice">
+                    <i class="fas fa-print"></i> IN BIÊN LAI
+                  </button>
                 </div>
               </div>
 
+              <!-- THANH TIẾN TRÌNH VẬN CHUYỂN (TRACKING TIMELINE 4 BƯỚC) -->
               <div class="tracking-timeline" v-if="!['DA_HUY', 'YEU_CAU_HUY'].includes(selectedOrder.trangThaiDonHang)">
-                <div class="step"
-                  :class="{ 'completed': isStepCompleted(selectedOrder.trangThaiDonHang, 1), 'active': getStepLevel(selectedOrder.trangThaiDonHang) === 1 }">
+                <!-- Bước 1: Chờ xử lý -->
+                <div class="step" :class="{ 'completed': isStepCompleted(selectedOrder.trangThaiDonHang, 1), 'active': getStepLevel(selectedOrder.trangThaiDonHang) === 1 }">
                   <div class="step-icon"><i class="fas fa-file-invoice-dollar"></i></div>
                   <p>Chờ xử lý</p>
                 </div>
                 <div class="step-line" :class="{ 'filled': getStepLevel(selectedOrder.trangThaiDonHang) > 1 }"></div>
-                <div class="step"
-                  :class="{ 'completed': isStepCompleted(selectedOrder.trangThaiDonHang, 2), 'active': getStepLevel(selectedOrder.trangThaiDonHang) === 2 }">
+                
+                <!-- Bước 2: Chuẩn bị -->
+                <div class="step" :class="{ 'completed': isStepCompleted(selectedOrder.trangThaiDonHang, 2), 'active': getStepLevel(selectedOrder.trangThaiDonHang) === 2 }">
                   <div class="step-icon"><i class="fas fa-box-open"></i></div>
                   <p>Chuẩn bị</p>
                 </div>
                 <div class="step-line" :class="{ 'filled': getStepLevel(selectedOrder.trangThaiDonHang) > 2 }"></div>
-                <div class="step"
-                  :class="{ 'completed': isStepCompleted(selectedOrder.trangThaiDonHang, 3), 'active': getStepLevel(selectedOrder.trangThaiDonHang) === 3 }">
+                
+                <!-- Bước 3: Đang giao -->
+                <div class="step" :class="{ 'completed': isStepCompleted(selectedOrder.trangThaiDonHang, 3), 'active': getStepLevel(selectedOrder.trangThaiDonHang) === 3 }">
                   <div class="step-icon"><i class="fas fa-truck-fast"></i></div>
                   <p>Đang giao</p>
                 </div>
                 <div class="step-line" :class="{ 'filled': getStepLevel(selectedOrder.trangThaiDonHang) > 3 }"></div>
-                <div class="step"
-                  :class="{ 'completed': isStepCompleted(selectedOrder.trangThaiDonHang, 4), 'active': getStepLevel(selectedOrder.trangThaiDonHang) === 4 }">
+                
+                <!-- Bước 4: Đã giao -->
+                <div class="step" :class="{ 'completed': isStepCompleted(selectedOrder.trangThaiDonHang, 4), 'active': getStepLevel(selectedOrder.trangThaiDonHang) === 4 }">
                   <div class="step-icon"><i class="fas fa-check"></i></div>
                   <p>Đã giao</p>
                 </div>
               </div>
 
-              <div v-if="['DA_HUY', 'YEU_CAU_HUY', 'TU_CHOI_HOAN_TIEN'].includes(selectedOrder.trangThaiDonHang)"
-                class="cancel-info-box">
-                <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 8px;"><i
-                    class="fas fa-exclamation-triangle"></i> THÔNG TIN TRẠNG THÁI</h3>
-                <p style="font-size: 14px; margin-bottom: 5px;"><strong>Tình trạng:</strong> {{
-                  getStatusText(selectedOrder.trangThaiDonHang) }}</p>
+              <!-- KHUNG HIỂN THỊ LÝ DO HỦY ĐƠN (KHI ĐƠN BỊ HỦY / TỪ CHỐI) -->
+              <div 
+                v-if="['DA_HUY', 'YEU_CAU_HUY', 'TU_CHOI_HOAN_TIEN'].includes(selectedOrder.trangThaiDonHang)"
+                class="cancel-info-box"
+              >
+                <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">
+                  <i class="fas fa-exclamation-triangle"></i> THÔNG TIN TRẠNG THÁI
+                </h3>
+                <p style="font-size: 14px; margin-bottom: 5px;">
+                  <strong>Tình trạng:</strong> {{ getStatusText(selectedOrder.trangThaiDonHang) }}
+                </p>
                 <p v-if="selectedOrder.lyDoHuy" style="font-size: 14px; color: #991b1b;">
                   <strong>Lý do:</strong> {{ selectedOrder.lyDoHuy }}
                 </p>
               </div>
 
+              <!-- KHUNG THÔNG TIN NHẬN HÀNG VÀ BẢN ĐỒ GIAO HÀNG -->
               <div class="info-map-grid">
+                <!-- Cột thông tin người nhận -->
                 <div class="info-panel">
                   <h3>THÔNG TIN NHẬN HÀNG</h3>
                   <p><strong>Người nhận:</strong> {{ selectedOrder.tenNguoiNhan }}</p>
@@ -150,29 +223,35 @@
                   </p>
                 </div>
 
+                <!-- Cột bản đồ mô phỏng -->
                 <div class="map-panel">
                   <iframe
                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.325316278854!2d106.69499931474895!3d10.7863769923145!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f3458d926fb%3A0xc68297cbbf9f1a23!2sBitexco%20Financial%20Tower!5e0!3m2!1sen!2s!4v1623145214002!5m2!1sen!2s"
                     width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" class="luxury-map">
                   </iframe>
+                  <!-- Chấm tròn nhấp nháy khi đang giao hàng -->
                   <div class="map-overlay" v-if="selectedOrder.trangThaiDonHang === 'DANG_GIAO'">
                     <div class="pulse-dot"></div> Đang di chuyển
                   </div>
                 </div>
               </div>
 
+              <!-- DANH SÁCH SẢN PHẨM TRONG ĐƠN HÀNG -->
               <div class="order-items">
                 <h3>SẢN PHẨM TRONG ĐƠN</h3>
                 <table class="item-table">
                   <tbody>
                     <tr v-for="(item, idx) in selectedOrder.items" :key="idx">
+                      <!-- Ảnh sản phẩm -->
                       <td class="td-img">
-                        <img :src="item.anh && item.anh.startsWith('http') ? item.anh : '../img/' + item.anh" alt="">
+                        <img :src="item.anh && item.anh.startsWith('http') ? item.anh : '../img/' + item.anh" alt="Kiệt tác">
                       </td>
+                      <!-- Tên và số lượng -->
                       <td class="td-name">
                         <span class="p-name">{{ item.ten }}</span>
                         <span class="p-qty">x {{ item.soLuong }}</span>
                       </td>
+                      <!-- Đơn giá -->
                       <td class="td-price">{{ formatPrice(item.gia) }}</td>
                     </tr>
                   </tbody>
@@ -180,6 +259,8 @@
               </div>
 
             </div>
+
+            <!-- Khi chưa chọn đơn hàng nào -->
             <div v-else class="no-selection">
               <i class="fas fa-file-signature"></i>
               <p>Vui lòng chọn một giao dịch để xem chi tiết.</p>
@@ -187,11 +268,13 @@
           </div>
         </div>
 
+        <!-- Khi không tìm thấy đơn hàng trong tab đang chọn -->
         <div v-else-if="orders.length > 0 && filteredOrders.length === 0" class="empty-orders">
           <i class="fas fa-box-open empty-icon"></i>
           <p>Không có đơn hàng nào ở trạng thái này.</p>
         </div>
 
+        <!-- Khi khách hàng chưa có bất kỳ đơn hàng nào trong hệ thống -->
         <div v-else class="empty-orders">
           <i class="fas fa-receipt empty-icon"></i>
           <p>Quý khách chưa có lịch sử giao dịch nào tại Velora Clock.</p>
@@ -205,15 +288,16 @@
 
     <Footer />
 
-    <!-- 🔥 BẮT ĐẦU: KHUNG BIÊN BẢN CHỈ HIỂN THỊ KHI IN -->
+    <!-- =========================================================================
+         [PHẦN 4: BIÊN BẢN BÀN GIAO CHỈ HIỂN THỊ KHI IN (PRINT INVOICE)]
+    ========================================================================== -->
     <div class="print-invoice-template" v-if="selectedOrder">
       <div class="print-border-outer">
         <div class="print-border-inner">
           
-          <!-- Header Logo & Tên Công Ty -->
+          <!-- Header Logo & Tên Thương Hiệu -->
           <div class="print-header">
             <div class="print-logo">
-              <!-- Thay thế đường dẫn ảnh nếu cần (ví dụ /img/VeloraIcon.png) -->
               <img src="/img/VeloraIcon.png" alt="Velora Logo">
             </div>
             <div class="print-company-titles">
@@ -222,7 +306,7 @@
             </div>
           </div>
 
-          <!-- Dòng thông số phụ (Mã số / Ngày) -->
+          <!-- Thông số mã biên bản & ngày in -->
           <div class="print-meta-top">
             <div class="meta-left">
               <strong>Mã số:</strong> VEL-{{ selectedOrder.maDonHangCode }}/BBBG
@@ -233,35 +317,35 @@
             </div>
           </div>
 
-          <!-- Tiêu đề chính -->
+          <!-- Tiêu đề văn bản -->
           <div class="print-title-box">
             <h2>BIÊN BẢN BÀN GIAO KIỆT TÁC</h2>
           </div>
 
-          <!-- Phần I -->
+          <!-- Phần I: Thông tin người nhận -->
           <div class="print-section">
             <h3>I. THÔNG TIN KHÁCH HÀNG:</h3>
             <table class="no-border-table">
               <tbody>
-              <tr>
-                <td width="130"><strong>Khách hàng</strong></td>
-                <td>: {{ selectedOrder.tenNguoiNhan }}</td>
-                <td width="100"><strong>Điện thoại</strong></td>
-                <td>: {{ selectedOrder.soDienThoai }}</td>
-              </tr>
-              <tr>
-                <td><strong>Địa chỉ bàn giao</strong></td>
-                <td colspan="3">: {{ selectedOrder.diaChi }}</td>
-              </tr>
-              <tr>
-                <td><strong>Nội dung</strong></td>
-                <td colspan="3">: Bàn giao sản phẩm đồng hồ cao cấp chính hãng theo đúng quy chuẩn thương hiệu.</td>
-              </tr>
-            </tbody>
+                <tr>
+                  <td width="130"><strong>Khách hàng</strong></td>
+                  <td>: {{ selectedOrder.tenNguoiNhan }}</td>
+                  <td width="100"><strong>Điện thoại</strong></td>
+                  <td>: {{ selectedOrder.soDienThoai }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Địa chỉ bàn giao</strong></td>
+                  <td colspan="3">: {{ selectedOrder.diaChi }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Nội dung</strong></td>
+                  <td colspan="3">: Bàn giao sản phẩm đồng hồ cao cấp chính hãng theo đúng quy chuẩn thương hiệu.</td>
+                </tr>
+              </tbody>
             </table>
           </div>
 
-          <!-- Phần II -->
+          <!-- Phần II: Chi tiết sản phẩm bàn giao -->
           <div class="print-section">
             <h3>II. CHI TIẾT SẢN PHẨM BÀN GIAO:</h3>
             <table class="bordered-table">
@@ -292,7 +376,7 @@
             </table>
           </div>
 
-          <!-- Phần III -->
+          <!-- Phần III: Đánh giá tình trạng bàn giao -->
           <div class="print-section">
             <h3>III. XÁC NHẬN TÌNH TRẠNG:</h3>
             <table class="bordered-table">
@@ -319,7 +403,7 @@
             </table>
           </div>
 
-          <!-- Chữ ký -->
+          <!-- Khu vực chữ ký 2 bên -->
           <div class="print-signatures">
             <div class="sig-box">
               <strong>ĐẠI DIỆN KHÁCH HÀNG</strong><br>
@@ -334,26 +418,38 @@
         </div>
       </div>
     </div>
-    <!-- 🔥 KẾT THÚC KHUNG BIÊN BẢN -->
 
+    <!-- =========================================================================
+         [PHẦN 5: POPUP MODAL HỦY ĐƠN & TOAST THÔNG BÁO]
+    ========================================================================== -->
+    <!-- Toast thông báo nhanh góc màn hình -->
     <div class="stock-toast" :class="{ 'show': showToast }">
       <i class="fas fa-info-circle"></i> {{ toastMessage }}
     </div>
 
-    <!-- CUSTOM LUXURY MODAL -->
+    <!-- Modal xác nhận & nhập lý do hủy đơn -->
     <div class="velora-modal-overlay" v-if="showModal">
       <div class="velora-modal-box">
         <h3 class="velora-modal-title">{{ modalTitle }}</h3>
         <p class="velora-modal-msg">{{ modalMessage }}</p>
 
+        <!-- Ô nhập lý do hủy đơn -->
         <div v-if="modalType === 'cancel'" style="margin-bottom: 20px;">
-          <textarea v-model="cancelReasonInput" placeholder="Vui lòng nhập lý do hủy đơn hàng (Bắt buộc)..."
-            class="velora-textarea"></textarea>
+          <textarea 
+            v-model="cancelReasonInput" 
+            placeholder="Vui lòng nhập lý do hủy đơn hàng (Bắt buộc)..."
+            class="velora-textarea"
+          ></textarea>
         </div>
 
         <div class="velora-modal-actions">
-          <button v-if="modalType === 'confirm' || modalType === 'cancel'" @click="handleModalClose"
-            class="velora-btn-secondary">Hủy</button>
+          <button 
+            v-if="modalType === 'confirm' || modalType === 'cancel'" 
+            @click="handleModalClose"
+            class="velora-btn-secondary"
+          >
+            Hủy
+          </button>
           <button @click="handleModalConfirm" class="velora-btn-primary">
             {{ modalType === 'confirm' || modalType === 'cancel' ? 'Xác Nhận' : 'Đồng Ý' }}
           </button>
@@ -370,18 +466,28 @@ import { useRouter } from 'vue-router'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
 
-// 🔥 IMPORT THƯ VIỆN WEBSOCKET
+// Import thư viện WebSocket nhận tín hiệu Realtime
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
+// =========================================================================
+// [LOGIC 1: KHỞI TẠO BIẾN DỮ LIỆU & CẤU HÌNH PHÂN TRANG]
+// =========================================================================
 const router = useRouter()
 const orders = ref([])
 const selectedOrder = ref(null)
 
 const currentTab = ref('ALL')
 const currentPage = ref(1)
-const itemsPerPage = 4
 
+// DÒNG MẶC ĐỊNH: Số lượng đơn hàng hiển thị trên 1 trang (4 đơn)
+const itemsPerPage = 4
+// THAY THẾ: Hiển thị 6 đơn trên 1 trang:
+// const itemsPerPage = 6;
+// THAY THẾ: Hiển thị 8 đơn trên 1 trang:
+// const itemsPerPage = 8;
+
+// Danh sách các nút Tab lọc trạng thái
 const tabs = [
   { label: 'Tất cả', value: 'ALL' },
   { label: 'Chờ xử lý', value: 'CHO_XU_LY' },
@@ -393,6 +499,10 @@ const tabs = [
   { label: 'Hoàn tiền', value: 'HOAN_TIEN' }
 ]
 
+// =========================================================================
+// [LOGIC 2: COMPUTED FILTER & PHÂN TRANG]
+// =========================================================================
+// Lọc đơn hàng theo tab đang chọn
 const filteredOrders = computed(() => {
   if (currentTab.value === 'ALL') return orders.value
   if (currentTab.value === 'HOAN_TIEN') {
@@ -401,15 +511,18 @@ const filteredOrders = computed(() => {
   return orders.value.filter(order => order.trangThaiDonHang === currentTab.value)
 })
 
+// Tính tổng số trang
 const totalPages = computed(() => {
   return Math.ceil(filteredOrders.value.length / itemsPerPage);
 })
 
+// Cắt danh sách đơn hàng tương ứng với trang hiện tại
 const paginatedOrders = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   return filteredOrders.value.slice(start, start + itemsPerPage);
 })
 
+// Đếm số lượng đơn theo từng tab
 const getCountByTab = (tabValue) => {
   if (tabValue === 'ALL') return orders.value.length
   if (tabValue === 'HOAN_TIEN') {
@@ -418,6 +531,7 @@ const getCountByTab = (tabValue) => {
   return orders.value.filter(order => order.trangThaiDonHang === tabValue).length
 }
 
+// Khi chuyển tab: Reset về trang 1 và chọn đơn đầu tiên
 watch(currentTab, () => {
   currentPage.value = 1;
   if (paginatedOrders.value.length > 0) {
@@ -427,6 +541,9 @@ watch(currentTab, () => {
   }
 })
 
+// =========================================================================
+// [LOGIC 3: QUẢN LÝ POPUP VÀ TOAST THÔNG BÁO]
+// =========================================================================
 const showModal = ref(false)
 const modalTitle = ref('THÔNG BÁO')
 const modalMessage = ref('')
@@ -472,9 +589,14 @@ const triggerToast = (msg) => {
   toastMessage.value = msg
   showToast.value = true
   if (toastTimer) clearTimeout(toastTimer)
+  
+  // DÒNG MẶC ĐỊNH: Tự tắt sau 3.5 giây (3500ms)
   toastTimer = setTimeout(() => { showToast.value = false }, 3500)
+  // THAY THẾ: Hiện thông báo 5 giây:
+  // toastTimer = setTimeout(() => { showToast.value = false }, 5000);
 }
 
+// Kiểm tra có phải đơn thanh toán trực tuyến (VNPAY, Chuyển khoản QR) hay không
 const isOnlinePayment = (method) => {
   if (!method) return false;
   const m = method.toUpperCase();
@@ -485,6 +607,10 @@ const formatPrice = (value) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 }
 
+// =========================================================================
+// [LOGIC 4: GỌI API BACKEND & WEBSOCKET]
+// =========================================================================
+// Lấy danh sách đơn hàng của người dùng đang đăng nhập
 const fetchUserOrders = async () => {
   try {
     const userStr = localStorage.getItem('user')
@@ -536,11 +662,13 @@ const fetchUserOrders = async () => {
   }
 }
 
+// Chuyển hướng sang trang Bảo hành
 const goToWarrantyPage = (order) => {
   localStorage.setItem('selectedWarrantyOrder', JSON.stringify(order))
   router.push('/bao-hanh')
 }
 
+// Kết nối WebSocket nhận thông báo cập nhật đơn Realtime
 const connectWebSocket = () => {
   const socket = new SockJS('http://localhost:8080/ws-chat');
   const stompClient = new Client({
@@ -561,6 +689,7 @@ const selectOrder = (order) => {
   selectedOrder.value = order
 }
 
+// Gửi yêu cầu hủy đơn hàng
 const cancelOrder = async (order) => {
   if (order.trangThaiDonHang !== 'CHO_XU_LY') {
     await triggerModal('Đơn hàng đã được duyệt, không thể hủy. Vui lòng liên hệ Hotline!', 'THÔNG BÁO')
@@ -588,15 +717,18 @@ const cancelOrder = async (order) => {
   }
 }
 
+// Chuyển hướng sang trang Hoàn tiền & Trả hàng
 const goToRefundPage = (order) => {
   localStorage.setItem('selectedRefundOrder', JSON.stringify(order))
   router.push('/yeu-cau-hoan-tien')
 }
 
+// Kích hoạt cửa sổ in hóa đơn của trình duyệt
 const printInvoice = () => {
   window.print();
 }
 
+// Ánh xạ trạng thái sang cấp độ tiến trình (1 -> 4)
 const getStepLevel = (status) => {
   switch (status) {
     case 'CHO_XU_LY': return 1;
@@ -609,6 +741,7 @@ const getStepLevel = (status) => {
 
 const isStepCompleted = (status, stepNumber) => { return getStepLevel(status) > stepNumber; }
 
+// Ánh xạ mã trạng thái sang tên tiếng Việt
 const getStatusText = (status) => {
   if (!status) return ''
   const cleanStatus = status.trim().toUpperCase()
@@ -627,6 +760,7 @@ const getStatusText = (status) => {
   return map[cleanStatus] || status
 }
 
+// Ánh xạ class CSS màu sắc theo trạng thái
 const getStatusClass = (status) => {
   if (!status) return ''
   const cleanStatus = status.trim().toUpperCase()
@@ -658,12 +792,12 @@ onMounted(() => {
   max-width: 1450px !important;
 }
 
-/* =========================================
-   1. BỐ CỤC CHUNG & TABS LỌC
-========================================= */
+/* =========================================================================
+   [CSS NHÓM 1: BỐ CỤC CHUNG & THANH TAB LỌC]
+========================================================================= */
 .order-tabs-wrapper {
   margin-bottom: 35px;
-  background-color: #ffffff;
+  background-color: #ffffff;                    /* Nền thanh tab: TRẮNG */
   border: 1px solid #f0f0f0;
   padding: 4px 20px;
   border-radius: 10px;
@@ -683,7 +817,7 @@ onMounted(() => {
   padding: 18px 20px;
   font-size: 14px;
   font-weight: 600;
-  color: #666;
+  color: #666;                                  /* Màu chữ tab chưa chọn: XÁM */
   cursor: pointer;
   position: relative;
   transition: all 0.3s ease;
@@ -691,13 +825,16 @@ onMounted(() => {
 }
 
 .tab-btn:hover { color: #c5a880; }
-.tab-btn.active { color: #1a1a1a; font-weight: 700; }
+.tab-btn.active { 
+  color: #1a1a1a;                               /* Màu chữ tab ĐANG CHỌN: ĐEN XÁM */
+  font-weight: 700; 
+}
 .tab-btn.active::after {
   content: '';
   position: absolute;
   bottom: 0; left: 0;
   width: 100%; height: 3px;
-  background-color: #c5a880;
+  background-color: #c5a880;                    /* Gạch chân màu VÀNG HOÀNG KIM */
   border-radius: 3px 3px 0 0;
 }
 
@@ -717,7 +854,7 @@ onMounted(() => {
 
 .order-layout {
   display: grid;
-  grid-template-columns: 420px 1fr;
+  grid-template-columns: 420px 1fr;             /* Chia 2 cột: Cột trái 420px, Cột phải phần còn lại */
   gap: 35px;
   align-items: start;
 }
@@ -730,9 +867,9 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-/* =========================================
-   2. DANH SÁCH ĐƠN HÀNG (CỘT TRÁI)
-========================================= */
+/* =========================================================================
+   [CSS NHÓM 2: DANH SÁCH ĐƠN HÀNG CỘT TRÁI & PHÂN TRANG]
+========================================================================= */
 .order-card {
   padding: 20px;
   border-radius: 10px;
@@ -750,9 +887,9 @@ onMounted(() => {
 }
 
 .order-card.active {
-  border-color: #c5a880;
+  border-color: #c5a880;                        /* Viền thẻ đang chọn: VÀNG HOÀNG KIM */
   box-shadow: 0 4px 15px rgba(197, 168, 128, 0.15);
-  background: #fffcf8;
+  background: #fffcf8;                          /* Nền thẻ đang chọn: KEM NHẸ */
 }
 
 .order-card-header {
@@ -763,7 +900,7 @@ onMounted(() => {
 
 .order-code { font-size: 14px; font-weight: 700; color: #1a1a1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 .order-date { font-size: 12px; color: #888; }
-.order-total { font-size: 15px; font-weight: 700; color: #c5a880; }
+.order-total { font-size: 15px; font-weight: 700; color: #c5a880; } /* Màu tiền: VÀNG HOÀNG KIM */
 .order-status { font-size: 11px; padding: 4px 8px; font-weight: 700; border-radius: 4px; text-transform: uppercase; }
 
 /* PHÂN TRANG */
@@ -771,18 +908,26 @@ onMounted(() => {
 .page-btn {
   width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
-  border: 1px solid #eaeaea; background: white; border-radius: 6px;
-  cursor: pointer; color: #555; font-weight: 600; font-size: 13px;
+  border: 1px solid #eaeaea; 
+  background: white; 
+  border-radius: 6px;
+  cursor: pointer; 
+  color: #555; 
+  font-weight: 600; 
+  font-size: 13px;
   transition: all 0.2s ease;
 }
 .page-btn:hover:not(:disabled) { border-color: #c5a880; color: #c5a880; }
-.page-btn.active { background: #c5a880; color: white; border-color: #c5a880; }
+.page-btn.active { 
+  background: #c5a880;                          /* Nền trang đang chọn: VÀNG HOÀNG KIM */
+  color: white; 
+  border-color: #c5a880; 
+}
 .page-btn:disabled { background: #f9f9f9; color: #ccc; cursor: not-allowed; border-color: #f0f0f0; }
 
-
-/* =========================================
-   3. CHI TIẾT ĐƠN HÀNG (CỘT PHẢI)
-========================================= */
+/* =========================================================================
+   [CSS NHÓM 3: KHUNG CHI TIẾT ĐƠN HÀNG CỘT PHẢI]
+========================================================================= */
 .detail-box {
   padding: 35px;
   border-radius: 12px;
@@ -840,6 +985,7 @@ onMounted(() => {
   cursor: pointer;
 }
 
+/* Các kiểu màu nút thao tác */
 .btn-print { background: #fff; border: 1px solid #e5e7eb; color: #374151; }
 .btn-print:hover { background: #f9f9f9; border-color: #d1d5db; }
 .btn-refund-order { background: #fffaf0; border: 1px solid #fde68a; color: #b45309; }
@@ -847,9 +993,9 @@ onMounted(() => {
 .btn-warranty-order { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
 .btn-cancel-order { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
 
-/* =========================================
-   4. FIX THANH TIẾN TRÌNH (TIMELINE)
-========================================= */
+/* =========================================================================
+   [CSS NHÓM 4: THANH TIẾN TRÌNH TIMELINE VẬN CHUYỂN]
+========================================================================= */
 .tracking-timeline {
   display: flex;
   align-items: flex-start; 
@@ -891,18 +1037,18 @@ onMounted(() => {
 }
 
 .step.active .step-icon {
-  border-color: #c5a880;
+  border-color: #c5a880;                        /* Viền bước hiện tại: VÀNG */
   color: #c5a880;
   box-shadow: 0 0 0 4px rgba(197, 168, 128, 0.1);
 }
 
 .step.completed .step-icon {
-  background: #c5a880;
+  background: #c5a880;                          /* Nền bước đã hoàn thành: VÀNG */
   border-color: #c5a880;
   color: #fff;
 }
 
-.step-line.filled { background: #c5a880; }
+.step-line.filled { background: #c5a880; }       /* Đường nối đã đi qua: VÀNG */
 
 .step p {
   font-size: 11px;
@@ -915,9 +1061,9 @@ onMounted(() => {
 }
 .step.active p, .step.completed p { color: #1a1a1a; }
 
-/* =========================================
-   5. THÔNG TIN NHẬN HÀNG & BẢN ĐỒ
-========================================= */
+/* =========================================================================
+   [CSS NHÓM 5: THÔNG TIN NHẬN HÀNG VÀ BẢN ĐỒ]
+========================================================================= */
 .info-map-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -964,9 +1110,9 @@ onMounted(() => {
   position: relative;
 }
 
-/* =========================================
-   6. BẢNG SẢN PHẨM TRONG ĐƠN
-========================================= */
+/* =========================================================================
+   [CSS NHÓM 6: BẢNG SẢN PHẨM TRONG ĐƠN HÀNG]
+========================================================================= */
 .order-items {
   margin-top: 20px;
 }
@@ -1012,9 +1158,9 @@ onMounted(() => {
   text-align: right;
 }
 
-/* =========================================
-   7. CÁC TIỆN ÍCH KHÁC (Badge, Modal...)
-========================================= */
+/* =========================================================================
+   [CSS NHÓM 7: BADGE TRẠNG THÁI & MODAL HỦY ĐƠN]
+========================================================================= */
 .status-refund-sent { background-color: #fef3c7 !important; color: #b45309 !important; }
 .status-refund-rejected { background-color: #fee2e2 !important; color: #b91c1c !important; }
 .status-refund-approved { background-color: #dcfce7 !important; color: #15803d !important; }
@@ -1039,9 +1185,9 @@ onMounted(() => {
 .velora-btn-primary { padding: 10px 24px; border-radius: 8px; border: none; background: #c5a880; color: #141414; font-weight: 600; cursor: pointer; transition: 0.2s; }
 .velora-btn-primary:hover { background: #b0936d; }
 
-/* =========================================
-   8. CẤU HÌNH IN ẤN CHUẨN FORM VĂN BẢN (PRINT INVOICE)
-========================================= */
+/* =========================================================================
+   [CSS NHÓM 8: CẤU HÌNH IN BIÊN LAI BÀN GIAO (@media print)]
+========================================================================= */
 .print-invoice-template { display: none; }
 
 @media print {
@@ -1065,14 +1211,14 @@ onMounted(() => {
   .print-invoice-template {
     display: block !important;
     width: 100%; height: 100vh;
-    padding: 8mm 10mm !important; /* Gom lề hẹp lại để có không gian */
+    padding: 8mm 10mm !important;
     box-sizing: border-box;
     font-family: "Times New Roman", Times, serif; 
     color: #1a1a1a;
     position: relative; z-index: 1;
   }
 
-  /* Watermark Logo in chìm */
+  /* Watermark logo in chìm */
   .print-invoice-template::before {
     content: ""; position: absolute;
     top: 35%; left: 20%; width: 60%; height: 40%;
@@ -1082,7 +1228,6 @@ onMounted(() => {
     print-color-adjust: exact; -webkit-print-color-adjust: exact;
   }
 
-  /* 🔥 Đặt lại chiều cao vừa khít, không bị dư thừa */
   .print-border-outer { 
     border: 2px solid #c5a880; 
     padding: 3px; 
@@ -1095,10 +1240,9 @@ onMounted(() => {
     padding: 15px 20px; 
     height: 100%; 
     box-sizing: border-box;
-    display: block; /* Bỏ flex để nội dung tự xếp theo thứ tự tự nhiên, không bị kéo dãn lố */
+    display: block;
   }
 
-  /* Header Công ty */
   .print-header {
     display: flex; align-items: center; justify-content: space-between;
     border-bottom: 2px solid #c5a880;
@@ -1116,7 +1260,6 @@ onMounted(() => {
   }
   .company-sub { color: #1a1a1a !important; font-size: 11px; margin: 0; font-weight: bold; text-transform: uppercase; }
 
-  /* Dòng thông số phụ */
   .print-meta-top {
     display: flex; justify-content: space-between; align-items: flex-start;
     font-size: 13px; margin-bottom: 8px;
@@ -1124,22 +1267,18 @@ onMounted(() => {
   .meta-left { line-height: 1.4; }
   .meta-right { text-align: right; line-height: 1.4; }
 
-  /* Tiêu đề chính */
   .print-title-box { text-align: center; margin-bottom: 15px; }
   .print-title-box h2 {
     font-size: 20px; font-weight: bold; color: #1a1a1a;
     margin: 0; text-transform: uppercase; letter-spacing: 1px;
   }
 
-  /* Các Phần I, II, III */
   .print-section { margin-bottom: 12px; }
   .print-section h3 { font-size: 14px; font-weight: bold; margin-bottom: 6px; color: #1a1a1a !important; }
 
-  /* Bảng thông tin */
   .no-border-table { width: 100%; font-size: 13px; line-height: 1.5; }
   .no-border-table td { padding: 2px 0; vertical-align: top; color: #1a1a1a; }
 
-  /* Bảng sản phẩm */
   .bordered-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .bordered-table th, .bordered-table td { border: 1px solid #1a1a1a; padding: 5px 7px; color: #1a1a1a; }
   .bordered-table th {
@@ -1150,7 +1289,6 @@ onMounted(() => {
 
   .total-price { color: #c5a880 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; font-size: 14px; }
 
-  /* Chữ ký */
   .print-signatures { 
     display: flex; 
     justify-content: space-around; 
@@ -1158,7 +1296,6 @@ onMounted(() => {
     text-align: center; 
     font-size: 14px; 
   }
-  .sig-date { font-style: italic; font-size: 13px; margin-bottom: 5px; color: #333; }
   .sig-box strong { color: #1a1a1a; display: block; margin-top: 3px; }
   .sig-note { font-size: 12px; color: #555; }
 }
