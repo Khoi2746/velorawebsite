@@ -217,7 +217,7 @@ const allMenuItems = [
   { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge', roles: ['ROLE_ADMIN', 'ROLE_SALE', 'ROLE_INVENTORY', 'ROLE_CHUYEN_VIEN_TU_VAN'] },
   
   // Tab Vận Hành
-  { name: 'Tư Vấn Khách Hàng', link: '/admin/tu-van-khach-hang', icon: 'fa-solid fa-comments', roles: ['ROLE_ADMIN', 'ROLE_CHUYEN_VIEN_TU_VAN'] },
+  { name: 'Tư Vấn Khách Hàng', link: '/admin/chat', icon: 'fa-solid fa-comments', roles: ['ROLE_ADMIN', 'ROLE_CHUYEN_VIEN_TU_VAN'] },
   { name: 'Quản Lý Người Dùng', link: '/admin/users', icon: 'fa-solid fa-users', roles: ['ROLE_ADMIN'] },
   { name: 'Quản Lý Lịch Hẹn', link: '/admin/lich-hen', icon: 'fa-solid fa-calendar-check', roles: ['ROLE_ADMIN'] },
   { name: 'Quản Lý Bảo Hành', link: '/admin/quan-ly-bao-hanh', icon: 'fa-solid fa-wrench', roles: ['ROLE_ADMIN'] },
