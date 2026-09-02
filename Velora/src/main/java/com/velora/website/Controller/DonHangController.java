@@ -42,8 +42,8 @@ public class DonHangController {
     private final DoanhThuNgayRepository doanhThuNgayRepository;         // Thao tác lưu doanh thu theo ngày
     private final DoanhThuThangRepository doanhThuThangRepository;       // Thao tác lưu doanh thu theo tháng
 
-    // DÒNG MẶC ĐỊNH: Địa chỉ Email nhận thông báo của Quản trị viên
-    private static final String ADMIN_EMAIL = "admin@velora.com"; 
+    // DÒNG MẶC ĐỊNH: Địa chỉ Email nhận thông báo của Quản trị viên (Đã cập nhật chính xác tài khoản mới)
+    private static final String ADMIN_EMAIL = "veloraclock@gmail.com"; 
     // THAY THẾ: Đổi sang địa chỉ Email thực tế khác của cửa hàng:
     // private static final String ADMIN_EMAIL = "cskh.velorawatch@gmail.com";
 
@@ -168,6 +168,31 @@ public class DonHangController {
                                 donHangRepository.truSoLuongTonKhoTheoMaDon(donHangKhop.getMaDonHang());
                             } catch (Exception ex) {
                                 System.out.println("⚠️ Lỗi trừ kho: " + ex.getMessage());
+                            }
+
+                            // [BỔ SUNG MỚI]: Bắn Email tự động báo Admin khi tiền SePay đã nổi vào tài khoản (Kèm ghi chú)
+                            try {
+                                String ghiChuSePay = (donHangKhop.getGhiChuDonHang() != null && !donHangKhop.getGhiChuDonHang().trim().isEmpty()) 
+                                                     ? donHangKhop.getGhiChuDonHang().trim() : "Không có";
+
+                                String subjectAdminSePay = "[SEPAY - ĐÃ NHẬN TIỀN] ĐƠN HÀNG #" + donHangKhop.getMaDonHangCode();
+                                String contentAdminSePay = "<p style='margin:0 0 6px 0;'><strong>• Mã đơn hàng:</strong> #" + donHangKhop.getMaDonHangCode() + "</p>"
+                                    + "<p style='margin:0 0 6px 0;'><strong>• Số tiền nhận được:</strong> <span style='color: #27ae60; font-weight: bold;'>" + String.format("%,.0f", moneyReceived) + " VND</span></p>"
+                                    + "<p style='margin:0 0 6px 0;'><strong>• Khách hàng:</strong> " + donHangKhop.getTenNguoiNhan() + " (" + donHangKhop.getEmail() + ")</p>"
+                                    + "<p style='margin:0 0 6px 0;'><strong>• Địa chỉ nhận hàng:</strong> " + donHangKhop.getDiaChiGiaoHang() + "</p>"
+                                    + "<p style='margin:0 0 6px 0; color: #cca15e;'><strong>• Ghi chú của khách:</strong> <em>" + ghiChuSePay + "</em></p>"
+                                    + "<p style='margin:0;'><strong>• Trạng thái tiền:</strong> ĐÃ THANH TOÁN TỰ ĐỘNG QUA QR NGÂN HÀNG</p>";
+
+                                String htmlAdminSePay = taoEmailHtmlVelora(
+                                    "GIAO DỊCH CHUYỂN KHOẢN THÀNH CÔNG",
+                                    "Thông báo Quản Trị Viên,",
+                                    contentAdminSePay,
+                                    "Đơn hàng đã được đối soát thành công. Vui lòng vào trang quản trị chuẩn bị kiệt tác để giao hàng."
+                                );
+
+                                emailService.sendEmail(ADMIN_EMAIL, subjectAdminSePay, htmlAdminSePay);
+                            } catch (Exception exMail) {
+                                System.err.println("Lỗi gửi mail thông báo SePay cho Admin: " + exMail.getMessage());
                             }
                         }
                     }
@@ -342,8 +367,16 @@ public class DonHangController {
 
             // Xóa sản phẩm khỏi giỏ hàng nếu đã mua ngay
             donHangRepository.xoaSanPhamKhoiGioHang(payload.getMaNguoiDung(), payload.getMaSanPham());
-            // Gửi email xác nhận đặt hàng thành công
-            guiEmailXacNhanDatHang(payload.getEmail(), payload.getMaDonHangCode(), payload.getTenNguoiNhan(), payload.getTongTien(), payload.getDiaChiGiaoHang());
+            
+            // Gửi email xác nhận đặt hàng thành công (ĐÃ BỔ SUNG TRUYỀN GHI CHÚ ĐƠN HÀNG)
+            guiEmailXacNhanDatHang(
+                payload.getEmail(), 
+                payload.getMaDonHangCode(), 
+                payload.getTenNguoiNhan(), 
+                payload.getTongTien(), 
+                payload.getDiaChiGiaoHang(),
+                payload.getGhiChuDonHang()
+            );
 
             return ResponseEntity.ok("Đặt hàng kiệt tác thành công!");
         } catch (Exception e) {
@@ -384,8 +417,15 @@ public class DonHangController {
             // Xóa sạch giỏ hàng của người dùng sau khi đã tạo đơn
             donHangRepository.xoaToanBoGioHangCuaUser(payload.getMaNguoiDung());
 
-            // Gửi email xác nhận đặt hàng
-            guiEmailXacNhanDatHang(payload.getEmail(), payload.getMaDonHangCode(), payload.getTenNguoiNhan(), payload.getTongTien(), payload.getDiaChiGiaoHang());
+            // Gửi email xác nhận đặt hàng (ĐÃ BỔ SUNG TRUYỀN GHI CHÚ ĐƠN HÀNG)
+            guiEmailXacNhanDatHang(
+                payload.getEmail(), 
+                payload.getMaDonHangCode(), 
+                payload.getTenNguoiNhan(), 
+                payload.getTongTien(), 
+                payload.getDiaChiGiaoHang(),
+                payload.getGhiChuDonHang()
+            );
 
             return ResponseEntity.ok("Đặt hàng giỏ hàng thành công!");
         } catch (Exception e) {
@@ -493,16 +533,20 @@ public class DonHangController {
     }
 
     /**
-     * Gửi email xác nhận sau khi khách hàng hoàn tất đặt đơn mới
+     * Gửi email xác nhận sau khi khách hàng hoàn tất đặt đơn mới (ĐÃ BỔ SUNG GHI CHÚ ĐƠN HÀNG)
      */
-    private void guiEmailXacNhanDatHang(String emailKhach, String maCode, String tenKhach, Double tongTien, String diaChi) {
+    private void guiEmailXacNhanDatHang(String emailKhach, String maCode, String tenKhach, Double tongTien, String diaChi, String ghiChu) {
         try {
+            // Chuẩn hóa chuỗi ghi chú: Nếu để trống thì hiển thị 'Không có'
+            String ghiChuHienThi = (ghiChu != null && !ghiChu.trim().isEmpty()) ? ghiChu.trim() : "Không có";
+
             // 1. Gửi Email cho khách hàng
             String subject = "[VELORA CLOCK] XÁC NHẬN ĐƠN HÀNG #" + maCode;
             String contentKhach = "<p style='margin:0 0 10px 0;'>Cảm ơn quý khách đã tin tưởng và lựa chọn tuyệt tác thời gian tại Velora Clock.</p>"
                 + "<p style='margin:0 0 6px 0;'><strong>• Mã đơn hàng:</strong> <span style='color: #cca15e;'>#" + maCode + "</span></p>"
                 + "<p style='margin:0 0 6px 0;'><strong>• Tổng giá trị:</strong> <span style='color: #cca15e; font-weight: bold;'>" + String.format("%,.0f", tongTien) + " VND</span></p>"
-                + "<p style='margin:0;'><strong>• Địa chỉ nhận hàng:</strong> " + diaChi + "</p>";
+                + "<p style='margin:0 0 6px 0;'><strong>• Địa chỉ nhận hàng:</strong> " + diaChi + "</p>"
+                + "<p style='margin:0;'><strong>• Ghi chú đơn hàng:</strong> <em>" + ghiChuHienThi + "</em></p>";
             
             String htmlKhach = taoEmailHtmlVelora(
                 "XÁC NHẬN ĐƠN HÀNG THÀNH CÔNG", 
@@ -520,7 +564,8 @@ public class DonHangController {
             String contentAdmin = "<p style='margin:0 0 6px 0;'><strong>• Mã đơn hàng:</strong> #" + maCode + "</p>"
                 + "<p style='margin:0 0 6px 0;'><strong>• Khách hàng:</strong> " + tenKhach + " (" + emailKhach + ")</p>"
                 + "<p style='margin:0 0 6px 0;'><strong>• Tổng tiền:</strong> " + String.format("%,.0f", tongTien) + " VND</p>"
-                + "<p style='margin:0;'><strong>• Địa chỉ:</strong> " + diaChi + "</p>";
+                + "<p style='margin:0 0 6px 0;'><strong>• Địa chỉ:</strong> " + diaChi + "</p>"
+                + "<p style='margin:0; color: #cca15e;'><strong>• Ghi chú của khách:</strong> " + ghiChuHienThi + "</p>";
 
             String htmlAdmin = taoEmailHtmlVelora(
                 "CÓ ĐƠN HÀNG MỚI CẦN DUYỆT", 
@@ -545,6 +590,8 @@ public class DonHangController {
             String tenKhach = donHang.getTenNguoiNhan();
             String phuongThuc = donHang.getPhuongThucThanhToan();
             boolean isOnline = (phuongThuc != null && !phuongThuc.toUpperCase().contains("COD"));
+            String ghiChuDon = (donHang.getGhiChuDonHang() != null && !donHang.getGhiChuDonHang().trim().isEmpty()) 
+                               ? donHang.getGhiChuDonHang().trim() : "Không có";
 
             // 1. Gửi Email cho khách hàng
             if (emailKhach != null && !emailKhach.trim().isEmpty()) {
@@ -573,7 +620,8 @@ public class DonHangController {
             String contentAdmin = "<p style='margin:0 0 6px 0;'><strong>• Mã đơn:</strong> #" + maCode + "</p>"
                 + "<p style='margin:0 0 6px 0;'><strong>• Khách hàng:</strong> " + tenKhach + "</p>"
                 + "<p style='margin:0 0 6px 0;'><strong>• Thanh toán:</strong> " + phuongThuc + "</p>"
-                + "<p style='margin:0;'><strong>• Lý do:</strong> " + (lyDo != null ? lyDo : "Không có") + "</p>";
+                + "<p style='margin:0 0 6px 0;'><strong>• Ghi chú ban đầu:</strong> " + ghiChuDon + "</p>"
+                + "<p style='margin:0;'><strong>• Lý do hủy:</strong> " + (lyDo != null ? lyDo : "Không có") + "</p>";
 
             if (isOnline) {
                 contentAdmin += "<p style='margin:10px 0 0 0; color: #e74c3c; font-weight: bold;'>⚠️ Đơn thanh toán Online: Kế toán sẵn sàng tiếp nhận hồ sơ hoàn tiền khi khách gửi thông tin.</p>";
@@ -613,7 +661,8 @@ class DatNgayRequest {
     private String phuongThucThanhToan;  // COD, VNPAY, CHUYEN_KHOAN_QR
     private Integer maSanPham;           // ID sản phẩm mua ngay
     private Integer soLuong;             // Số lượng đặt
-    private String ghiChuDonHang;        // Ghi chú của k       hách
+    private String ghiChuDonHang;        // Ghi chú của khách
+    private String maGiamGia;            // Mã khuyến mãi voucher (nếu có)
 }
 
 /**
@@ -630,5 +679,5 @@ class DatGioHangRequest {
     private String diaChiGiaoHang;       // Địa chỉ nhận hàng
     private String phuongThucThanhToan;  // Phương thức thanh toán
     private String ghiChuDonHang;        // Ghi chú đơn hàng
-    private String maGiamGia;            // Mã khuyến mãi (nếu có)
+    private String maGiamGia;            // Mã khuyến mãi voucher (nếu có)
 }
