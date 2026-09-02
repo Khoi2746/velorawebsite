@@ -459,7 +459,7 @@
             </div>
             <div class="meta-right">
               <strong>Ngày kích hoạt:</strong> {{ selectedOrder.ngayTao }}<br>
-              <strong>Thời hạn bảo hành:</strong> 02 Năm (24 Tháng Chính Hãng)
+              <strong>Thời hạn bảo hành:</strong> 01 Năm (12 Tháng Chính Hãng)
             </div>
           </div>
 
@@ -509,7 +509,7 @@
                   <td align="center"><strong>VEL-{{ item.maSanPham || 'EDITION' }}</strong></td>
                   <td>{{ item.ten }}</td>
                   <td align="center">{{ item.soLuong }}</td>
-                  <td align="center">24 Tháng (Kể từ ngày mua)</td>
+                  <td align="center">12 Tháng (Kể từ ngày mua)</td>
                   <td align="center" style="color: #27ae60; font-weight: bold;">ĐÃ XÁC THỰC</td>
                 </tr>
               </tbody>
