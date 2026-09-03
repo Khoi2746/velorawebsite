@@ -214,7 +214,7 @@ const checkAuth = async () => {
 
 const logout = async () => {
     try {
-        // 🔥 Gọi API xuống backend để hủy session và xóa cookie bảo mật
+        // Gọi API xuống backend để hủy session và xóa cookie bảo mật
         await fetch('http://localhost:8080/api/auth/logout', {
             method: 'POST',
             credentials: 'include'
@@ -230,8 +230,18 @@ const logout = async () => {
     currentUserId.value = null;
     cartCount.value = 0;
     showDropdown.value = false;
+    
+    // 1. Xóa thông tin user khỏi localStorage
     localStorage.removeItem('user');
 
+    //  2. QUÉT VÀ DỌN SẠCH TẤT CẢ DỮ LIỆU LIÊN QUAN ĐẾN KHUNG CHAT TRONG SESSIONSTORAGE
+    Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('velora_chat_') || key === 'velora_roomId' || key === 'velora_humanMode' || key === 'velora_logged_email') {
+            sessionStorage.removeItem(key);
+        }
+    });
+
+    // 3. Điều hướng về trang chủ và làm mới toàn bộ trang để reset state của component con
     window.location.href = '/';
 }
 
