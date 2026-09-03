@@ -630,13 +630,14 @@ onUnmounted(() => {
 }
 
 .card-meta h4 {
-  font-size: 18px;
-  color: #1a1a1a;
-  margin-bottom: 15px;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+    font-size: 18px;
+    color: #1a1a1a;
+    margin-bottom: 15px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    overflow: hidden;
 }
 
 .card-price {
