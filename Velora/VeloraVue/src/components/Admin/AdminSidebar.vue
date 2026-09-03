@@ -215,6 +215,7 @@ const toggleGroup = (groupName) => {
 // 🔥 ĐÃ CẬP NHẬT CHUẨN ROLES VÀO TỪNG CHỨC NĂNG
 const allMenuItems = [
   { name: 'Trang Quản Trị', link: '/admin/dashboard', icon: 'fa-solid fa-gauge', roles: ['ROLE_ADMIN', 'ROLE_SALE', 'ROLE_INVENTORY', 'ROLE_CHUYEN_VIEN_TU_VAN'] },
+   { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN'] },
   
   // Tab Vận Hành
   { name: 'Tư Vấn Khách Hàng', link: '/admin/chat', icon: 'fa-solid fa-comments', roles: ['ROLE_ADMIN', 'ROLE_CHUYEN_VIEN_TU_VAN'] },
@@ -233,8 +234,7 @@ const allMenuItems = [
   { name: 'Quản Lý Đơn Đặt', link: '/admin/orders', icon: 'fa-solid fa-file-invoice', roles: ['ROLE_ADMIN', 'ROLE_SALE'] },
   { name: 'Quản Lý Hoàn Tiền', link: '/admin/quan-ly-hoan-tien', icon: 'fa-solid fa-rotate-left', roles: ['ROLE_ADMIN', 'ROLE_SALE'] },
   { name: 'Xuất Hóa Đơn', link: '/admin/invoices', icon: 'fa-solid fa-file-invoice-dollar', roles: ['ROLE_ADMIN', 'ROLE_SALE'] },
-  { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags', roles: ['ROLE_ADMIN', 'ROLE_SALE'] },
-  { name: 'Thống Kê Doanh Thu', link: '/admin/statistics', icon: 'fa-solid fa-chart-pie', roles: ['ROLE_ADMIN', 'ROLE_SALE'] }
+  { name: 'Quản Lý Mã Giảm Giá', link: '/admin/ma-giam-gia', icon: 'fa-solid fa-tags', roles: ['ROLE_ADMIN', 'ROLE_SALE'] }
 ];
 
 const getGroupItems = (namesArray) => {
