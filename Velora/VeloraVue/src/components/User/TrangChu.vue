@@ -106,7 +106,7 @@
         </div>
       </section>
 
-      <!-- 4. KIỆT TÁC ĐÁNG CHÚ Ý -->
+      <!-- 4. KIỆT TÁC ĐÁNG CHÚ Ý (ĐÃ TÍCH HỢP API TỰ ĐỘNG LẤY 3 SẢN PHẨM MỚI NHẤT) -->
       <section class="highlight-section">
         <div class="container">
           <div class="section-title-wrapper">
@@ -116,45 +116,28 @@
           </div>
 
           <div class="showcase-grid">
-            <div class="showcase-card">
-              <div class="card-tag">NEW</div>
-              <div class="card-img-holder">
-                <img src="/img/VeloraIcon.png" alt="Hublot Classic Fusion"
-                  @error="(e) => e.target.src = 'https://images.unsplash.com/photo-1547996160-81dfa63595aa?q=80&w=600'" />
-              </div>
-              <div class="card-meta">
-                <p class="brand-text">HUBLOT</p>
-                <h4>Classic Fusion Titanium</h4>
-                <p class="card-price">245.000.000 ₫</p>
-                <router-link to="/dong-ho-co-san" class="btn-view-more">CHI TIẾT KIỆT TÁC</router-link>
-              </div>
-            </div>
+            <div 
+              class="showcase-card" 
+              v-for="(product, index) in latestProducts" 
+              :key="product.maSanPham"
+            >
+              <!-- Gắn nhãn tự động theo thứ tự: 0-NEW, 1-LIMITED, 2-EXCLUSIVE -->
+              <div class="card-tag" v-if="index === 0">NEW</div>
+              <div class="card-tag gold-tag" v-else-if="index === 1">LIMITED</div>
+              <div class="card-tag" v-else-if="index === 2">EXCLUSIVE</div>
 
-            <div class="showcase-card">
-              <div class="card-tag gold-tag">LIMITED</div>
               <div class="card-img-holder">
-                <img src="/img/VeloraIcon.png" alt="Patek Philippe Grand"
-                  @error="(e) => e.target.src = 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?q=80&w=600'" />
+                <img 
+                  :src="product.anhDaiDien && product.anhDaiDien.startsWith('http') ? product.anhDaiDien : '/img/' + product.anhDaiDien" 
+                  :alt="product.tenSanPham" 
+                  @error="(e) => e.target.src = '/img/VeloraIcon.png'" 
+                />
               </div>
               <div class="card-meta">
-                <p class="brand-text">PATEK PHILIPPE</p>
-                <h4>Grand Complications Gold</h4>
-                <p class="card-price">Giá chờ hàng</p>
-                <router-link to="/dong-ho-co-san" class="btn-view-more">CHI TIẾT KIỆT TÁC</router-link>
-              </div>
-            </div>
-
-            <div class="showcase-card">
-              <div class="card-tag">EXCLUSIVE</div>
-              <div class="card-img-holder">
-                <img src="/img/VeloraIcon.png" alt="Velora Noir"
-                  @error="(e) => e.target.src = 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?q=80&w=600'" />
-              </div>
-              <div class="card-meta">
-                <p class="brand-text">VELORA</p>
-                <h4>Velora Noir Starlight</h4>
-                <p class="card-price">18.500.000 ₫</p>
-                <router-link to="/dong-ho-co-san" class="btn-view-more">CHI TIẾT KIỆT TÁC</router-link>
+                <p class="brand-text">{{ product.thuongHieu ? product.thuongHieu.tenThuongHieu : 'VELORA' }}</p>
+                <h4>{{ product.tenSanPham }}</h4>
+                <p class="card-price">{{ product.giaBan > 400000000 ? 'Giá chờ hàng' : formatPrice(product.giaBan) }}</p>
+                <router-link :to="`/san-pham/${product.maSanPham}`" class="btn-view-more">CHI TIẾT KIỆT TÁC</router-link>
               </div>
             </div>
           </div>
@@ -170,9 +153,8 @@
         <div class="container">
           <div class="story-grid">
             <div class="story-image">
-              <!-- 🔥 ĐÃ THAY ẢNH CƠ KHÍ NÉT CĂNG VÀ CHUẨN XÁC, BỎ CÁI LOGO FALLBACK GÂY LỖI DỊ DẠNG -->
               <img 
-                src="https://images.unsplash.com/photo-1548690312-e3b507d8c110?auto=format&fit=crop&w=1000&q=80" 
+                src="/img/dong-ho-trang-chu.png" 
                 alt="Nghệ nhân đồng hồ chế tác" 
               />
             </div>
@@ -183,7 +165,6 @@
                 học, những tuyệt tác nghệ thuật được chế tác thủ công bởi các nghệ nhân hàng đầu thế giới.</p>
               <p>Mỗi tiếng tíc tắc đều mang trong mình một câu chuyện về sự kiên nhẫn, đam mê và khao khát vươn tới sự
                 hoàn mỹ tuyệt đối.</p>
-              <!-- 🔥 ĐÃ THAY CLASS SANG btn-link-dark ĐỂ CHỮ MÀU ĐEN HIỆN RÕ TRÊN NỀN TRẮNG -->
               <router-link to="/thuong-hieu" class="btn-link-dark" style="margin-top: 15px; display: inline-block;">
                 Khám phá câu chuyện của chúng tôi <i class="fas fa-arrow-right"></i>
               </router-link>
@@ -203,7 +184,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import Header from '../Header.vue'
 import Footer from '../Footer.vue'
 
-// 🔥 LOGIC HIỆU ỨNG SLIDER CHO HERO BANNER
+// ==========================================
+// 1. LOGIC HIỆU ỨNG SLIDER CHO HERO BANNER
+// ==========================================
 const heroImages = [
   'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=2000', // Movement cơ học
   'https://images.unsplash.com/photo-1547996160-81dfa63595aa?q=80&w=2000', // Đồng hồ trên tay
@@ -228,8 +211,44 @@ const goToSlide = (index) => {
   startSlider() // Reset lại bộ đếm sau khi bấm
 }
 
+// ==========================================
+// 2. LOGIC LOAD 3 SẢN PHẨM MỚI NHẤT
+// ==========================================
+const latestProducts = ref([])
+
+const formatPrice = (value) => {
+  if (!value) return 'Liên hệ'
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
+}
+
+const fetchLatestProducts = async () => {
+  try {
+    const res = await fetch('http://localhost:8080/api/san-pham')
+    if (res.ok) {
+      const allProducts = await res.json()
+
+      // Sắp xếp mảng giảm dần (sản phẩm mới nhất lên đầu)
+      const sortedProducts = allProducts.sort((a, b) => {
+        if (a.ngayTao && b.ngayTao) {
+           return new Date(b.ngayTao) - new Date(a.ngayTao)
+        }
+        return b.maSanPham - a.maSanPham
+      })
+
+      // Lấy đúng 3 phần tử đầu tiên
+      latestProducts.value = sortedProducts.slice(0, 3)
+    }
+  } catch (error) {
+    console.error('Lỗi tải danh sách kiệt tác mới nhất:', error)
+  }
+}
+
+// ==========================================
+// HOOKS
+// ==========================================
 onMounted(() => {
   startSlider()
+  fetchLatestProducts()
 })
 
 onUnmounted(() => {
@@ -241,7 +260,7 @@ onUnmounted(() => {
 @import "../CSS/User/TrangChu.css";
 
 /* ====================================================
-   🔥 CSS LUXURY BANNER & KEN BURNS EFFECT
+   CSS LUXURY BANNER & KEN BURNS EFFECT
 ==================================================== */
 :root {
   --gold: #c5a880;
@@ -262,7 +281,7 @@ onUnmounted(() => {
   min-height: 85vh;
   display: flex;
   align-items: center;
-  justify-content: center; /* Căn giữa container theo chiều ngang */
+  justify-content: center;
   overflow: hidden; 
   background-color: #000;
 }
@@ -305,10 +324,9 @@ onUnmounted(() => {
   z-index: 3;
   width: 100%;
   display: flex;
-  justify-content: center; /* Đảm bảo content nằm chính giữa trang */
+  justify-content: center;
 }
 
-/* 🔥 Tinh chỉnh căn giữa toàn bộ Text và Nút */
 .hero-text {
   max-width: 800px; 
   color: #fff;
@@ -350,7 +368,6 @@ onUnmounted(() => {
   margin-bottom: 40px;
 }
 
-/* 🔥 Căn giữa các thanh trượt */
 .slider-dots {
   display: flex;
   justify-content: center; 
@@ -401,7 +418,6 @@ onUnmounted(() => {
   color: #1a1a1a;
 }
 
-/* 🔥 CLASS NÚT MỚI: Dành cho nút nền trắng ở dưới cùng */
 .btn-outline-dark {
   display: inline-block;
   padding: 15px 35px;
@@ -549,7 +565,6 @@ onUnmounted(() => {
   color: #c5a880;
 }
 
-/* 🔥 LINK MÀU ĐEN MỚI CHO NỀN TRẮNG */
 .btn-link-dark {
   color: #1a1a1a;
   text-decoration: none;
@@ -618,6 +633,10 @@ onUnmounted(() => {
   font-size: 18px;
   color: #1a1a1a;
   margin-bottom: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-price {

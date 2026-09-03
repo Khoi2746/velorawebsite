@@ -8,4 +8,5 @@ import java.util.List;
 public interface DanhGiaRepository extends JpaRepository<DanhGia, Integer> {
     // Tìm tất cả đánh giá thuộc về một mã sản phẩm cụ thể
     List<DanhGia> findBySanPham_MaSanPham(Integer maSanPham);
+    List<DanhGia> findByBaiViet_MaBaiViet(Integer maBaiViet);
 }

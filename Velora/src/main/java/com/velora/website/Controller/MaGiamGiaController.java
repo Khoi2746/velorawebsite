@@ -12,6 +12,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/admin/ma-giam-gia")
+@CrossOrigin(origins = "*") // Đừng quên CORS để Vue gọi được API
 public class MaGiamGiaController {
 
     private final MaGiamGiaRepository maGiamGiaRepository;
@@ -22,7 +23,8 @@ public class MaGiamGiaController {
 
     @GetMapping
     public ResponseEntity<?> layDanhSach(@RequestParam(defaultValue = "0") int page,
-                                         @RequestParam(defaultValue = "10") int size) {
+                                         @RequestParam(defaultValue = "100") int size) {
+        // Trả về dạng Page<MaGiamGia>
         return ResponseEntity.ok(maGiamGiaRepository.findAll(PageRequest.of(page, size)));
     }
 
@@ -58,11 +60,10 @@ public class MaGiamGiaController {
     }
 
     // ==============================================================
-    // API MỚI DÀNH CHO KHÁCH HÀNG KIỂM TRA VOUCHER TRONG GIỎ HÀNG
+    // API KHÁCH HÀNG KIỂM TRA VOUCHER TRONG GIỎ HÀNG
     // ==============================================================
     @GetMapping("/kiem-tra")
     public ResponseEntity<?> kiemTraVoucher(@RequestParam String code) {
-        // Tìm mã giảm giá trong DB (trim khoảng trắng và viết hoa để tránh lỗi gõ sai)
         Optional<MaGiamGia> optVoucher = maGiamGiaRepository.findByMaCode(code.trim().toUpperCase());
 
         if (optVoucher.isEmpty()) {
@@ -71,16 +72,14 @@ public class MaGiamGiaController {
 
         MaGiamGia voucher = optVoucher.get();
 
-        // 1. Kiểm tra xem đã hết lượt dùng chưa
         if (voucher.getSoLuotDaDung() >= voucher.getGioiHanSuDung()) {
             return ResponseEntity.badRequest().body("Rất tiếc! Mã giảm giá này đã hết lượt sử dụng.");
         }
 
-        // 2. Kiểm tra xem đã hết hạn chưa (Chỉ xét nếu Admin có cài đặt ngày hết hạn)
         if (voucher.getNgayHetHan() != null && voucher.getNgayHetHan().isBefore(LocalDateTime.now())) {
             return ResponseEntity.badRequest().body("Mã giảm giá này đã hết hạn!");
         }
-        // Vượt qua hết các ải -> Trả thông tin về cho Frontend tính tiền
+        
         return ResponseEntity.ok(voucher);
     }
 }

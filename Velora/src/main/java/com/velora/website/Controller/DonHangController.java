@@ -1,9 +1,11 @@
 package com.velora.website.Controller;
 
 import com.velora.website.Entity.DonHang;
+import com.velora.website.Entity.SanPham;
 import com.velora.website.Repository.DonHangRepository;
 import com.velora.website.Repository.DoanhThuNgayRepository;
 import com.velora.website.Repository.DoanhThuThangRepository;
+import com.velora.website.Repository.SanPhamRepository;
 import com.velora.website.Request.SepayResponse;
 import com.velora.website.Request.SePayWebhookDto;
 import com.velora.website.Service.EmailService;
@@ -41,9 +43,10 @@ public class DonHangController {
     private final SimpMessagingTemplate messagingTemplate;
     private final DoanhThuNgayRepository doanhThuNgayRepository;
     private final DoanhThuThangRepository doanhThuThangRepository;
-
-    // Bổ sung JdbcTemplate để chọc thẳng SQL xử lý tự động trừ mã giảm giá
     private final JdbcTemplate jdbcTemplate;
+    
+    // 🔥 [THÊM MỚI] Bổ sung SanPhamRepository để có thể can thiệp vào Tồn Kho
+    private final SanPhamRepository sanPhamRepository;
 
     private static final String ADMIN_EMAIL = "veloraclock@gmail.com";
 
@@ -143,7 +146,7 @@ public class DonHangController {
                             try {
                                 donHangRepository.truSoLuongTonKhoTheoMaDon(donHangKhop.getMaDonHang());
                             } catch (Exception ex) {
-                                System.out.println("⚠️ Lỗi trừ kho: " + ex.getMessage());
+                                System.out.println("⚠️ Lỗi trừ kho webhook: " + ex.getMessage());
                             }
 
                             try {
@@ -224,6 +227,22 @@ public class DonHangController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Chỉ được hủy đơn hàng ở trạng thái Chờ xử lý, Chuẩn bị hàng hoặc Đang chờ duyệt hủy!");
             }
+            
+            // 🔥 [THÊM MỚI] HOÀN TRẢ LẠI SỐ LƯỢNG VÀO KHO KHI ĐƠN BỊ HỦY
+            if (!"DA_HUY".equalsIgnoreCase(trangThaiCu) && donHang.getChiTietDonHangs() != null) {
+                for (com.velora.website.Entity.ChiTietDonHang ct : donHang.getChiTietDonHangs()) {
+                    if (ct.getSanPham() != null) {
+                        SanPham sp = ct.getSanPham();
+                        int tonKhoPhucHoi = sp.getSoLuongTonKho() + ct.getSoLuong();
+                        sp.setSoLuongTonKho(tonKhoPhucHoi);
+                        // Nếu trước đó đang hết hàng, cộng vào có hàng lại thì tự động đổi trạng thái
+                        if (tonKhoPhucHoi > 0) {
+                            sp.setTrangThai("CON_HANG");
+                        }
+                        sanPhamRepository.save(sp);
+                    }
+                }
+            }
         }
 
         if (trangThaiThanhToanMoi != null && !trangThaiThanhToanMoi.trim().isEmpty()) {
@@ -287,6 +306,24 @@ public class DonHangController {
                 payload.setMaNguoiDung(3);
             if (payload.getMaSanPham() == null || payload.getMaSanPham() <= 0)
                 payload.setMaSanPham(2);
+                
+            // 🔥 [THÊM MỚI] 1. KIỂM TRA VÀ TRỪ TỒN KHO TRƯỚC KHI ĐẶT
+            SanPham sp = sanPhamRepository.findById(payload.getMaSanPham())
+                    .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại!"));
+                    
+            if (sp.getSoLuongTonKho() < payload.getSoLuong()) {
+                // Nếu kho không đủ, báo lỗi ngay lập tức
+                return ResponseEntity.badRequest().body("Rất tiếc, kiệt tác này chỉ còn " + sp.getSoLuongTonKho() + " chiếc trong kho!");
+            }
+            
+            // Tiến hành trừ kho
+            int tonKhoMoi = sp.getSoLuongTonKho() - payload.getSoLuong();
+            sp.setSoLuongTonKho(tonKhoMoi);
+            if (tonKhoMoi <= 0) {
+                sp.setTrangThai("HET_HANG");
+            }
+            sanPhamRepository.save(sp);
+            // -------------------------------------------------------------
 
             DonHang donHang = new DonHang();
             donHang.setMaNguoiDung(payload.getMaNguoiDung());
@@ -311,7 +348,6 @@ public class DonHangController {
                     payload.getSoLuong(), giaLucMua);
             donHangRepository.xoaSanPhamKhoiGioHang(payload.getMaNguoiDung(), payload.getMaSanPham());
 
-            // 🔥 TĂNG LƯỢT DÙNG MÃ GIẢM GIÁ (Nếu có áp dụng voucher)
             if (payload.getMaGiamGia() != null && !payload.getMaGiamGia().trim().isEmpty()) {
                 xuLyTangLuotDungVoucher(payload.getMaGiamGia().trim());
             }
@@ -321,6 +357,10 @@ public class DonHangController {
                     payload.getTongTien(), payload.getDiaChiGiaoHang(), payload.getGhiChuDonHang());
 
             return ResponseEntity.ok("Đặt hàng kiệt tác thành công!");
+            
+        } catch (RuntimeException re) {
+            // Đón lỗi kho do Exception ném ra để trả về BadRequest
+            return ResponseEntity.badRequest().body("Lỗi: " + re.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi: " + e.getMessage());
@@ -351,10 +391,37 @@ public class DonHangController {
             }
 
             DonHang donHangDaLuu = donHangRepository.save(donHang);
+            
+            // Lệnh này của em chuyển các sp từ Giỏ hàng sang Bảng Chi Tiết Đơn Hàng
             donHangRepository.chuyenGioHangSangChiTietDonHang(donHangDaLuu.getMaDonHang(), payload.getMaNguoiDung());
             donHangRepository.xoaToanBoGioHangCuaUser(payload.getMaNguoiDung());
 
-            // 🔥 TĂNG LƯỢT DÙNG MÃ GIẢM GIÁ (Nếu có áp dụng voucher)
+            // 🔥 [THÊM MỚI] 2. QUÉT VÀ TRỪ KHO TOÀN BỘ SẢN PHẨM SAU KHI CHUYỂN TỪ GIỎ HÀNG SANG
+            List<Map<String, Object>> chiTietList = jdbcTemplate.queryForList(
+                    "SELECT MaSanPham, SoLuong FROM ChiTietDonHang WHERE MaDonHang = ?", donHangDaLuu.getMaDonHang());
+            
+            for (Map<String, Object> row : chiTietList) {
+                Integer maSp = ((Number) row.get("MaSanPham")).intValue();
+                Integer soLuongKhachMua = ((Number) row.get("SoLuong")).intValue();
+                
+                SanPham sp = sanPhamRepository.findById(maSp)
+                        .orElseThrow(() -> new RuntimeException("Có sản phẩm không tồn tại trong hệ thống!"));
+                
+                if (sp.getSoLuongTonKho() < soLuongKhachMua) {
+                    // Nếu phát hiện 1 món thiếu hàng, bắn lỗi. Nhờ annotation @Transactional, toàn bộ quá trình tạo đơn sẽ bị Hủy bỏ (Rollback) an toàn.
+                    throw new RuntimeException("Sản phẩm [" + sp.getTenSanPham() + "] chỉ còn " + sp.getSoLuongTonKho() + " chiếc trong kho, không đủ để đặt hàng!");
+                }
+                
+                // Trừ kho
+                int tonKhoMoi = sp.getSoLuongTonKho() - soLuongKhachMua;
+                sp.setSoLuongTonKho(tonKhoMoi);
+                if (tonKhoMoi <= 0) {
+                    sp.setTrangThai("HET_HANG");
+                }
+                sanPhamRepository.save(sp);
+            }
+            // -------------------------------------------------------------
+
             if (payload.getMaGiamGia() != null && !payload.getMaGiamGia().trim().isEmpty()) {
                 xuLyTangLuotDungVoucher(payload.getMaGiamGia().trim());
             }
@@ -364,6 +431,10 @@ public class DonHangController {
                     payload.getTongTien(), payload.getDiaChiGiaoHang(), payload.getGhiChuDonHang());
 
             return ResponseEntity.ok("Đặt hàng giỏ hàng thành công!");
+            
+        } catch (RuntimeException re) {
+            // Đón lỗi kho và trả về chuỗi thông báo cụ thể cho FE
+            return ResponseEntity.badRequest().body("Lỗi: " + re.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -461,7 +532,7 @@ public class DonHangController {
             dtThang.setNam(nam);
             dtThang.setTongDoanhThu(BigDecimal.ZERO);
             dtThang.setSoDonHangThanhCong(0);
-            dtThang.setSoSanPhamBanRa(0); // 🔥 LỖI SAI BIẾN ĐÃ ĐƯỢC FIX TẠI ĐÂY
+            dtThang.setSoSanPhamBanRa(0); 
         }
 
         double currentTienThang = dtThang.getTongDoanhThu() != null ? dtThang.getTongDoanhThu().doubleValue() : 0.0;

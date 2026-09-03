@@ -159,11 +159,9 @@ const handleLogin = async () => {
         };
 
         if (rememberMe.value) {
-            // Nếu tick "Ghi nhớ": Lưu vào LocalStorage (Tắt trình duyệt mở lại vẫn còn)
             localStorage.setItem('user', JSON.stringify(userData));
             sessionStorage.removeItem('user');
         } else {
-            // Nếu KHÔNG tick: Lưu vào SessionStorage (Đóng trình duyệt là mất)
             sessionStorage.setItem('user', JSON.stringify(userData));
             localStorage.removeItem('user');
         }
@@ -172,8 +170,9 @@ const handleLogin = async () => {
         toastMsg.value = 'Đăng nhập thành công!';
         toastType.value = 'success';
 
+        // 🔥 QUÉT SẠCH MỌI PHÂN QUYỀN - TẤT CẢ ĐỀU HẠ CÁNH Ở TRANG SẢN PHẨM
         setTimeout(() => {
-            window.location.href = '/'; 
+            window.location.href = '/dong-ho-co-san'; 
         }, 1200);
 
     } catch (error) {

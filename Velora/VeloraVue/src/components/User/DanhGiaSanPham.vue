@@ -1,7 +1,8 @@
 <template>
   <div class="reviews-section">
     <div class="section-header">
-      <h2>ĐÁNH GIÁ KIỆT TÁC</h2>
+      <!-- Tự động đổi Tiêu đề tùy theo đang ở trang nào -->
+      <h2>{{ loaiDanhGia === 'BAI_VIET' ? 'BÌNH LUẬN & ĐÁNH GIÁ' : 'ĐÁNH GIÁ KIỆT TÁC' }}</h2>
       <div class="header-divider"><span class="diamond">◆</span></div>
     </div>
 
@@ -10,7 +11,8 @@
       <h3 class="form-title">Chia sẻ cảm nhận của bạn</h3>
 
       <div class="star-rating-input">
-        <span class="label">Chất lượng tuyệt tác:</span>
+        <!-- Đổi nhãn tương ứng -->
+        <span class="label">{{ loaiDanhGia === 'BAI_VIET' ? 'Chấm điểm bài viết:' : 'Chất lượng tuyệt tác:' }}</span>
         <div class="stars">
           <i v-for="star in 5" :key="star" class="fa-star" :class="star <= newReview.soSao ? 'fas active' : 'far'"
             @click="newReview.soSao = star"></i>
@@ -18,7 +20,7 @@
       </div>
 
       <textarea v-model="newReview.binhLuan" class="review-textarea"
-        placeholder="Tuyệt tác này mang lại cảm giác thế nào khi trên tay? Trải nghiệm bộ máy và độ hoàn thiện ra sao?..."
+        :placeholder="loaiDanhGia === 'BAI_VIET' ? 'Chia sẻ suy nghĩ của bạn về bài viết này (Vui lòng dùng từ ngữ lịch sự)...' : 'Tuyệt tác này mang lại cảm giác thế nào khi trên tay? Trải nghiệm bộ máy và độ hoàn thiện ra sao?...'"
         rows="4"></textarea>
 
       <button class="btn-submit-review" @click="submitReview" :disabled="isSubmitting">
@@ -30,7 +32,7 @@
     <div class="reviews-list">
       <div v-if="loading" class="loader">Đang tải đánh giá...</div>
       <div v-else-if="reviews.length === 0" class="no-reviews">
-        Chưa có đánh giá nào. Hãy là người đầu tiên sở hữu và đánh giá kiệt tác này!
+        {{ loaiDanhGia === 'BAI_VIET' ? 'Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ ý kiến!' : 'Chưa có đánh giá nào. Hãy là người đầu tiên sở hữu và đánh giá kiệt tác này!' }}
       </div>
 
       <template v-else>
@@ -91,10 +93,19 @@
 import { ref, computed, onMounted } from 'vue';
 import { showAlert } from '@/composables/useAlert';
 
+// 🔥 KHAI BÁO PROPS MỚI (Hỗ trợ cả Bài Viết và Sản Phẩm)
 const props = defineProps({
   maSanPham: {
-    type: Number,
-    required: true
+    type: [Number, String],
+    required: false
+  },
+  maBaiViet: {
+    type: [Number, String],
+    required: false
+  },
+  loaiDanhGia: {
+    type: String,
+    default: 'SAN_PHAM' // 'SAN_PHAM' hoặc 'BAI_VIET'
   }
 });
 
@@ -144,11 +155,21 @@ const paginatedReviews = computed(() => {
   return reviews.value.slice(start, end);
 });
 
-// Lấy danh sách đánh giá
+// Lấy danh sách đánh giá từ Backend
 const fetchReviews = async () => {
+  const isArticle = props.loaiDanhGia === 'BAI_VIET';
+  const idTarget = isArticle ? props.maBaiViet : props.maSanPham;
+
+  if (!idTarget) return;
+
   loading.value = true;
   try {
-    const res = await fetch(`http://localhost:8080/api/danh-gia/san-pham/${props.maSanPham}`);
+    // 🔥 Định tuyến API dựa trên loại đánh giá
+    const url = isArticle 
+      ? `http://localhost:8080/api/danh-gia/bai-viet/${idTarget}`
+      : `http://localhost:8080/api/danh-gia/san-pham/${idTarget}`;
+
+    const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
       reviews.value = data;
@@ -176,12 +197,20 @@ const submitReview = async () => {
 
   const user = JSON.parse(userStr);
 
+  // 🔥 Đóng gói Payload theo loại đánh giá
   const payload = {
-    maSanPham: props.maSanPham,
     maNguoiDung: user.id || user.maNguoiDung,
     soSaoDanhGia: newReview.value.soSao,
-    binhLuan: newReview.value.binhLuan
+    binhLuan: newReview.value.binhLuan,
+    loaiDanhGia: props.loaiDanhGia
   };
+
+  // Xác định chính xác ID đang thuộc về Bài Viết hay Sản Phẩm
+  if (props.loaiDanhGia === 'BAI_VIET') {
+    payload.maBaiViet = parseInt(props.maBaiViet);
+  } else {
+    payload.maSanPham = parseInt(props.maSanPham);
+  }
 
   isSubmitting.value = true;
   try {
