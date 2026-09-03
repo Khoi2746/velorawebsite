@@ -49,6 +49,7 @@ public class SanPham {
     private LoaiSanPham loaiSanPham;
 
     // Quan hệ 1 - n với Thư Viện Ảnh (1 sản phẩm có nhiều ảnh chi tiết)
-    @OneToMany(mappedBy = "sanPham", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ThuVienAnh> thuVienAnhs;
+    // Trong file com.velora.website.Entity.SanPham.java
+@OneToMany(mappedBy = "sanPham", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+private List<ThuVienAnh> thuVienAnhs;
 }

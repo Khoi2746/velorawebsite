@@ -2,6 +2,7 @@ package com.velora.website.Controller;
 
 import com.velora.website.Entity.DanhMuc;
 import com.velora.website.Entity.SanPham;
+import com.velora.website.Entity.ThuVienAnh;
 import com.velora.website.Entity.ThuongHieu;
 import com.velora.website.Repository.SanPhamRepository;
 
@@ -14,10 +15,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/san-pham")
-@CrossOrigin(originPatterns = "*", allowedHeaders = "*", allowCredentials = "true", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*", allowCredentials = "true", methods = { RequestMethod.GET,
+        RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS })
 @RequiredArgsConstructor // GẮN LOMBOK VÀO ĐỂ TỰ ĐỘNG TIÊM DEPENDENCY
 public class SanPhamController {
-    
+
     // THÊM CHỮ final ĐỂ LOMBOK TỰ ĐỘNG INJECT
     private final SanPhamRepository sanPhamRepository;
 
@@ -35,9 +37,9 @@ public class SanPhamController {
 
     @PutMapping("/{id}/cap-nhat-kho")
     public ResponseEntity<?> capNhatKhoMoiNhat(
-            @PathVariable Integer id, 
+            @PathVariable Integer id,
             @RequestBody Map<String, Object> request) {
-        
+
         try {
             // Lấy dữ liệu gửi lên và kiểm tra rỗng
             Object slObj = request.get("soLuongMoi");
@@ -47,7 +49,7 @@ public class SanPhamController {
 
             // Ép kiểu an toàn sang số nguyên
             Integer soLuongMoi = Integer.parseInt(slObj.toString());
-            
+
             if (soLuongMoi < 0) {
                 return ResponseEntity.badRequest().body("Số lượng không được nhỏ hơn 0!");
             }
@@ -58,7 +60,7 @@ public class SanPhamController {
 
             // Lưu đè số lượng mới
             sanPham.setSoLuongTonKho(soLuongMoi);
-            
+
             // Tự động điều chỉnh trạng thái
             if (soLuongMoi > 0) {
                 sanPham.setTrangThai("CON_HANG");
@@ -68,9 +70,9 @@ public class SanPhamController {
 
             // Lưu vào CSDL
             sanPhamRepository.save(sanPham);
-            
+
             return ResponseEntity.ok(sanPham);
-            
+
         } catch (NumberFormatException e) {
             return ResponseEntity.badRequest().body("Vui lòng nhập định dạng số hợp lệ!");
         } catch (Exception e) {
@@ -78,62 +80,78 @@ public class SanPhamController {
         }
     }
 
-    // 1. Thêm sản phẩm mới 
+// 1. Thêm sản phẩm mới
     @PostMapping
     public ResponseEntity<?> createProduct(@RequestBody SanPham sanPham) {
         try {
             // Kiểm tra validate tên sản phẩm
             if (sanPham.getTenSanPham() == null || sanPham.getTenSanPham().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Tên sản phẩm không được để trống!");
+                return ResponseEntity.badRequest().body(Map.of("message", "Tên sản phẩm không được để trống!"));
             }
-            
+
             // TỰ ĐỘNG SINH SLUG
             if (sanPham.getDuongDanSlug() == null || sanPham.getDuongDanSlug().trim().isEmpty()) {
                 String slug = sanPham.getTenSanPham().toLowerCase()
                         .replaceAll("[^a-z0-9\\s]", "") // Xóa ký tự đặc biệt
-                        .replaceAll("\\s+", "-");        // Thay khoảng trắng bằng dấu -
+                        .replaceAll("\\s+", "-"); // Thay khoảng trắng bằng dấu -
                 sanPham.setDuongDanSlug(slug);
             }
             sanPham.setGioiTinh(sanPham.getGioiTinh());
-            
+
             // BẢO HÀNH MẶC ĐỊNH NẾU NULL
             if (sanPham.getThoiGianBaoHanh() == null) {
                 sanPham.setThoiGianBaoHanh(12);
             }
 
             // PHÒNG NGỪA CÁC TRƯỜNG TEXT KHÁC BỊ NULL
-            if (sanPham.getLoaiMay() == null) sanPham.setLoaiMay("Automatic");
-            if (sanPham.getChatLieuDay() == null) sanPham.setChatLieuDay("Thép không gỉ");
-            if (sanPham.getChatLieuKinh() == null) sanPham.setChatLieuKinh("Sapphire");
-            if (sanPham.getDuongKinhMat() == null) sanPham.setDuongKinhMat("40mm");
-            if (sanPham.getDoChongNuoc() == null) sanPham.setDoChongNuoc("5 ATM");
+            if (sanPham.getLoaiMay() == null)
+                sanPham.setLoaiMay("Automatic");
+            if (sanPham.getChatLieuDay() == null)
+                sanPham.setChatLieuDay("Thép không gỉ");
+            if (sanPham.getChatLieuKinh() == null)
+                sanPham.setChatLieuKinh("Sapphire");
+            if (sanPham.getDuongKinhMat() == null)
+                sanPham.setDuongKinhMat("40mm");
+            if (sanPham.getDoChongNuoc() == null)
+                sanPham.setDoChongNuoc("5 ATM");
 
             // ĐẢM BẢO TỒN KHO KHÔNG BỊ NULL KHI VUE KHÔNG TRUYỀN LÊN
             if (sanPham.getSoLuongTonKho() == null) {
-                sanPham.setSoLuongTonKho(0); 
+                sanPham.setSoLuongTonKho(0);
             }
-
+            // Xử lý liên kết thư viện ảnh trước khi lưu
+            if (sanPham.getThuVienAnhs() != null) {
+                for (ThuVienAnh tva : sanPham.getThuVienAnhs()) {
+                    tva.setSanPham(sanPham);
+                }
+            }
             // XỬ LÝ KHÓA NGOẠI THƯƠNG HIỆU MẶC ĐỊNH
             if (sanPham.getThuongHieu() == null) {
                 ThuongHieu thMaoDanh = new ThuongHieu();
-                thMaoDanh.setMaThuongHieu(1); 
+                thMaoDanh.setMaThuongHieu(1);
                 sanPham.setThuongHieu(thMaoDanh);
             }
-            
+
             // Nếu Vue truyền Danh mục lên thì giữ nguyên để lưu, không đè cứng ID = 1 nữa
             if (sanPham.getDanhMuc() == null || sanPham.getDanhMuc().getMaDanhMuc() == null) {
                 DanhMuc dmMaoDanh = new DanhMuc();
-                dmMaoDanh.setMaDanhMuc(1); 
+                dmMaoDanh.setMaDanhMuc(1);
                 sanPham.setDanhMuc(dmMaoDanh);
             }
 
             // Lưu sản phẩm vào Database
             SanPham savedProduct = sanPhamRepository.save(sanPham);
             return ResponseEntity.ok(savedProduct);
-            
+
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            e.printStackTrace();
+            // Trả về mã lỗi 409 (Conflict) khi bị trùng dữ liệu unique (tên/slug)
+            return ResponseEntity.status(409)
+                    .body(Map.of("message", "Tên sản phẩm hoặc đường dẫn (slug) này đã tồn tại trong hệ thống. Vui lòng nhập tên khác!"));
         } catch (Exception e) {
-            e.printStackTrace(); 
-            return ResponseEntity.badRequest().body("Lỗi Java tại Controller: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body(Map.of("message", "Lỗi hệ thống: " + e.getMessage()));
         }
     }
 
@@ -145,13 +163,21 @@ public class SanPhamController {
             sanPham.setGiaBan(productDetails.getGiaBan());
             sanPham.setAnhDaiDien(productDetails.getAnhDaiDien());
             sanPham.setTrangThai(productDetails.getTrangThai());
-            
+
             // CẬP NHẬT THỜI GIAN BẢO HÀNH
             sanPham.setThoiGianBaoHanh(productDetails.getThoiGianBaoHanh());
-            
+
             // Cập nhật Danh mục chính từ dữ liệu Vue gửi lên
             if (productDetails.getDanhMuc() != null && productDetails.getDanhMuc().getMaDanhMuc() != null) {
                 sanPham.setDanhMuc(productDetails.getDanhMuc());
+            }
+            // Cập nhật thư viện ảnh chi tiết
+            if (productDetails.getThuVienAnhs() != null) {
+                sanPham.getThuVienAnhs().clear();
+                for (ThuVienAnh tva : productDetails.getThuVienAnhs()) {
+                    tva.setSanPham(sanPham);
+                    sanPham.getThuVienAnhs().add(tva);
+                }
             }
             sanPham.setGioiTinh(productDetails.getGioiTinh());
             // Cập nhật Loại sản phẩm (Đặc tính cơ khí) từ dữ liệu Vue gửi lên
@@ -160,13 +186,13 @@ public class SanPhamController {
             } else {
                 sanPham.setLoaiSanPham(null); // Nếu Vue gửi null thì xóa liên kết cũ dưới DB
             }
-            
+
             // Tự động cập nhật lại Slug theo tên mới nếu có sửa tên
             String slug = productDetails.getTenSanPham().toLowerCase()
                     .replaceAll("[^a-z0-9\\s]", "")
                     .replaceAll("\\s+", "-");
             sanPham.setDuongDanSlug(slug);
-            
+
             SanPham updatedProduct = sanPhamRepository.save(sanPham);
             return ResponseEntity.ok(updatedProduct);
         }).orElse(ResponseEntity.notFound().build());
