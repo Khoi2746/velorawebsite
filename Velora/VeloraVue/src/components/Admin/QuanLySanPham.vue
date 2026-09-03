@@ -188,14 +188,17 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Hình ảnh sản phẩm *</label>
-                            <input type="file" accept="image/*" @change="handleFileChange" :required="!isEditMode" />
-                            <div v-if="imagePreview" class="file-preview-wrapper">
-                                <p>Xem trước:</p>
-                                <img :src="imagePreview" class="file-preview-img" />
-                                <small class="file-name-text">Tên file sẽ lưu: <b>{{ form.anhDaiDien }}</b></small>
-                            </div>
-                        </div>
+    <label>Hình ảnh sản phẩm (Chọn tối đa 4 ảnh: Ảnh 1 là ảnh chính, các ảnh sau là ảnh chi tiết) *</label>
+    <input type="file" accept="image/*" multiple @change="handleFileChange" :required="!isEditMode" />
+    
+    <!-- Hiển thị danh sách xem trước các ảnh đã chọn -->
+    <div v-if="imagePreviews.length > 0" class="file-preview-wrapper" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+        <div v-for="(imgSrc, index) in imagePreviews" :key="index" style="text-align: center;">
+            <img :src="imgSrc" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #cca15e;" />
+            <small style="display: block; font-size: 10px; color: #666;">{{ index === 0 ? 'Ảnh chính' : 'Ảnh phụ ' + index }}</small>
+        </div>
+    </div>
+</div>
 
                         <div v-if="isEditMode" class="form-group">
                             <label>Trạng thái</label>
@@ -267,6 +270,7 @@ const paginatedProducts = computed(() => {
     return filteredProducts.value.slice(start, end);
 });
 
+
 const totalPages = computed(() => {
     return Math.ceil(filteredProducts.value.length / itemsPerPage) || 1;
 });
@@ -294,15 +298,18 @@ const currentProductId = ref(null);
 const imagePreview = ref('');
 
 // Bổ sung thoiGianBaoHanh vào form mặc định
+const imagePreviews = ref([]);
+
 const defaultForm = {
     tenSanPham: '',
     giaBan: 0,
     anhDaiDien: '',
+    thuVienAnhs: [], // Thêm mảng chứa ảnh phụ
     trangThai: 'CON_HANG',
     maDanhMucSelected: '',
     maLoaiSelected: '',
     gioiTinh: '',
-    thoiGianBaoHanh: 12 // Mặc định 12 tháng hoặc để trống
+    thoiGianBaoHanh: 12
 };
 const form = ref({ ...defaultForm });
 
@@ -333,10 +340,18 @@ const showPopup = (text, type = 'success') => {
     messageModal.value = { show: true, type, text };
 };
 const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        form.value.anhDaiDien = file.name;
-        imagePreview.value = URL.createObjectURL(file);
+    const files = Array.from(event.target.files).slice(0, 4); // Giới hạn tối đa 4 ảnh
+    if (files.length > 0) {
+        // Ảnh đầu tiên làm ảnh đại diện chính
+        form.value.anhDaiDien = files[0].name;
+        
+        // Các ảnh còn lại (hoặc toàn bộ danh sách) đẩy vào thuVienAnhs theo định dạng Entity yêu cầu
+        form.value.thuVienAnhs = files.map(file => ({
+            duongDanAnh: file.name
+        }));
+
+        // Tạo danh sách ảnh xem trước
+        imagePreviews.value = files.map(file => URL.createObjectURL(file));
     }
 };
 
@@ -391,11 +406,11 @@ const openEditModal = (product) => {
     isEditMode.value = true;
     currentProductId.value = product.maSanPham;
 
-    // Gán dữ liệu bảo hành vào form khi sửa
     form.value = {
         tenSanPham: product.tenSanPham,
         giaBan: product.giaBan,
         anhDaiDien: product.anhDaiDien,
+        thuVienAnhs: product.thuVienAnhs ? [...product.thuVienAnhs] : [],
         trangThai: product.trangThai,
         maDanhMucSelected: product.danhMuc ? product.danhMuc.maDanhMuc : '',
         maLoaiSelected: product.loaiSanPham ? product.loaiSanPham.maLoai : '',
@@ -403,7 +418,14 @@ const openEditModal = (product) => {
         thoiGianBaoHanh: product.thoiGianBaoHanh || 0
     };
 
-    imagePreview.value = product.anhDaiDien ? getImageUrl(product.anhDaiDien) : '';
+    // Hiển thị preview ảnh khi bấm sửa
+    imagePreviews.value = [];
+    if (product.thuVienAnhs && product.thuVienAnhs.length > 0) {
+        imagePreviews.value = product.thuVienAnhs.map(t => getImageUrl(t.duongDanAnh));
+    } else if (product.anhDaiDien) {
+        imagePreviews.value = [getImageUrl(product.anhDaiDien)];
+    }
+
     showModal.value = true;
 };
 
@@ -424,7 +446,8 @@ const saveProduct = async () => {
             anhDaiDien: form.value.anhDaiDien,
             trangThai: form.value.trangThai,
             thoiGianBaoHanh: form.value.thoiGianBaoHanh,
-            danhMuc: form.value.maDanhMucSelected ? { maDanhMuc: Number(form.value.maDanhMucSelected) } : null
+            danhMuc: form.value.maDanhMucSelected ? { maDanhMuc: Number(form.value.maDanhMucSelected) } : null,
+            thuVienAnhs: form.value.thuVienAnhs // Đẩy danh sách 4 ảnh lên Backend
         };
 
         if (form.value.maLoaiSelected) {
@@ -451,11 +474,28 @@ const saveProduct = async () => {
             closeModal();
             loadProducts();
         } else {
+            // Lấy text thô từ response trả về của backend
             const errorText = await res.text();
-            showPopup(`CÓ LỖI XẢY RA: ${errorText || 'Vui lòng kiểm tra lại dữ liệu.'}`, 'error');
+            let errorMsg = 'Vui lòng kiểm tra lại dữ liệu.';
+
+            try {
+                // Thử parse sang JSON để lấy trường 'message' do backend gửi lên
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.message) {
+                    errorMsg = errorJson.message;
+                }
+            } catch (e) {
+                // Nếu không phải JSON (ví dụ lỗi string thuần), giữ nguyên text thô
+                if (errorText) errorMsg = errorText;
+            }
+
+            // Gọi popup hiển thị lỗi đẹp mắt
+            showPopup(`CÓ LỖI XẢY RA: ${errorMsg}`, 'error');
         }
     } catch (error) {
         console.error('Lỗi khi lưu sản phẩm:', error);
+        // Bắt lỗi mất kết nối mạng hoặc lỗi cú pháp JS client
+        showPopup('CÓ LỖI KẾT NỐI: Không thể kết nối tới máy chủ!', 'error');
     }
 };
 
