@@ -31,9 +31,11 @@
           <div class="filter-box" style="flex: 1; min-width: 180px;">
             <select v-model="filterRole" @change="currentPage = 1" style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none; background: #fff; cursor: pointer;">
               <option value="">-- Tất cả vai trò --</option>
-              <option value="ROLE_ADMIN">ROLE_ADMIN</option>
-              <option value="ROLE_STAFF">ROLE_STAFF</option>
-              <option value="ROLE_CUSTOMER">ROLE_CUSTOMER</option>
+              <option value="ROLE_ADMIN">ROLE_ADMIN (Quản trị)</option>
+              <option value="ROLE_SALE">ROLE_SALE (Bán hàng)</option>
+              <option value="ROLE_CUSTOMER">ROLE_CUSTOMER (Khách hàng)</option>
+              <option value="ROLE_CHUYEN_VIEN_TU_VAN">ROLE_CHUYEN_VIEN_TU_VAN (Tư vấn)</option>
+              <option value="ROLE_INVENTORY">ROLE_INVENTORY (Quản lý kho)</option>
             </select>
           </div>
           <div class="filter-box" style="flex: 1; min-width: 180px;">
@@ -72,7 +74,7 @@
                 <td>
                   <template v-if="user.vaiTros && user.vaiTros.length > 0">
                     <span v-for="vt in user.vaiTros" :key="vt.maVaiTro" class="status-badge"
-                      :class="vt.tenVaiTro === 'ROLE_ADMIN' ? 'banned-status' : (vt.tenVaiTro === 'ROLE_STAFF' ? 'warn-status' : 'active-status')"
+                      :class="getRoleBadgeClass(vt.tenVaiTro)"
                       style="margin-right: 4px; display: inline-block;">
                       {{ vt.tenVaiTro }}
                     </span>
@@ -88,7 +90,6 @@
                   </span>
                 </td>
                 <td class="actions">
-                  <!-- CHỈ GIỮ NÚT CHỈNH SỬA VÀ XÓA -->
                   <button class="btn-action edit" @click="openEditModal(user)" title="Chỉnh sửa thông tin">
                     <i class="fa-solid fa-pen"></i>
                   </button>
@@ -165,7 +166,9 @@
               <label>Phân Quyền *</label>
               <select v-model="selectedRoleId" @change="updateRoleInForm($event)">
                 <option value="3">ROLE_CUSTOMER (Khách hàng)</option>
-                <option value="2">ROLE_STAFF (Nhân viên)</option>
+                <option value="2">ROLE_SALE (Bán hàng)</option>
+                <option value="4">ROLE_CHUYEN_VIEN_TU_VAN (Chuyên viên tư vấn)</option>
+                <option value="5">ROLE_INVENTORY (Quản lý kho)</option>
                 <option value="1">ROLE_ADMIN (Quản trị viên)</option>
               </select>
             </div>
@@ -196,7 +199,6 @@ import { ref, onMounted, computed } from 'vue';
 import AdminSidebar from './AdminSidebar.vue';
 import AdminHeader from './AdminHeader.vue';
 
-// Tự động bắt Hostname động (hỗ trợ cả localhost lẫn IP LAN)
 const host = window.location.hostname;
 const API_BASE = `http://${host}:8080`;
 
@@ -216,6 +218,28 @@ const filterStatus = ref('');
 
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
+
+// Khớp chính xác ID và Tên Vai Trò từ SQL Database của bạn
+const ROLE_MAP = {
+  1: 'ROLE_ADMIN',
+  2: 'ROLE_SALE',
+  3: 'ROLE_CUSTOMER',
+  4: 'ROLE_CHUYEN_VIEN_TU_VAN',
+  5: 'ROLE_INVENTORY'
+};
+
+const getRoleBadgeClass = (roleName) => {
+  switch (roleName) {
+    case 'ROLE_ADMIN':
+      return 'banned-status';
+    case 'ROLE_SALE':
+    case 'ROLE_CHUYEN_VIEN_TU_VAN':
+    case 'ROLE_INVENTORY':
+      return 'warn-status';
+    default:
+      return 'active-status';
+  }
+};
 
 const filteredUsers = computed(() => {
   return users.value.filter(user => {
@@ -389,9 +413,7 @@ const deleteUser = async (id) => {
 
 const updateRoleInForm = (event) => {
   const value = parseInt(event.target.value);
-  let name = 'ROLE_CUSTOMER';
-  if (value === 1) name = 'ROLE_ADMIN';
-  if (value === 2) name = 'ROLE_STAFF';
+  const name = ROLE_MAP[value] || 'ROLE_CUSTOMER';
   
   userForm.value.vaiTros = [{ maVaiTro: value, tenVaiTro: name }];
   selectedRoleId.value = value;
@@ -399,7 +421,6 @@ const updateRoleInForm = (event) => {
 
 onMounted(() => { loadUsers(); });
 </script>
-
 <style>
 :root {
   --wood-dark: #362921;

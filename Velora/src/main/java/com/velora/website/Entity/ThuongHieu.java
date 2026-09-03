@@ -21,8 +21,8 @@ public class ThuongHieu {
     @Column(name = "TenThuongHieu", nullable = false, unique = true, length = 100)
     private String tenThuongHieu;
 
-    @Column(name = "LogoThuongHieu", length = 255)
-    private String logoThuongHieu;
+@Column(name = "LogoThuongHieu", columnDefinition = "VARCHAR(MAX)")
+private String logoThuongHieu;
 
     @Column(name = "MoTaNgan", columnDefinition = "NVARCHAR(500)")
     private String moTaNgan;
